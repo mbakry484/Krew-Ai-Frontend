@@ -2,8 +2,18 @@
 
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
+
+// =============================================================================
+// BACKEND API NOTES (for backend team)
+// =============================================================================
+// This is a static landing page — no API calls required.
+// The demo chat animation is purely client-side/cosmetic.
+// =============================================================================
 
 export default function LandingPage() {
+  const chatRef = useRef<HTMLDivElement>(null);
+
   const scrollToSection = (id: string) => {
     const element = document.querySelector(id);
     if (element) {
@@ -11,61 +21,303 @@ export default function LandingPage() {
     }
   };
 
+  // Animated Instagram DM demo script
+  useEffect(() => {
+    const chat = chatRef.current;
+    if (!chat) return;
+
+    const script = [
+      { delay: 400,  type: 'time',    text: 'Today 2:14 PM' },
+      { delay: 700,  type: 'in',      text: 'Hi! Do you have the linen coord set in beige? What sizes?' },
+      { delay: 1500, type: 'typing',  duration: 1600 },
+      { delay: 3100, type: 'out',     text: 'Hey! Yes, the linen coord set is in beige. Sizes XS–XL all in stock. Want to order?' },
+      { delay: 4600, type: 'in',      text: 'Yes! How long does delivery take to Cairo?' },
+      { delay: 5300, type: 'typing',  duration: 1400 },
+      { delay: 6700, type: 'out',     text: 'Orders to Cairo arrive in 2–4 business days via Bosta 📦 Want me to help place the order?' },
+      { delay: 7900, type: 'in',      text: 'What if I want to return it?' },
+      { delay: 8600, type: 'typing',  duration: 1300 },
+      { delay: 9900, type: 'out',     text: 'Free exchanges within 7 days of delivery ✨ Unworn with tags. Easy process!' },
+    ];
+
+    const loopDelay = 12500;
+    let typingEl: HTMLElement | null = null;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    const el = chat; // narrowed non-null reference
+
+    function addMsg(type: string, text?: string) {
+      if (typingEl) { typingEl.remove(); typingEl = null; }
+
+      if (type === 'typing') {
+        const row = document.createElement('div');
+        row.className = 'demo-dm-row in';
+        row.innerHTML = '<div class="demo-dm-avatar">ZN</div><div class="demo-dm-typing"><span></span><span></span><span></span></div>';
+        el.appendChild(row);
+        typingEl = row;
+        el.scrollTop = el.scrollHeight;
+        return;
+      }
+
+      if (type === 'time') {
+        const ts = document.createElement('div');
+        ts.className = 'demo-dm-ts';
+        ts.textContent = text || '';
+        el.appendChild(ts);
+        el.scrollTop = el.scrollHeight;
+        return;
+      }
+
+      const row = document.createElement('div');
+      if (type === 'in') {
+        row.className = 'demo-dm-row in';
+        row.innerHTML = `<div class="demo-dm-avatar">ZN</div><div class="demo-dm-bubble in">${text}</div>`;
+      } else {
+        row.className = 'demo-dm-row out';
+        row.innerHTML = `<div class="demo-luna-lbl">Luna</div><div class="demo-dm-bubble out">${text}</div>`;
+      }
+      el.appendChild(row);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function runScript() {
+      el.innerHTML = '';
+      typingEl = null;
+      script.forEach((s) => {
+        const t = setTimeout(() => addMsg(s.type, s.text), s.delay);
+        timers.push(t);
+      });
+      const loop = setTimeout(runScript, loopDelay);
+      timers.push(loop);
+    }
+
+    runScript();
+    return () => { timers.forEach(clearTimeout); };
+  }, []);
+
   return (
     <>
       <Navigation />
-      <div className="min-h-screen pt-12">
-        {/* Hero Section */}
+      <div id="landing" className="min-h-screen pt-12">
+
+        {/* ── HERO – SPLIT LAYOUT ── */}
         <div className="min-h-screen flex flex-col">
-          <div className="flex-1 flex items-center justify-center flex-col text-center px-8 py-20 gap-[1.1rem]">
-            <div className="inline-flex items-center gap-[6px] bg-tag-bg border border-border rounded-[20px] px-3 py-1 text-[0.7rem] text-text-secondary tracking-[0.04em] uppercase before:content-[''] before:w-[5px] before:h-[5px] before:rounded-full before:bg-text-tertiary animate-fadeUp">
-              A Krew product
+          <div className="flex-1 grid hero-grid max-w-[1100px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
+
+            {/* LEFT */}
+            <div className="hero-left flex flex-col gap-[1.1rem] py-12 pr-8">
+              <div className="text-[0.62rem] uppercase tracking-[0.12em] text-text-tertiary">
+                Krew — AI Operations Platform
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-[5px] bg-tag-bg border border-border-md rounded-[6px] px-[9px] py-[3px] text-[0.68rem] font-medium text-text-secondary">
+                  <span className="luna-dot" />
+                  Luna
+                </span>
+                <span className="text-[0.62rem] text-text-tertiary">is live</span>
+              </div>
+
+              <h1 className="text-[clamp(2rem,3.2vw,3.1rem)] font-light tracking-[-0.035em] leading-[1.1] text-text-primary mt-[0.2rem]">
+                AI agents built<br />for your brand<br /><em className="not-italic text-text-secondary">operations.</em>
+              </h1>
+
+              <p className="text-[0.81rem] text-text-secondary max-w-[340px] leading-[1.78] font-light">
+                Luna is the first Krew agent — handling every Instagram customer message automatically, with your products, your tone, and zero manual effort.
+              </p>
+
+              <div className="flex gap-[0.65rem] mt-[0.3rem] flex-wrap">
+                <Link href="/auth/signup" className="bg-btn-bg text-btn-text border-none rounded-[8px] px-5 py-[9px] text-[0.77rem] font-medium hover:opacity-85 transition-opacity duration-200">
+                  Start with Luna
+                </Link>
+                <button onClick={() => scrollToSection('#products')} className="border border-border text-text-secondary rounded-[8px] px-5 py-[9px] text-[0.77rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
+                  See how it works
+                </button>
+              </div>
+
+              <div className="flex items-center gap-[1.2rem] flex-wrap mt-[0.15rem]">
+                {['~0s response time', '24/7 coverage', 'Arabic & English'].map((item) => (
+                  <span key={item} className="flex items-center gap-[5px] text-[0.67rem] text-text-tertiary before:content-[''] before:w-[3px] before:h-[3px] before:rounded-full before:bg-text-tertiary">
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 pt-4 mt-[0.2rem] border-t border-border">
+                <span className="text-[0.62rem] text-text-tertiary">More agents coming →</span>
+                <span className="inline-flex items-center gap-1 bg-tag-bg border border-border rounded px-2 py-[2px] text-[0.6rem] text-text-tertiary">Ivy · Finance</span>
+                <span className="inline-flex items-center gap-1 bg-tag-bg border border-border rounded px-2 py-[2px] text-[0.6rem] text-text-tertiary">+ more</span>
+              </div>
             </div>
-            <h1 className="text-[clamp(2.4rem,5vw,4.2rem)] font-light tracking-[-0.035em] leading-[1.05] text-text-primary max-w-[680px] animate-fadeUp animation-delay-100">
-              Luna
-            </h1>
-            <p className="text-[0.72rem] text-text-tertiary tracking-[0.09em] uppercase animate-fadeUp animation-delay-200">
-              Customer Operations Agent
-            </p>
-            <p className="text-[0.83rem] text-text-secondary max-w-[390px] leading-[1.75] font-light animate-fadeUp animation-delay-300">
-              Your brand's inbox, fully operated. Luna handles Instagram and WhatsApp DMs with your tone — guiding customers, managing orders, and turning conversations into intelligence.
-            </p>
-            <div className="flex gap-[0.7rem] mt-[0.3rem] animate-fadeUp animation-delay-400">
-              <Link
-                href="/auth/signup"
-                className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200"
-              >
-                Get early access
-              </Link>
-              <button
-                onClick={() => scrollToSection('#products')}
-                className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
-              >
-                Learn more
-              </button>
+
+            {/* RIGHT – layered demo */}
+            <div className="hero-right flex items-center justify-start py-8 pl-4 overflow-visible">
+              <div className="demo-wrap relative w-full" style={{ height: '380px' }}>
+
+                {/* IG gradient glow */}
+                <div className="demo-glow absolute inset-[-40px] rounded-full pointer-events-none z-0" style={{
+                  background: 'radial-gradient(ellipse at 55% 45%, rgba(193,53,132,0.1) 0%, rgba(253,100,5,0.07) 35%, transparent 65%)'
+                }} />
+
+                {/* BACK: desktop dashboard */}
+                <div className="absolute top-0 left-0 right-[-20px] bg-background2 border border-border-md rounded-[14px] overflow-hidden z-[1] shadow-[0_20px_60px_rgba(0,0,0,0.35)]" style={{ height: '330px' }}>
+                  {/* mac bar */}
+                  <div className="bg-background3 border-b border-border px-[0.8rem] py-[0.55rem] flex items-center gap-2">
+                    <div className="flex gap-[5px] mr-[0.6rem]">
+                      <span className="w-2 h-2 rounded-full bg-[#ff5f57]" />
+                      <span className="w-2 h-2 rounded-full bg-[#ffbd2e]" />
+                      <span className="w-2 h-2 rounded-full bg-[#28c840]" />
+                    </div>
+                    <span className="flex-1 text-center text-[0.62rem] text-text-tertiary mr-6">Luna — Conversations</span>
+                  </div>
+                  {/* body */}
+                  <div className="flex" style={{ height: 'calc(330px - 32px)' }}>
+                    {/* tiny sidebar */}
+                    <div className="w-[44px] border-r border-border bg-background flex flex-col items-center py-[0.8rem] gap-[0.7rem] shrink-0">
+                      {[
+                        <path key="a" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>,
+                        <path key="b" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9"/>,
+                        <><circle key="c1" cx="12" cy="12" r="3"/><path key="c2" d="M12 1v4M12 19v4"/></>,
+                        <path key="d" d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      ].map((icon, i) => (
+                        <div key={i} className={`w-[22px] h-[22px] rounded-[5px] flex items-center justify-center text-text-tertiary ${i === 0 ? 'bg-background3 text-text-secondary' : ''}`}>
+                          <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{icon}</svg>
+                        </div>
+                      ))}
+                    </div>
+                    {/* conversation list */}
+                    <div className="flex-1 overflow-hidden">
+                      <div className="px-[0.85rem] py-[0.7rem] pb-[0.5rem] border-b border-border flex items-center justify-between">
+                        <span className="text-[0.68rem] font-medium text-text-primary">All conversations</span>
+                        <span className="text-[0.55rem] bg-background4 border border-border rounded-[10px] px-[6px] py-[1px] text-text-tertiary">142 this week</span>
+                      </div>
+                      {[
+                        { init: 'ZN', grad: 'linear-gradient(135deg,#667eea,#764ba2)', name: 'zaynab.nour', preview: null, time: 'now', dot: true, typing: true },
+                        { init: 'LM', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', name: 'lina.maged', preview: 'Do you have this in black?', time: '2m', dot: false, typing: false },
+                        { init: 'SR', grad: 'linear-gradient(135deg,#4facfe,#00f2fe)', name: 'sara.rami', preview: "What's the return policy?", time: '5m', dot: false, typing: false },
+                        { init: 'NA', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', name: 'nour.ali', preview: 'When will size M restock?', time: '8m', dot: false, typing: false },
+                        { init: 'YK', grad: 'linear-gradient(135deg,#fa709a,#fee140)', name: 'yasmin.k', preview: 'Order confirmed! Thank you', time: '12m', dot: false, typing: false },
+                      ].map((row, i) => (
+                        <div key={i} className={`flex items-center gap-[0.55rem] px-[0.85rem] py-[0.6rem] border-b border-border ${i === 0 ? 'bg-background3' : ''}`}>
+                          <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[0.5rem] font-bold text-white" style={{ background: row.grad }}>{row.init}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[0.65rem] font-medium text-text-primary mb-[1px]">{row.name}</div>
+                            {row.typing ? (
+                              <div className="flex items-center gap-1 text-[0.57rem] text-text-tertiary">
+                                <span className="w-[4px] h-[4px] rounded-full bg-[#3dbb77] shadow-[0_0_4px_rgba(61,187,119,0.6)] animate-pulse" />
+                                Luna is replying
+                                <span className="flex gap-[2px]">
+                                  <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-[0.58rem] text-text-tertiary truncate">{row.preview}</div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-[3px] shrink-0">
+                            <span className="text-[0.55rem] text-text-tertiary">{row.time}</span>
+                            {row.dot && <span className="w-[6px] h-[6px] rounded-full bg-[#3d8bff]" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* FRONT: Instagram phone */}
+                <div className="absolute bottom-0 left-[-10px] z-[3] rounded-[22px] overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.6),-8px_0_30px_rgba(193,53,132,0.15)]" style={{ width: '155px', background: '#000', border: '1px solid rgba(255,255,255,0.18)' }}>
+
+                  {/* IG topbar */}
+                  <div className="border-b flex items-center gap-[0.35rem] px-[0.6rem] py-[0.45rem]" style={{ background: '#000', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <svg className="w-[13px] h-[13px] text-white opacity-80 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                    <div className="relative w-6 h-6 shrink-0">
+                      <div className="absolute inset-[-2px] rounded-full" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }} />
+                      <div className="absolute inset-[1.5px] rounded-full" style={{ background: '#000' }} />
+                      <div className="absolute inset-[3px] rounded-full flex items-center justify-center text-[0.38rem] font-bold text-white" style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>ZN</div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[0.57rem] font-semibold text-white">zaynab.nour</div>
+                      <div className="text-[0.48rem]" style={{ color: 'rgba(255,255,255,0.4)' }}>Active now</div>
+                    </div>
+                    <div className="flex items-center gap-[3px] rounded-[20px] px-[5px] py-[2px] text-[0.46rem] font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.7)' }}>
+                      <span className="w-1 h-1 rounded-full bg-[#3dbb77] animate-pulse" />
+                      Luna
+                    </div>
+                  </div>
+
+                  {/* chat body */}
+                  <div ref={chatRef} className="demo-chat-body px-[0.55rem] py-[0.55rem] pb-[0.4rem] flex flex-col gap-[0.35rem] overflow-hidden" style={{ background: '#000', height: '210px' }} />
+
+                  {/* input bar */}
+                  <div className="flex items-center gap-[0.4rem] px-[0.55rem] py-[0.4rem] border-t" style={{ background: '#000', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <svg className="w-[15px] h-[15px] shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <div className="flex-1 rounded-[18px] flex items-center px-2 py-1" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <span className="text-[0.52rem] flex-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Message...</span>
+                    </div>
+                    <svg className="w-[15px] h-[15px] shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="flex justify-center p-8 border-t border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 max-md:w-full">
-              <div className="text-center px-12 border-r border-border max-md:border-b max-md:py-5">
-                <div className="text-[1.5rem] font-light tracking-[-0.04em]">~0s</div>
-                <div className="text-[0.68rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">Response time</div>
-              </div>
-              <div className="text-center px-12 md:border-r border-border max-md:border-b max-md:py-5 max-md:border-r-0">
-                <div className="text-[1.5rem] font-light tracking-[-0.04em]">24/7</div>
-                <div className="text-[0.68rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">Coverage</div>
-              </div>
-              <div className="text-center px-12 border-r border-border max-md:py-5">
-                <div className="text-[1.5rem] font-light tracking-[-0.04em]">100%</div>
-                <div className="text-[0.68rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">Consistency</div>
-              </div>
-              <div className="text-center px-12 max-md:py-5 max-md:border-r-0">
-                <div className="text-[1.5rem] font-light tracking-[-0.04em]">∞</div>
-                <div className="text-[0.68rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">Scale</div>
-              </div>
+          {/* Stats strip */}
+          <div className="flex justify-center border-t border-border">
+            <div className="stats-strip-grid">
+              {[
+                { num: '~0s', label: 'Response time' },
+                { num: '24/7', label: 'Coverage' },
+                { num: '100%', label: 'Consistency' },
+                { num: '∞', label: 'Scale' },
+              ].map((s, i) => (
+                <div key={i} className={`text-center px-9 py-5 ${i < 3 ? 'border-r border-border' : ''}`}>
+                  <div className="text-[1.2rem] font-light tracking-[-0.04em]">{s.num}</div>
+                  <div className="text-[0.63rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">{s.label}</div>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+
+        {/* ── INTEGRATIONS STRIP ── */}
+        <div className="border-t border-b border-border py-[1.4rem] px-8 flex items-center justify-center gap-[0.6rem] flex-wrap">
+          <span className="text-[0.62rem] uppercase tracking-[0.1em] text-text-tertiary mr-[0.8rem] whitespace-nowrap">Integrates with</span>
+
+          {/* Instagram */}
+          <div className="integ-logo-item">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none">
+              <defs><linearGradient id="ig-g2" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#f09433"/><stop offset="25%" stopColor="#e6683c"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs>
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig-g2)" strokeWidth="1.8"/>
+              <circle cx="12" cy="12" r="4" stroke="url(#ig-g2)" strokeWidth="1.8"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="url(#ig-g2)"/>
+            </svg>
+            Instagram
+          </div>
+
+          {/* Facebook */}
+          <div className="integ-logo-item">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none">
+              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" stroke="#1877F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ color: '#1877F2' }}>Facebook</span>
+          </div>
+
+          {/* Shopify */}
+          <div className="integ-logo-item">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none">
+              <path d="M15.5 4.5s-.3-1.5-1.8-1.5c0 0-1.2.1-2.2 1.2" stroke="#96BF48" strokeWidth="1.6" strokeLinecap="round"/>
+              <path d="M8 7.5l1 12 7.5 1.5 2.5-13.5-3-.5s-.4-2-2-2.5c0 0-1.8-.3-3 1L8 7.5z" stroke="#96BF48" strokeWidth="1.6" strokeLinejoin="round"/>
+              <path d="M10.5 7l.5 11M14 7.5l-1 10.5" stroke="#96BF48" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            <span style={{ color: '#96BF48' }}>Shopify</span>
+          </div>
+
+          {/* Bosta */}
+          <div className="integ-logo-item">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="7" width="20" height="13" rx="2" stroke="#FF6B35" strokeWidth="1.8"/>
+              <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" stroke="#FF6B35" strokeWidth="1.8" strokeLinecap="round"/>
+              <path d="M12 12v3M10.5 13.5h3" stroke="#FF6B35" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ color: '#FF6B35' }}>Bosta</span>
           </div>
         </div>
 
@@ -81,47 +333,24 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-[1px] bg-border border border-border rounded-[12px] overflow-hidden">
-              <div className="bg-background p-[1.6rem] hover:bg-background3 transition-colors duration-200">
-                <div className="w-[26px] h-[26px] border border-border rounded-[6px] flex items-center justify-center text-text-tertiary mb-4">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                  </svg>
+              {[
+                { title: 'IG & WhatsApp', body: 'Brand-native responses across every channel.', icon: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/> },
+                { title: 'Order Flow', body: 'Structured data capture from every conversation.', icon: <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/> },
+                { title: 'Escalation', body: 'Complex cases handed off with full context.', icon: <path d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+                { title: 'Reports', body: 'Weekly behavior and inquiry summaries.', icon: <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/> },
+              ].map((card) => (
+                <div key={card.title} className="bg-background p-[1.6rem] hover:bg-background3 transition-colors duration-200">
+                  <div className="w-[26px] h-[26px] border border-border rounded-[6px] flex items-center justify-center text-text-tertiary mb-4">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{card.icon}</svg>
+                  </div>
+                  <div className="text-[0.78rem] font-medium text-text-primary mb-[0.4rem]">{card.title}</div>
+                  <div className="text-[0.72rem] text-text-secondary leading-[1.6] font-light">{card.body}</div>
                 </div>
-                <div className="text-[0.78rem] font-medium text-text-primary mb-[0.4rem]">IG & WhatsApp</div>
-                <div className="text-[0.72rem] text-text-secondary leading-[1.6] font-light">Brand-native responses across every channel.</div>
-              </div>
-              <div className="bg-background p-[1.6rem] hover:bg-background3 transition-colors duration-200">
-                <div className="w-[26px] h-[26px] border border-border rounded-[6px] flex items-center justify-center text-text-tertiary mb-4">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                  </svg>
-                </div>
-                <div className="text-[0.78rem] font-medium text-text-primary mb-[0.4rem]">Order Flow</div>
-                <div className="text-[0.72rem] text-text-secondary leading-[1.6] font-light">Structured data capture from every conversation.</div>
-              </div>
-              <div className="bg-background p-[1.6rem] hover:bg-background3 transition-colors duration-200">
-                <div className="w-[26px] h-[26px] border border-border rounded-[6px] flex items-center justify-center text-text-tertiary mb-4">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                  </svg>
-                </div>
-                <div className="text-[0.78rem] font-medium text-text-primary mb-[0.4rem]">Escalation</div>
-                <div className="text-[0.72rem] text-text-secondary leading-[1.6] font-light">Complex cases handed off with full context.</div>
-              </div>
-              <div className="bg-background p-[1.6rem] hover:bg-background3 transition-colors duration-200">
-                <div className="w-[26px] h-[26px] border border-border rounded-[6px] flex items-center justify-center text-text-tertiary mb-4">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                  </svg>
-                </div>
-                <div className="text-[0.78rem] font-medium text-text-primary mb-[0.4rem]">Reports</div>
-                <div className="text-[0.72rem] text-text-secondary leading-[1.6] font-light">Weekly behavior and inquiry summaries.</div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Divider */}
         <div className="h-[1px] bg-border" />
 
         {/* Intelligence Section */}
@@ -153,7 +382,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Divider */}
         <div className="h-[1px] bg-border" />
 
         {/* Vision Section */}
@@ -165,7 +393,6 @@ export default function LandingPage() {
           <p className="text-[0.8rem] text-text-secondary leading-[1.8] max-w-[460px] font-light mb-10">
             Luna is the first product under Krew. A full pipeline of named, specialized agents is being built — each one covering a different layer of your brand operations.
           </p>
-
           <div className="border border-border rounded-[10px] overflow-hidden flex flex-col gap-[1px] bg-border">
             <div className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-primary hover:bg-background3 transition-colors duration-150">
               <div className="flex items-center gap-[0.7rem]">
@@ -177,81 +404,24 @@ export default function LandingPage() {
                 <div className="w-[5px] h-[5px] rounded-full bg-text-secondary shadow-[0_0_5px_var(--text-secondary)] animate-pulse" />
               </div>
             </div>
-            <div className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-secondary hover:bg-background3 transition-colors duration-150">
-              <div className="flex items-center gap-[0.7rem]">
-                <span>Ivy</span>
-                <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary border border-border rounded px-[6px] py-[2px]">Soon</span>
+            {[
+              { name: 'Ivy', role: 'Financial Visibility' },
+              { name: '—', role: 'Performance Reporting' },
+              { name: '—', role: 'Marketing Intelligence' },
+            ].map((item) => (
+              <div key={item.name + item.role} className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-secondary hover:bg-background3 transition-colors duration-150">
+                <div className="flex items-center gap-[0.7rem]">
+                  <span>{item.name}</span>
+                  <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary border border-border rounded px-[6px] py-[2px]">Soon</span>
+                </div>
+                <span className="text-[0.68rem] text-text-tertiary">{item.role}</span>
               </div>
-              <span className="text-[0.68rem] text-text-tertiary">Financial Visibility</span>
-            </div>
-            <div className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-secondary hover:bg-background3 transition-colors duration-150">
-              <div className="flex items-center gap-[0.7rem]">
-                <span>—</span>
-                <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary border border-border rounded px-[6px] py-[2px]">Soon</span>
-              </div>
-              <span className="text-[0.68rem] text-text-tertiary">Performance Reporting</span>
-            </div>
-            <div className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-secondary hover:bg-background3 transition-colors duration-150">
-              <div className="flex items-center gap-[0.7rem]">
-                <span>—</span>
-                <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary border border-border rounded px-[6px] py-[2px]">Soon</span>
-              </div>
-              <span className="text-[0.68rem] text-text-tertiary">Marketing Intelligence</span>
-            </div>
+            ))}
           </div>
         </div>
-
-        {/* Contact Section */}
-        <div className="py-24 px-8 max-w-[960px] mx-auto" id="contact">
-          <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Get in Touch</div>
-          <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] max-w-[540px] mb-[0.9rem]">
-            Questions? Let's talk.
-          </h2>
-          <p className="text-[0.8rem] text-text-secondary leading-[1.8] max-w-[460px] font-light mb-10">
-            Our team is ready to help you understand how Luna can transform your customer operations. Reach out with any questions.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-12">
-            <div>
-              <div className="mb-6">
-                <h3 className="text-[0.85rem] font-medium text-text-primary mb-[0.5rem]">Email</h3>
-                <a href="mailto:hello@krew.ai" className="text-[0.75rem] text-text-secondary hover:text-text-primary transition-colors duration-200">
-                  hello@krew.ai
-                </a>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-[0.85rem] font-medium text-text-primary mb-[0.5rem]">Location</h3>
-                <p className="text-[0.75rem] text-text-secondary">
-                  San Francisco, CA<br />United States
-                </p>
-              </div>
-              <div>
-                <h3 className="text-[0.85rem] font-medium text-text-primary mb-[0.5rem]">Hours</h3>
-                <p className="text-[0.75rem] text-text-secondary">
-                  Monday — Friday<br />9:00 AM — 6:00 PM PT
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              <p className="text-[0.75rem] text-text-tertiary">Ready to get started?</p>
-              <Link
-                href="/auth/signup"
-                className="inline-flex items-center justify-center bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200 w-full"
-              >
-                Request early access
-              </Link>
-              <button className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200 w-full">
-                Schedule a demo
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-[1px] bg-border" />
 
         {/* CTA Section */}
-        <div className="text-center border-b border-border py-20 px-8">
+        <div className="text-center border-t border-b border-border py-20 px-8">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Early Access</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] mx-auto mb-[0.9rem]">
             Start with Luna.<br />Scale with Krew.
@@ -260,10 +430,7 @@ export default function LandingPage() {
             We're onboarding select brands into Luna now. Be among the first to turn your inbox into an operation.
           </p>
           <div className="flex justify-center gap-[0.7rem]">
-            <Link
-              href="/auth/signup"
-              className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200"
-            >
+            <Link href="/auth/signup" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
               Request access
             </Link>
             <button className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
@@ -272,7 +439,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <footer className="py-7 px-8 max-w-[960px] mx-auto flex items-center justify-between max-md:flex-col max-md:gap-2 max-md:text-center">
           <div className="text-[0.75rem] font-medium tracking-[0.07em] uppercase text-text-tertiary">Krew</div>
           <div className="text-[0.68rem] text-text-tertiary">Luna · Customer Operations Agent</div>
@@ -281,36 +447,108 @@ export default function LandingPage() {
       </div>
 
       <style jsx>{`
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(14px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        /* Hero split grid */
+        .hero-grid {
+          grid-template-columns: 52% 48%;
+        }
+        @media (max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr; }
+          .hero-right { padding: 0 0 2.5rem; justify-content: center; }
+          .demo-wrap { max-width: 300px; margin: 0 auto; }
+        }
+        @media (max-width: 640px) {
+          .hero-grid { padding: 0 1.2rem; gap: 0; }
+          .hero-left { padding: 2.5rem 0 2rem; }
+          .hero-right { padding: 0 0 2.5rem; }
+          .demo-wrap { width: calc(100vw - 2.4rem); max-width: 420px; }
         }
 
-        .animate-fadeUp {
-          animation: fadeUp 0.6s ease both;
+        .stats-strip-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        @media (max-width: 640px) {
+          .stats-strip-grid { grid-template-columns: 1fr 1fr; }
         }
 
-        .animation-delay-100 {
-          animation-delay: 0.1s;
+        /* Luna live dot */
+        .luna-dot {
+          display: inline-block;
+          width: 5px; height: 5px;
+          border-radius: 50%;
+          background: #3dbb77;
+          box-shadow: 0 0 5px rgba(61,187,119,0.5);
+          animation: pulse 2s infinite;
+          flex-shrink: 0;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* Integration logos */
+        .integ-logo-item {
+          display: flex; align-items: center; gap: 0.4rem;
+          padding: 5px 12px; border: 1px solid var(--border);
+          border-radius: 8px; background: var(--bg2);
+          font-size: 0.67rem; font-weight: 500; color: var(--text-secondary);
+          white-space: nowrap; transition: border-color 0.2s, color 0.2s;
+        }
+        .integ-logo-item:hover { border-color: var(--border-md); color: var(--text-primary); }
+
+        /* Typing indicator dots */
+        :global(.typing-dot) {
+          display: inline-block;
+          width: 3px; height: 3px; border-radius: 50%;
+          background: rgba(255,255,255,0.45);
+          animation: typingBounce 1.2s infinite ease-in-out;
+        }
+        :global(.typing-dot:nth-child(2)) { animation-delay: 0.18s; }
+        :global(.typing-dot:nth-child(3)) { animation-delay: 0.36s; }
+        @keyframes typingBounce {
+          0%,60%,100% { transform: translateY(0); opacity: 0.45; }
+          30% { transform: translateY(-4px); opacity: 1; }
         }
 
-        .animation-delay-200 {
-          animation-delay: 0.2s;
+        /* Demo chat bubbles */
+        :global(.demo-dm-ts) {
+          text-align: center; font-size: 0.46rem;
+          color: rgba(255,255,255,0.3); margin: 0.1rem 0;
         }
-
-        .animation-delay-300 {
-          animation-delay: 0.3s;
+        :global(.demo-dm-row) {
+          display: flex; gap: 0.3rem; align-items: flex-end;
+          animation: msgIn 0.25s ease both;
         }
-
-        .animation-delay-400 {
-          animation-delay: 0.4s;
+        :global(.demo-dm-row.out) { justify-content: flex-end; flex-direction: column; align-items: flex-end; }
+        :global(.demo-luna-lbl) {
+          font-size: 0.43rem; color: rgba(255,255,255,0.28);
+          letter-spacing: 0.04em; margin-bottom: 1px; padding-right: 2px;
         }
+        :global(.demo-dm-avatar) {
+          width: 16px; height: 16px; border-radius: 50%;
+          background: linear-gradient(135deg,#667eea,#764ba2);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 0.34rem; font-weight: 700; color: #fff; flex-shrink: 0; margin-bottom: 1px;
+        }
+        :global(.demo-dm-bubble) {
+          max-width: 115px; padding: 0.38rem 0.55rem;
+          font-size: 0.56rem; line-height: 1.45; border-radius: 16px;
+        }
+        :global(.demo-dm-bubble.in) { background: #262626; color: #fff; border-bottom-left-radius: 4px; }
+        :global(.demo-dm-bubble.out) {
+          background: linear-gradient(135deg,#c13584,#e1306c 40%,#fd5949 75%,#ffcd67);
+          color: #fff; border-bottom-right-radius: 4px;
+        }
+        :global(.demo-dm-typing) {
+          display: flex; align-items: center; gap: 2px;
+          padding: 0.38rem 0.55rem; background: #262626;
+          border-radius: 16px; border-bottom-left-radius: 4px; width: fit-content;
+        }
+        :global(.demo-dm-typing span) {
+          width: 4px; height: 4px; border-radius: 50%;
+          background: rgba(255,255,255,0.45);
+          animation: typingBounce 1.2s infinite ease-in-out;
+        }
+        :global(.demo-dm-typing span:nth-child(2)) { animation-delay: 0.18s; }
+        :global(.demo-dm-typing span:nth-child(3)) { animation-delay: 0.36s; }
+        @keyframes msgIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
       `}</style>
     </>
   );

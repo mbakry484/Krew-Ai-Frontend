@@ -1,542 +1,253 @@
-# Krew Backend API Documentation
+# Krew AI Frontend — Backend API Documentation
 
 Base URL: `http://localhost:3000` (Development)
 
+All endpoints are prefixed with `/api`. Auth uses a bearer token in the `Authorization: Bearer <token>` header (stored in localStorage under `auth_token` — see `lib/auth.ts`).
+
+---
+
 ## Table of Contents
-- [Authentication](#authentication)
-- [Endpoints](#endpoints)
-  - [POST /auth/signup](#post-authsignup)
-  - [POST /auth/login](#post-authlogin)
-  - [GET /auth/me](#get-authme)
-  - [POST /auth/onboarding](#post-authonboarding)
-- [Error Handling](#error-handling)
-- [CORS Configuration](#cors-configuration)
+
+1. [Authentication](#authentication)
+2. [User](#user)
+3. [Onboarding](#onboarding)
+4. [Agents (My Krew)](#agents-my-krew)
+5. [Luna — Overview](#luna--overview)
+6. [Luna — Conversations](#luna--conversations)
+7. [Luna — Issues](#luna--issues)
+8. [Luna — Reports](#luna--reports)
+9. [Luna — Knowledge Base](#luna--knowledge-base)
+10. [Luna — Settings](#luna--settings)
+11. [Integrations](#integrations)
 
 ---
 
 ## Authentication
 
-All protected endpoints require a JWT token in the Authorization header:
+### POST /api/auth/register
+Body: `{ first_name, last_name, business_name, email, password }`
+Returns: `{ access_token, user: { id, first_name, last_name, email } }`
 
-```
-Authorization: Bearer <your_jwt_token>
-```
+### POST /api/auth/login
+Body: `{ email, password }`
+Returns: `{ access_token, user: { id, first_name, last_name, email } }`
 
-JWT tokens:
-- Expire in 7 days
-- Contain payload: `{ user_id, email }`
-- Use HS256 algorithm
+### POST /api/auth/logout
+Returns: `{ success: boolean }`
 
 ---
 
-## Endpoints
+## User
 
-### POST /auth/signup
+### GET /api/user/info
+Returns: `{ first_name, last_name, email }`
 
-Register a new user account.
+---
 
-**Endpoint:** `POST /auth/signup`
+## Onboarding
 
-**Authentication:** Not required
+### POST /api/onboarding
+Body: `{ business_type, revenue_range, dm_volume, pain_point }`
+Returns: `{ success: boolean }`
 
-**Request Body:**
+---
+
+## Agents (My Krew page)
+
+### GET /api/agents
+Returns: `[{ id, name, role, status: 'live'|'soon', stats: object }]`
+
+### GET /api/notifications
+Returns: `[{ id, agent: 'Luna'|'Ivy', message: string, time: string }]`
+Used for the notification chips row on the My Krew dashboard.
+
+---
+
+## Luna — Overview
+
+### GET /api/luna/overview?period=today|yesterday|week|month
+Returns:
 ```json
 {
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "first_name": "Mohamed",
-  "last_name": "Bakry",
-  "business_name": "My Business Inc"
-}
-```
-
-**Required Fields:**
-- `email` (string) - User's email address (must be unique)
-- `password` (string) - User's password (will be hashed with bcrypt)
-- `first_name` (string) - User's first name
-- `last_name` (string) - User's last name
-- `business_name` (string) - User's business name
-
-**Success Response (201 Created):**
-```json
-{
-  "message": "User created successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com"
-  }
-}
-```
-
-**Error Responses:**
-
-**400 Bad Request** - Missing required fields
-```json
-{
-  "error": "Missing required fields: email, password, first_name, last_name, business_name",
-  "received": {
-    "email": "user@example.com",
-    "password": "***",
-    "first_name": null,
-    "last_name": null,
-    "business_name": null
-  }
-}
-```
-
-**409 Conflict** - Email already exists
-```json
-{
-  "error": "User with this email already exists"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "error": "Failed to create user account"
+  "stats": {
+    "orders_from_dms": 48,
+    "return_requests": 23,
+    "refund_requests": 15,
+    "total_conversations": 142,
+    "orders_delta": 12,
+    "returns_delta": -8,
+    "refunds_delta": 5,
+    "conversations_delta": 18
+  },
+  "hourly_volume": [30,20,25,40,60,75,95,80,70,65,50,45],
+  "hourly_labels": ["8am","10","12","2pm","4","6","8","10","12","2am","4","6"],
+  "weekly_volume": [55,62,48,70,65,92,78],
+  "weekly_labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+  "top_issues": [
+    { "id": "1", "name": "Sizing issue", "description": "...", "count": 12, "delta_pct": 20 }
+  ],
+  "sentiment": { "angry": 15, "neutral": 45, "positive": 40 }
 }
 ```
 
 ---
 
-### POST /auth/login
+## Luna — Conversations
 
-Authenticate a user and receive a JWT token.
-
-**Endpoint:** `POST /auth/login`
-
-**Authentication:** Not required
-
-**Request Body:**
+### GET /api/luna/conversations?period=today|week|month&status=all|resolved|escalated|pending
+Returns:
 ```json
 {
-  "email": "user@example.com",
-  "password": "securePassword123"
-}
-```
-
-**Required Fields:**
-- `email` (string) - User's email address
-- `password` (string) - User's password
-
-**Success Response (200 OK):**
-```json
-{
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com"
-  }
-}
-```
-
-**Error Responses:**
-
-**400 Bad Request** - Missing credentials
-```json
-{
-  "error": "Email and password are required"
-}
-```
-
-**401 Unauthorized** - Invalid credentials
-```json
-{
-  "error": "Invalid email or password"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "error": "Internal server error"
+  "conversations": [
+    {
+      "id": "string",
+      "customer": "@sarah.style",
+      "channel": "instagram | whatsapp",
+      "topic": "Size inquiry",
+      "status": "resolved | escalated | pending",
+      "timestamp": "2m ago"
+    }
+  ]
 }
 ```
 
 ---
 
-### GET /auth/me
+## Luna — Issues
 
-Get the authenticated user's profile information.
-
-**Endpoint:** `GET /auth/me`
-
-**Authentication:** Required (JWT)
-
-**Request Headers:**
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Success Response (200 OK):**
+### GET /api/luna/issues?period=today|week|month
+Returns:
 ```json
 {
-  "user": {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com",
-    "first_name": "Mohamed",
-    "last_name": "Bakry",
-    "business_name": "My Business Inc",
-    "business_type": "E-commerce",
-    "revenue_range": "$10k-$50k",
-    "dm_volume": "50-100/day",
-    "pain_point": "Managing customer inquiries",
-    "created_at": "2026-03-10T12:00:00.000Z"
-  }
+  "issues": [
+    {
+      "id": "string",
+      "name": "Sizing issue",
+      "description": "Customers can't find their size in the chart",
+      "count": 12,
+      "delta_pct": 20
+    }
+  ],
+  "sentiment": { "angry": 15, "neutral": 45, "positive": 40 }
 }
 ```
 
-**Response Fields:**
-- `id` (string) - User's unique identifier
-- `email` (string) - User's email address
-- `first_name` (string) - User's first name
-- `last_name` (string) - User's last name
-- `business_name` (string) - User's business name
-- `business_type` (string|null) - Type of business
-- `revenue_range` (string|null) - Business revenue range
-- `dm_volume` (string|null) - Daily DM volume
-- `pain_point` (string|null) - Main pain point
-- `created_at` (string) - Account creation timestamp
+### POST /api/luna/issues/export
+Body: `{ format: "pdf" | "csv" }`
+Returns: `{ download_url: string }`
 
-**Note:** The `password` field is never returned for security.
-
-**Error Responses:**
-
-**401 Unauthorized** - Missing or invalid token
-```json
-{
-  "error": "Access token required"
-}
-```
-```json
-{
-  "error": "Invalid or expired token"
-}
-```
-
-**404 Not Found** - User not found
-```json
-{
-  "error": "User not found"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "error": "Internal server error"
-}
-```
+### POST /api/luna/issues/flag-team
+Body: `{ issue_ids: string[] }`
+Returns: `{ success: boolean }`
 
 ---
 
-### POST /auth/onboarding
+## Luna — Reports
 
-Update the authenticated user's onboarding information.
-
-**Endpoint:** `POST /auth/onboarding`
-
-**Authentication:** Required (JWT)
-
-**Request Headers:**
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Request Body:**
+### GET /api/luna/reports/summary?period=month|week
+Returns:
 ```json
 {
-  "business_type": "E-commerce",
-  "revenue_range": "$10k-$50k",
-  "dm_volume": "50-100/day",
-  "pain_point": "Managing customer inquiries"
+  "total_dms": 1842,
+  "resolution_rate": 96,
+  "avg_response_ms": 400,
+  "escalations": 31,
+  "total_dms_delta": 18,
+  "resolution_delta": 3,
+  "response_delta": 100,
+  "escalations_delta": -2,
+  "monthly_volume": [55,68,44,78,60,94],
+  "monthly_labels": ["Sep","Oct","Nov","Dec","Jan","Feb"]
 }
 ```
 
-**Optional Fields:**
-- `business_type` (string) - Type of business
-- `revenue_range` (string) - Business revenue range
-- `dm_volume` (string) - Daily Instagram DM volume
-- `pain_point` (string) - Main business pain point
+### POST /api/luna/reports/export
+Body: `{ format: "pdf" | "csv", period: "daily" | "weekly" | "monthly" }`
+Returns: `{ download_url: string }`
 
-**Note:** At least one field must be provided.
+### POST /api/luna/reports/send-email
+Body: `{ period: "daily" | "weekly" | "monthly" }`
+Returns: `{ success: boolean }`
 
-**Success Response (200 OK):**
+### POST /api/luna/reports/send-whatsapp
+Body: `{ period: "daily" }`
+Returns: `{ success: boolean }`
+
+---
+
+## Luna — Knowledge Base
+
+### GET /api/luna/knowledge-base
+Returns: `{ items: [{ id, question, answer, fixed: boolean }] }`
+
+### POST /api/luna/knowledge-base
+Body: `{ items: [{ id?, question, answer }] }`
+Returns: `{ success: boolean }`
+
+### DELETE /api/luna/knowledge-base/:id
+Returns: `{ success: boolean }`
+
+---
+
+## Luna — Settings
+
+### GET /api/luna/settings
+Returns:
 ```json
 {
-  "message": "Onboarding information updated successfully",
-  "user": {
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "email": "user@example.com",
-    "business_type": "E-commerce",
-    "revenue_range": "$10k-$50k",
-    "dm_volume": "50-100/day",
-    "pain_point": "Managing customer inquiries"
-  }
+  "brand_tone": "Friendly | Professional | Casual | Luxury",
+  "escalation_threshold": "3_messages | 5_messages | any_complaint | never",
+  "active_channels": { "instagram": true, "whatsapp": true }
 }
 ```
 
-**Error Responses:**
-
-**400 Bad Request** - No fields provided
-```json
-{
-  "error": "At least one field is required: business_type, revenue_range, dm_volume, pain_point"
-}
-```
-
-**401 Unauthorized** - Missing or invalid token
-```json
-{
-  "error": "Access token required"
-}
-```
-```json
-{
-  "error": "Invalid or expired token"
-}
-```
-
-**500 Internal Server Error**
-```json
-{
-  "error": "Failed to update user information"
-}
-```
+### PUT /api/luna/settings
+Body: same shape as GET response
+Returns: `{ success: boolean }`
 
 ---
 
-## Error Handling
+## Integrations
 
-All errors follow a consistent format:
+### Shopify
 
-```json
-{
-  "error": "Error message describing what went wrong"
-}
-```
+#### GET /api/integrations/shopify/status
+Returns: `{ linked: boolean, shop_domain?: string }`
 
-### HTTP Status Codes
+#### POST /api/integrations/shopify/connect
+Body: `{ shop_domain: "store-name.myshopify.com" }`
+Returns: `{ oauth_url: string }` ← frontend redirects user to this URL for OAuth
 
-- `200 OK` - Request succeeded
-- `201 Created` - Resource created successfully
-- `400 Bad Request` - Invalid request data
-- `401 Unauthorized` - Missing or invalid authentication
-- `403 Forbidden` - Valid token but insufficient permissions
-- `404 Not Found` - Resource not found
-- `409 Conflict` - Resource already exists
-- `500 Internal Server Error` - Server-side error
+After OAuth completes, Shopify redirects back to:
+`/dashboard/luna/settings?shopify=connected`
+
+#### DELETE /api/integrations/shopify/disconnect
+Returns: `{ success: boolean }`
 
 ---
 
-## CORS Configuration
+### Meta Business (Instagram + WhatsApp)
 
-The API supports CORS for the following origins:
-- `http://localhost:3000`
-- `http://localhost:3001`
-- `https://krew-ai-frontend.vercel.app`
+#### GET /api/integrations/meta/status
+Returns: `{ linked: boolean, account_id?: string }`
 
-**Allowed Methods:**
-- GET
-- POST
-- PUT
-- DELETE
-- PATCH
-- OPTIONS
+#### POST /api/integrations/meta/connect
+Body: `{ business_account_id: string, access_token: string }`
+Returns: `{ success: boolean }`
 
-**Allowed Headers:**
-- Content-Type
-- Authorization
-
-**Credentials:** Enabled
+#### DELETE /api/integrations/meta/disconnect
+Returns: `{ success: boolean }`
 
 ---
 
-## Example Usage
+### Bosta
 
-### JavaScript/TypeScript (Fetch API)
+#### GET /api/integrations/bosta/status
+Returns: `{ linked: boolean }`
 
-#### Signup
-```typescript
-const signup = async (userData: {
-  email: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-  business_name: string;
-}) => {
-  const response = await fetch('http://localhost:3000/auth/signup', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
+#### POST /api/integrations/bosta/connect
+Body: `{ api_key: string }`
+Returns: `{ success: boolean }`
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
-  }
-
-  const data = await response.json();
-  // Store token in localStorage or secure storage
-  localStorage.setItem('token', data.token);
-  return data;
-};
-```
-
-#### Login
-```typescript
-const login = async (email: string, password: string) => {
-  const response = await fetch('http://localhost:3000/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
-  }
-
-  const data = await response.json();
-  localStorage.setItem('token', data.token);
-  return data;
-};
-```
-
-#### Get Current User
-```typescript
-const getCurrentUser = async () => {
-  const token = localStorage.getItem('token');
-
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-
-  const response = await fetch('http://localhost:3000/auth/me', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
-  }
-
-  return await response.json();
-};
-```
-
-#### Update Onboarding
-```typescript
-const updateOnboarding = async (onboardingData: {
-  business_type?: string;
-  revenue_range?: string;
-  dm_volume?: string;
-  pain_point?: string;
-}) => {
-  const token = localStorage.getItem('token');
-
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-
-  const response = await fetch('http://localhost:3000/auth/onboarding', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(onboardingData),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error);
-  }
-
-  return await response.json();
-};
-```
-
----
-
-## Database Schema
-
-### Users Table
-
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
-  business_name VARCHAR(255) NOT NULL,
-  business_type VARCHAR(100),
-  revenue_range VARCHAR(50),
-  dm_volume VARCHAR(50),
-  pain_point TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
----
-
-## Environment Variables
-
-Backend requires the following environment variables:
-
-```bash
-# Server Configuration
-PORT=3000
-
-# CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,https://krew-ai-frontend.vercel.app
-
-# Supabase Configuration
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
-
-# Authentication
-JWT_SECRET=your_jwt_secret_key
-
-# Meta/Instagram Configuration (for other features)
-META_APP_ID=your_meta_app_id
-META_APP_SECRET=your_meta_app_secret
-VERIFY_TOKEN=your_webhook_verify_token
-
-# OpenAI API (for AI features)
-OPENAI_API_KEY=your_openai_api_key
-```
-
----
-
-## Security Best Practices
-
-1. **Always use HTTPS in production**
-2. **Never expose JWT_SECRET**
-3. **Store tokens securely** (use httpOnly cookies or secure storage)
-4. **Implement token refresh** for better security
-5. **Validate all user inputs** on both frontend and backend
-6. **Use strong passwords** (minimum 8 characters with complexity)
-7. **Implement rate limiting** to prevent brute force attacks
-8. **Log security events** for monitoring
-
----
-
-## Support
-
-For issues or questions:
-- Backend Repository: Contact your backend team
-- Frontend Integration: Check the example code above
-
-Last Updated: March 10, 2026
+#### DELETE /api/integrations/bosta/disconnect
+Returns: `{ success: boolean }`
