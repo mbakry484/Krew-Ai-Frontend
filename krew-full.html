@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Krew — AI Operations</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+[data-theme="dark"] {
+  --bg: #0f0f0f; --bg2: #161616; --bg3: #1d1d1d; --bg4: #252525;
+  --border: rgba(255,255,255,0.09); --border-md: rgba(255,255,255,0.15); --border-hover: rgba(255,255,255,0.25);
+  --text-primary: #e8e8e8; --text-secondary: rgba(232,232,232,0.55); --text-tertiary: rgba(232,232,232,0.3);
+  --btn-bg: #e8e8e8; --btn-text: #0f0f0f; --tag-bg: rgba(255,255,255,0.06); --input-bg: rgba(255,255,255,0.05);
+  --dropdown-bg: #161616; --overlay-bg: rgba(0,0,0,0.6);
+}
+[data-theme="light"] {
+  --bg: #f0efed; --bg2: #f8f7f5; --bg3: #e8e7e4; --bg4: #dddbd7;
+  --border: rgba(0,0,0,0.09); --border-md: rgba(0,0,0,0.15); --border-hover: rgba(0,0,0,0.25);
+  --text-primary: #1a1a1a; --text-secondary: rgba(26,26,26,0.58); --text-tertiary: rgba(26,26,26,0.35);
+  --btn-bg: #1a1a1a; --btn-text: #f0efed; --tag-bg: rgba(0,0,0,0.05); --input-bg: rgba(0,0,0,0.05);
+  --dropdown-bg: #f8f7f5; --overlay-bg: rgba(240,239,237,0.6);
+}
+
+html { font-size: 13px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  background: var(--bg); color: var(--text-primary);
+  min-height: 100vh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ══════════════════════ NAV ══════════════════════ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 48px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; border-bottom: 1px solid var(--border);
+  background: var(--bg); backdrop-filter: blur(20px);
+  transition: background 0.3s, border-color 0.3s;
+}
+.nav-logo {
+  font-size: 0.82rem; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-primary); cursor: pointer;
+}
+.nav-center { display: flex; align-items: center; gap: 1.8rem; }
+.nav-link {
+  font-size: 0.75rem; color: var(--text-secondary); text-decoration: none;
+  letter-spacing: 0.02em; transition: color 0.2s; cursor: pointer; background: none; border: none; font-family: inherit;
+}
+.nav-link:hover { color: var(--text-primary); }
+.nav-right { display: flex; align-items: center; gap: 0.8rem; }
+
+.theme-toggle {
+  background: none; border: 1px solid var(--border); border-radius: 20px;
+  padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+  font-size: 0.7rem; color: var(--text-tertiary); transition: all 0.2s; font-family: inherit;
+}
+.theme-toggle:hover { border-color: var(--border-md); color: var(--text-secondary); }
+.theme-toggle svg { width: 10px; height: 10px; fill: currentColor; }
+
+.btn-nav {
+  font-size: 0.75rem; cursor: pointer; border-radius: 7px;
+  padding: 6px 14px; font-family: inherit; transition: all 0.2s; letter-spacing: 0.01em;
+}
+.btn-nav-ghost { background: none; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-nav-ghost:hover { border-color: var(--border-md); color: var(--text-primary); }
+.btn-nav-solid { background: var(--btn-bg); color: var(--btn-text); border: none; font-weight: 500; }
+.btn-nav-solid:hover { opacity: 0.85; }
+
+/* PROFILE BUTTON */
+.profile-wrap { position: relative; }
+.profile-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg4); border: 1px solid var(--border-md);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.62rem; font-weight: 600;
+  color: var(--text-secondary); letter-spacing: 0.02em;
+  transition: border-color 0.2s; user-select: none;
+}
+.profile-btn:hover { border-color: var(--border-hover); }
+
+/* DROPDOWN */
+.dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 200px; background: var(--dropdown-bg);
+  border: 1px solid var(--border-md); border-radius: 10px;
+  overflow: hidden; opacity: 0; pointer-events: none;
+  transform: translateY(-6px); transition: opacity 0.18s, transform 0.18s;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.dropdown.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+
+.dropdown-header {
+  padding: 0.9rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+.dropdown-name { font-size: 0.78rem; font-weight: 500; color: var(--text-primary); margin-bottom: 1px; }
+.dropdown-email { font-size: 0.68rem; color: var(--text-tertiary); }
+
+.dropdown-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.7rem 1rem; font-size: 0.75rem; color: var(--text-secondary);
+  cursor: pointer; transition: background 0.15s, color 0.15s; border: none;
+  background: none; width: 100%; text-align: left; font-family: inherit;
+}
+.dropdown-item:hover { background: var(--bg3); color: var(--text-primary); }
+.dropdown-item svg { width: 13px; height: 13px; flex-shrink: 0; }
+.dropdown-item.danger { color: rgba(240,80,80,0.6); }
+.dropdown-item.danger:hover { background: rgba(240,80,80,0.05); color: rgba(240,80,80,0.9); }
+.dropdown-sep { height: 1px; background: var(--border); }
+
+/* ══════════════════════ AUTH MODAL ══════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--overlay-bg); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--bg2); border: 1px solid var(--border-md);
+  border-radius: 14px; padding: 2rem; width: 100%; max-width: 340px;
+  transform: translateY(12px); transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal-title {
+  font-size: 1.1rem; font-weight: 300; letter-spacing: -0.025em;
+  color: var(--text-primary); margin-bottom: 0.25rem;
+}
+.modal-sub { font-size: 0.72rem; color: var(--text-tertiary); margin-bottom: 1.6rem; }
+
+.field { margin-bottom: 0.8rem; }
+.field-label { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 0.3rem; }
+.field-input {
+  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px; font-size: 0.78rem; color: var(--text-primary);
+  outline: none; transition: border-color 0.2s; font-family: inherit;
+}
+.field-input:focus { border-color: var(--border-md); }
+.field-input::placeholder { color: var(--text-tertiary); }
+
+.modal-row { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; }
+.modal-row .field { flex: 1; margin-bottom: 0; }
+
+.btn-modal-primary {
+  width: 100%; background: var(--btn-bg); color: var(--btn-text); border: none;
+  border-radius: 8px; padding: 10px; font-size: 0.78rem; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: opacity 0.2s; margin-top: 0.4rem;
+}
+.btn-modal-primary:hover { opacity: 0.85; }
+
+.modal-switch {
+  text-align: center; font-size: 0.7rem; color: var(--text-tertiary); margin-top: 1rem;
+}
+.modal-switch a { color: var(--text-secondary); cursor: pointer; text-decoration: none; }
+.modal-switch a:hover { color: var(--text-primary); }
+
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 1.1rem; line-height: 1;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--text-primary); }
+.modal { position: relative; }
+
+/* ══════════════════════ LANDING PAGE ══════════════════════ */
+#landing { min-height: 100vh; }
+
+.hero {
+  padding-top: 48px; min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+.hero-content {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; text-align: center; padding: 5rem 2rem 3rem; gap: 1.1rem;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--tag-bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; font-size: 0.7rem;
+  color: var(--text-secondary); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.hero-tag::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary);
+}
+h1 {
+  font-size: clamp(2.4rem, 5vw, 4.2rem); font-weight: 300;
+  letter-spacing: -0.035em; line-height: 1.05; color: var(--text-primary); max-width: 680px;
+}
+.hero-sub-name {
+  font-size: 0.72rem; color: var(--text-tertiary); letter-spacing: 0.09em; text-transform: uppercase;
+}
+.hero-sub {
+  font-size: 0.83rem; color: var(--text-secondary); max-width: 390px;
+  line-height: 1.75; font-weight: 300;
+}
+.hero-cta { display: flex; gap: 0.7rem; margin-top: 0.3rem; }
+.btn-primary-lg {
+  background: var(--btn-bg); color: var(--btn-text); border: none; border-radius: 8px;
+  padding: 9px 22px; font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  font-family: inherit; transition: opacity 0.2s;
+}
+.btn-primary-lg:hover { opacity: 0.85; }
+.btn-ghost-lg {
+  background: none; color: var(--text-secondary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 22px; font-size: 0.78rem; cursor: pointer;
+  font-family: inherit; transition: all 0.2s;
+}
+.btn-ghost-lg:hover { border-color: var(--border-hover); color: var(--text-primary); }
+
+.stats-row {
+  display: flex; justify-content: center;
+  padding: 2rem; border-top: 1px solid var(--border);
+}
+.stat { text-align: center; padding: 0 3rem; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-num { font-size: 1.5rem; font-weight: 300; letter-spacing: -0.04em; }
+.stat-label { font-size: 0.68rem; color: var(--text-tertiary); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+
+.divider { height: 1px; background: var(--border); }
+
+/* SECTIONS */
+.lp-section { padding: 6rem 2rem; max-width: 960px; margin: 0 auto; }
+.eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 1.4rem; }
+.sec-title { font-size: clamp(1.3rem, 3vw, 1.9rem); font-weight: 300; letter-spacing: -0.025em; line-height: 1.2; max-width: 540px; margin-bottom: 0.9rem; }
+.sec-body { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.8; max-width: 460px; font-weight: 300; }
+
+.feature-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+
+.mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.mini-card { background: var(--bg); padding: 1.6rem; transition: background 0.2s; }
+.mini-card:hover { background: var(--bg3); }
+.mini-card-icon { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); margin-bottom: 1rem; }
+.mini-card-icon svg { width: 12px; height: 12px; }
+.mini-card-title { font-size: 0.78rem; font-weight: 500; color: var(--text-primary); margin-bottom: 0.4rem; }
+.mini-card-body { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.6; font-weight: 300; }
+
+.insights-list { list-style: none; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 2rem; }
+.insight-item {
+  padding: 1rem 1.3rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 1rem; font-size: 0.75rem;
+  color: var(--text-secondary); background: var(--bg); transition: background 0.15s, color 0.15s;
+}
+.insight-item:last-child { border-bottom: none; }
+.insight-item:hover { background: var(--bg3); color: var(--text-primary); }
+.insight-num { font-size: 0.62rem; color: var(--text-tertiary); width: 16px; text-align: right; flex-shrink: 0; }
+
+.pipeline { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1px; background: var(--border); }
+.pipeline-item { background: var(--bg); padding: 1.1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); transition: background 0.15s; }
+.pipeline-item:hover { background: var(--bg3); }
+.pipeline-item.active { color: var(--text-primary); }
+.pl-left { display: flex; align-items: center; gap: 0.7rem; }
+.pl-tag { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; }
+.pl-tag.live { color: var(--text-secondary); border-color: var(--border-md); }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); }
+.status-dot.live { background: var(--text-secondary); box-shadow: 0 0 5px var(--text-secondary); animation: pulse 2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.cta-section { text-align: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 5rem 2rem; }
+.cta-section .sec-title { margin: 0 auto 0.9rem; text-align: center; }
+.cta-section .sec-body { margin: 0 auto 2rem; text-align: center; }
+
+footer { padding: 1.8rem 2rem; max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.footer-logo { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-tertiary); }
+.footer-copy { font-size: 0.68rem; color: var(--text-tertiary); }
+
+/* ══════════════════════ MY KREW PAGE ══════════════════════ */
+#mykrew { min-height: 100vh; padding-top: 48px; }
+
+.mk-main { max-width: 1100px; margin: 0 auto; padding: 3rem 2.5rem 5rem; }
+.mk-greeting { margin-bottom: 0.8rem; }
+.mk-greeting h2 { font-size: 1.5rem; font-weight: 300; letter-spacing: -0.03em; margin-bottom: 0.2rem; }
+.mk-greeting p { font-size: 0.72rem; color: var(--text-tertiary); }
+
+.mk-notifs { display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; padding-bottom: 0.2rem; margin-bottom: 2.5rem; }
+.mk-notifs::-webkit-scrollbar { display: none; }
+.notif-chip {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+  padding: 5px 11px; font-size: 0.67rem; color: var(--text-secondary);
+  white-space: nowrap; cursor: default; transition: border-color 0.2s;
+}
+.notif-chip:hover { border-color: var(--border-md); }
+.notif-chip-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-tertiary); }
+.notif-tag { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+
+.mk-section-eye { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 1rem; }
+
+.agents-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+
+.agent-card {
+  background: var(--bg); padding: 2rem; cursor: pointer;
+  transition: background 0.18s; display: flex; flex-direction: column;
+  gap: 1.4rem; min-height: 230px;
+}
+.agent-card:hover { background: var(--bg2); }
+.agent-card.locked { cursor: default; opacity: 0.42; pointer-events: none; }
+
+.ac-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.ac-icon { width: 38px; height: 38px; border: 1px solid var(--border-md); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); }
+.ac-icon svg { width: 15px; height: 15px; }
+.ac-status { display: flex; align-items: center; gap: 5px; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+.ac-status.live { color: var(--text-secondary); }
+
+.ac-body { flex: 1; }
+.ac-name { font-size: 1.8rem; font-weight: 300; letter-spacing: -0.04em; margin-bottom: 0.15rem; }
+.ac-role { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 0.75rem; }
+.ac-desc { font-size: 0.73rem; color: var(--text-secondary); line-height: 1.7; font-weight: 300; max-width: 320px; }
+
+.ac-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+.ac-stats { display: flex; gap: 1.8rem; }
+.ac-sn { font-size: 1rem; font-weight: 300; letter-spacing: -0.03em; margin-bottom: 1px; }
+.ac-sl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+.ac-open { display: flex; align-items: center; gap: 4px; font-size: 0.67rem; color: var(--text-tertiary); transition: color 0.15s; }
+.agent-card:hover .ac-open { color: var(--text-secondary); }
+.ac-open svg { width: 11px; height: 11px; }
+.ac-soon { font-size: 0.6rem; color: var(--text-tertiary); border: 1px solid var(--border); border-radius: 4px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ══════════════════════ AGENT DASHBOARD ══════════════════════ */
+#agentview { min-height: 100vh; padding-top: 48px; }
+
+.av-header {
+  max-width: 1100px; margin: 0 auto; padding: 2.5rem 2.5rem 1.8rem;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.av-header-left h2 { font-size: 2.2rem; font-weight: 300; letter-spacing: -0.04em; margin-bottom: 0.15rem; }
+.av-header-left p { font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); }
+.av-header-right { display: flex; gap: 0.5rem; }
+.btn-sm { background: none; border: 1px solid var(--border); border-radius: 7px; padding: 6px 14px; font-size: 0.7rem; color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.btn-sm:hover { border-color: var(--border-md); color: var(--text-primary); }
+.btn-sm.solid { background: var(--btn-bg); color: var(--btn-text); border-color: transparent; }
+.btn-sm.solid:hover { opacity: 0.85; }
+
+.dash-wrap { max-width: 1100px; margin: 0 auto; padding: 1.8rem 2.5rem 4rem; }
+.d-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.dc { background: var(--bg); padding: 1.4rem; transition: background 0.15s; }
+.dc:hover { background: var(--bg2); }
+.c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c6 { grid-column: span 6; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+.dl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 0.65rem; }
+.dv { font-size: 1.9rem; font-weight: 300; letter-spacing: -0.04em; margin-bottom: 0.15rem; }
+.ds { font-size: 0.66rem; color: var(--text-tertiary); }
+.dt { font-size: 0.76rem; font-weight: 400; color: var(--text-primary); margin-bottom: 0.25rem; letter-spacing: -0.01em; }
+
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 50px; margin-top: 0.9rem; }
+.b { flex: 1; background: var(--border-md); border-radius: 2px 2px 0 0; transition: background 0.2s; }
+.b:hover { background: var(--text-tertiary); }
+.b.hi { background: var(--text-secondary); }
+
+.act-list { display: flex; flex-direction: column; margin-top: 0.7rem; }
+.act-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.69rem; color: var(--text-secondary); }
+.act-item:last-child { border-bottom: none; }
+.act-t { font-size: 0.58rem; color: var(--text-tertiary); min-width: 50px; }
+.act-d { width: 3px; height: 3px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+
+.q-list { display: flex; flex-direction: column; margin-top: 0.7rem; }
+.q-item { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--border); font-size: 0.69rem; color: var(--text-secondary); }
+.q-item:last-child { border-bottom: none; }
+.q-n { font-size: 0.66rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.sp-row { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.7rem; }
+.sp-hd { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.66rem; }
+.sp-lbl { color: var(--text-secondary); } .sp-pct { color: var(--text-tertiary); }
+.sp-track { background: var(--border-md); border-radius: 2px; height: 3px; overflow: hidden; }
+.sp-fill { height: 100%; background: var(--text-tertiary); border-radius: 2px; }
+
+.cf-row { display: flex; gap: 1px; background: var(--border); border-radius: 6px; overflow: hidden; margin-top: 0.7rem; }
+.cf-item { flex: 1; padding: 0.75rem; background: var(--bg); }
+.cf-l { font-size: 0.57rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); margin-bottom: 0.2rem; }
+.cf-v { font-size: 0.95rem; font-weight: 300; letter-spacing: -0.02em; }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.a1{animation:fadeUp 0.45s ease both} .a2{animation:fadeUp 0.45s 0.07s ease both}
+.a3{animation:fadeUp 0.45s 0.14s ease both} .a4{animation:fadeUp 0.45s 0.21s ease both}
+.hero-content>*{animation:fadeUp 0.6s ease both}
+.hero-content>*:nth-child(1){animation-delay:.1s} .hero-content>*:nth-child(2){animation-delay:.2s}
+.hero-content>*:nth-child(3){animation-delay:.3s} .hero-content>*:nth-child(4){animation-delay:.4s}
+.hero-content>*:nth-child(5){animation-delay:.5s}
+
+@media(min-width:641px) and (max-width:900px){
+  .nav-center { display: none !important; }
+  .agents-grid { grid-template-columns: 1fr; }
+  .feature-split { grid-template-columns: 1fr; gap: 2.5rem; }
+  .c3 { grid-column: span 6; }
+  .c4 { grid-column: span 6; }
+  .c6 { grid-column: span 12; }
+  .c8 { grid-column: span 12; }
+  .av-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+  .lp-section { padding: 4rem 1.5rem; }
+  .mk-main { padding: 2rem 1.5rem 4rem; }
+  .dash-wrap { padding: 1.5rem 1.5rem 3rem; }
+}
+
+/* ══════ RESPONSIVE ══════ */
+@media(max-width:640px){
+  html { font-size: 12px; }
+
+  /* NAV — hide center links, compress right side */
+  .nav { padding: 0 1rem; }
+  .nav-center { display: none !important; }
+  .theme-toggle span { display: none; }
+  .theme-toggle { padding: 5px 8px; }
+  .btn-nav { padding: 6px 10px; font-size: 0.72rem; }
+
+  /* MODALS */
+  .modal { margin: 1rem; padding: 1.5rem; max-width: calc(100vw - 2rem); }
+  .modal-row { flex-direction: column; gap: 0; }
+  .modal-row .field { margin-bottom: 0.8rem; }
+
+  /* LANDING HERO */
+  .hero-content { padding: 3rem 1.2rem 2rem; gap: 0.9rem; }
+  h1 { font-size: clamp(2.2rem, 10vw, 3.2rem); }
+  .hero-sub { font-size: 0.8rem; }
+  .hero-cta { flex-direction: column; width: 100%; }
+  .btn-primary-lg, .btn-ghost-lg { width: 100%; text-align: center; padding: 12px; font-size: 0.82rem; }
+
+  /* STATS ROW — 2x2 grid */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
+  .stat { padding: 1.2rem 0.8rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat:nth-child(2) { border-right: none; }
+  .stat:nth-child(3) { border-bottom: none; }
+  .stat:nth-child(4) { border-right: none; border-bottom: none; }
+
+  /* LANDING SECTIONS */
+  .lp-section { padding: 3.5rem 1.2rem; }
+  .feature-split { grid-template-columns: 1fr; gap: 2rem; }
+  .mini-cards { grid-template-columns: 1fr 1fr; }
+  .cta-section { padding: 3.5rem 1.2rem; }
+  .cta-section .hero-cta, .cta-section > div:last-child { flex-direction: column; }
+
+  /* FOOTER */
+  footer { flex-direction: column; gap: 0.5rem; text-align: center; padding: 1.5rem 1rem; }
+
+  /* MY KREW */
+  .mk-main { padding: 2rem 1.2rem 4rem; }
+  .mk-greeting { margin-bottom: 1.2rem; }
+  .mk-greeting h2 { font-size: 1.3rem; }
+  .agents-grid { grid-template-columns: 1fr; }
+  .agent-card { padding: 1.4rem; min-height: unset; }
+  .ac-name { font-size: 1.5rem; }
+  .ac-desc { max-width: 100%; }
+
+  /* AGENT VIEW HEADER */
+  .av-header { flex-direction: column; gap: 1rem; align-items: flex-start; padding: 1.5rem 1.2rem; }
+  .av-header-left h2 { font-size: 1.8rem; }
+  .av-header-right { flex-wrap: wrap; gap: 0.4rem; }
+  .btn-sm { padding: 6px 10px; font-size: 0.68rem; }
+
+  /* DASHBOARD GRID — all cells full width */
+  .dash-wrap { padding: 1rem 1.2rem 3rem; }
+  .d-grid { grid-template-columns: 1fr; gap: 1px; }
+  .c3,.c4,.c6,.c8,.c12 { grid-column: span 1; }
+  .dv { font-size: 1.6rem; }
+
+  /* PIPELINE */
+  .pipeline-item { padding: 0.9rem 1.1rem; }
+
+  /* INSIGHTS LIST */
+  .insight-item { padding: 0.8rem 1rem; font-size: 0.72rem; }
+
+  /* DROPDOWN position fix */
+  .dropdown { right: -0.5rem; width: 180px; }
+}
+
+/* ══════════════════════ ONBOARDING ══════════════════════ */
+#onboarding { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 1.5rem 3rem; position: relative; }
+
+/* Progress bar */
+.ob-progress {
+  width: 100%; max-width: 480px;
+  margin-bottom: 2.5rem;
+}
+.ob-progress-track { height: 1px; background: var(--border); border-radius: 1px; overflow: hidden; }
+.ob-progress-fill { height: 100%; background: var(--text-secondary); border-radius: 1px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.ob-step-label { font-size: 0.6rem; color: var(--text-tertiary); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.6rem; display: flex; justify-content: space-between; }
+
+/* Step card */
+.ob-card {
+  width: 100%; max-width: 480px;
+  animation: obFadeUp 0.4s ease both;
+}
+@keyframes obFadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+@keyframes obFadeOut { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-14px); } }
+.ob-card.leaving { animation: obFadeOut 0.25s ease both; }
+
+.ob-eyebrow {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-tertiary); margin-bottom: 0.9rem;
+}
+.ob-question {
+  font-size: clamp(1.3rem, 4vw, 1.7rem); font-weight: 300; letter-spacing: -0.025em;
+  line-height: 1.25; color: var(--text-primary); margin-bottom: 0.5rem;
+}
+.ob-sub {
+  font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 2rem; line-height: 1.6;
+}
+
+/* Option buttons */
+.ob-options { display: flex; flex-direction: column; gap: 0.55rem; }
+.ob-option {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.95rem 1.2rem;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; cursor: pointer; transition: all 0.18s;
+  font-size: 0.8rem; color: var(--text-secondary);
+  text-align: left; font-family: inherit; width: 100%;
+}
+.ob-option:hover { border-color: var(--border-md); color: var(--text-primary); background: var(--bg3); }
+.ob-option.selected { border-color: var(--border-hover); color: var(--text-primary); background: var(--bg3); }
+.ob-option-check { width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.ob-option.selected .ob-option-check { border-color: var(--text-secondary); background: var(--text-secondary); }
+.ob-option.selected .ob-option-check::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--bg); }
+
+/* Nav row */
+.ob-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; }
+.ob-back {
+  font-size: 0.72rem; color: var(--text-tertiary); background: none; border: none;
+  cursor: pointer; font-family: inherit; transition: color 0.2s; padding: 0;
+}
+.ob-back:hover { color: var(--text-secondary); }
+.ob-next {
+  background: var(--btn-bg); color: var(--btn-text); border: none;
+  border-radius: 8px; padding: 9px 22px; font-size: 0.78rem; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: opacity 0.2s;
+  opacity: 0.35; pointer-events: none;
+}
+.ob-next.ready { opacity: 1; pointer-events: all; }
+.ob-next:hover { opacity: 0.85; }
+
+/* Loading screen */
+#ob-loading {
+  position: fixed; inset: 0; z-index: 500;
+  background: var(--bg); display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+}
+#ob-loading.active { display: flex; }
+.ob-loader-text { font-size: 1rem; font-weight: 300; letter-spacing: -0.02em; color: var(--text-primary); }
+.ob-loader-sub { font-size: 0.72rem; color: var(--text-tertiary); }
+.ob-spinner { width: 28px; height: 28px; border: 1.5px solid var(--border); border-top-color: var(--text-secondary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Welcome toast */
+.ob-welcome-toast {
+  position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  background: var(--bg2); border: 1px solid var(--border-md);
+  border-radius: 10px; padding: 0.9rem 1.4rem;
+  display: flex; align-items: center; gap: 0.7rem;
+  font-size: 0.75rem; color: var(--text-secondary);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 400;
+  white-space: nowrap;
+  animation: toastIn 0.4s 0.3s ease both;
+}
+@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+.ob-toast-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); animation: pulse 2s infinite; flex-shrink:0; }
+
+@media(max-width:640px) {
+  #onboarding { padding: 4rem 1.2rem 2rem; }
+  .ob-progress { margin-bottom: 2rem; }
+  .ob-question { font-size: 1.25rem; }
+}
+
+
+/* ══════════════════════ LUNA DASHBOARD ══════════════════════ */
+#agentview { min-height:100vh; padding-top:48px; }
+#agentview.active { display:flex; flex-direction:column; }
+
+/* Layout: sidebar + main */
+.luna-layout { display:flex; flex:1; min-height:calc(100vh - 48px); }
+
+/* SIDEBAR */
+.luna-sidebar {
+  width:200px; flex-shrink:0;
+  border-right:1px solid var(--border);
+  background:var(--bg);
+  display:flex; flex-direction:column;
+  padding:1.5rem 0;
+  position:sticky; top:48px; height:calc(100vh - 48px);
+  overflow-y:auto;
+}
+.sb-logo {
+  padding:0 1.2rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  margin-bottom:1rem;
+}
+.sb-logo-name { font-size:0.85rem; font-weight:500; letter-spacing:-0.01em; color:var(--text-primary); }
+.sb-logo-role { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); margin-top:1px; }
+
+.sb-nav { display:flex; flex-direction:column; gap:2px; padding:0 0.6rem; flex:1; }
+.sb-item {
+  display:flex; align-items:center; gap:0.7rem;
+  padding:0.65rem 0.8rem; border-radius:8px; cursor:pointer;
+  font-size:0.75rem; color:var(--text-tertiary);
+  transition:all 0.15s; background:none; border:none; font-family:inherit;
+  text-align:left; width:100%;
+}
+.sb-item:hover { background:var(--bg3); color:var(--text-secondary); }
+.sb-item.active { background:var(--bg3); color:var(--text-primary); }
+.sb-item svg { width:15px; height:15px; flex-shrink:0; }
+.sb-item span { font-size:0.75rem; }
+
+.sb-bottom {
+  padding:1rem 0.6rem 0;
+  border-top:1px solid var(--border);
+  margin-top:auto;
+}
+
+/* MAIN CONTENT AREA */
+.luna-main { flex:1; overflow-y:auto; background:var(--bg2); }
+
+/* TOP BAR inside luna */
+.luna-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.6rem 2rem 0;
+}
+.luna-topbar-left h2 { font-size:1.4rem; font-weight:400; letter-spacing:-0.02em; color:var(--text-primary); margin-bottom:0.2rem; }
+.luna-topbar-left p { font-size:0.72rem; color:var(--text-secondary); }
+.luna-topbar-right { display:flex; align-items:center; gap:0.7rem; }
+
+/* TIME FILTER */
+.time-filter {
+  position:relative;
+}
+.time-filter-btn {
+  display:flex; align-items:center; gap:0.5rem;
+  background:var(--bg); border:1px solid var(--border); border-radius:8px;
+  padding:7px 12px; font-size:0.75rem; color:var(--text-secondary);
+  cursor:pointer; font-family:inherit; transition:all 0.2s;
+}
+.time-filter-btn:hover { border-color:var(--border-md); color:var(--text-primary); }
+.time-filter-btn svg { width:11px; height:11px; }
+.time-dropdown {
+  position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--bg); border:1px solid var(--border-md);
+  border-radius:10px; overflow:hidden; z-index:50; min-width:160px;
+  opacity:0; pointer-events:none; transform:translateY(-6px);
+  transition:opacity 0.15s, transform 0.15s;
+  box-shadow:0 8px 24px rgba(0,0,0,0.15);
+}
+.time-dropdown.open { opacity:1; pointer-events:all; transform:translateY(0); }
+.time-opt {
+  display:block; width:100%; padding:0.65rem 1rem;
+  font-size:0.75rem; color:var(--text-secondary); text-align:left;
+  background:none; border:none; cursor:pointer; font-family:inherit;
+  transition:background 0.12s, color 0.12s;
+}
+.time-opt:hover { background:var(--bg3); color:var(--text-primary); }
+.time-opt.active { color:var(--text-primary); }
+.time-sep { height:1px; background:var(--border); }
+.custom-range { padding:0.7rem 1rem; display:none; gap:0.4rem; flex-direction:column; border-top:1px solid var(--border); }
+.custom-range.show { display:flex; }
+.custom-range input { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; font-size:0.7rem; color:var(--text-primary); outline:none; font-family:inherit; width:100%; }
+
+/* USER CHIP top right */
+.luna-user-chip { display:flex; align-items:center; gap:0.5rem; font-size:0.75rem; color:var(--text-secondary); }
+.luna-user-avatar { width:26px; height:26px; border-radius:50%; background:var(--bg4); border:1px solid var(--border-md); display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:600; color:var(--text-secondary); }
+
+/* SECTION PADDING */
+.luna-body { padding:1.5rem 2rem 3rem; display:flex; flex-direction:column; gap:1.5rem; }
+
+/* STAT CARDS ROW */
+.luna-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; }
+.ls-card {
+  background:var(--bg); border:1px solid var(--border); border-radius:12px;
+  padding:1.2rem 1.3rem; transition:border-color 0.2s;
+}
+.ls-card:hover { border-color:var(--border-md); }
+.ls-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.9rem; }
+.ls-icon { color:var(--text-tertiary); }
+.ls-icon svg { width:16px; height:16px; }
+.ls-delta { font-size:0.68rem; display:flex; align-items:center; gap:3px; }
+.ls-delta.up { color:#6bcf8f; }
+.ls-delta.down { color:#e07070; }
+.ls-delta svg { width:10px; height:10px; }
+.ls-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-tertiary); margin-bottom:0.3rem; }
+.ls-value { font-size:1.9rem; font-weight:300; letter-spacing:-0.04em; color:var(--text-primary); }
+
+/* TWO-COL ROW */
+.luna-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.luna-row.wide-left { grid-template-columns:1.4fr 1fr; }
+.luna-row.wide-right { grid-template-columns:1fr 1.4fr; }
+
+/* PANEL */
+.l-panel {
+  background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:1.4rem;
+}
+.l-panel-title { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-primary); margin-bottom:0.3rem; }
+.l-panel-sub { font-size:0.68rem; color:var(--text-secondary); margin-bottom:1.2rem; }
+
+/* BREAKDOWN BARS */
+.breakdown-list { display:flex; flex-direction:column; gap:0.8rem; margin-top:0.8rem; }
+.bk-item { }
+.bk-header { display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.7rem; }
+.bk-label { color:var(--text-secondary); }
+.bk-val { color:var(--text-tertiary); }
+.bk-track { background:var(--border-md); border-radius:2px; height:3px; overflow:hidden; }
+.bk-fill { height:100%; background:var(--text-tertiary); border-radius:2px; }
+
+/* TOP ISSUES */
+.issue-list { display:flex; flex-direction:column; gap:0.6rem; margin-top:0.4rem; }
+.issue-item {
+  display:flex; align-items:center; gap:1rem;
+  background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+  padding:0.8rem 1rem; transition:border-color 0.15s;
+}
+.issue-item:hover { border-color:var(--border-md); }
+.issue-num { font-size:1.1rem; font-weight:300; color:var(--text-primary); letter-spacing:-0.03em; min-width:22px; }
+.issue-info { flex:1; }
+.issue-name { font-size:0.75rem; color:var(--text-primary); margin-bottom:1px; }
+.issue-sub { font-size:0.63rem; color:var(--text-tertiary); }
+.issue-delta { font-size:0.68rem; display:flex; align-items:center; gap:3px; white-space:nowrap; }
+.issue-delta.up { color:#e07070; }
+.issue-delta.dn { color:var(--text-tertiary); }
+
+/* SENTIMENT */
+.sentiment-list { display:flex; flex-direction:column; gap:1rem; margin-top:0.8rem; }
+.sent-item { }
+.sent-header { display:flex; justify-content:space-between; font-size:0.72rem; margin-bottom:5px; }
+.sent-label { color:var(--text-secondary); }
+.sent-pct { color:var(--text-tertiary); }
+.sent-track { background:var(--border-md); border-radius:3px; height:4px; overflow:hidden; }
+.sent-fill { height:100%; border-radius:3px; }
+.sent-fill.angry { background:#c45c5c; }
+.sent-fill.neutral { background:var(--text-tertiary); }
+.sent-fill.positive { background:#5c9c6e; }
+
+/* QUICK ACTIONS */
+.qa-list { display:flex; flex-direction:column; gap:0.5rem; margin-top:0.4rem; }
+.qa-btn {
+  display:flex; align-items:center; gap:0.75rem;
+  background:none; border:1px solid var(--border); border-radius:8px;
+  padding:0.8rem 1rem; font-size:0.75rem; color:var(--text-secondary);
+  cursor:pointer; font-family:inherit; transition:all 0.15s; text-align:left; width:100%;
+}
+.qa-btn:hover { border-color:var(--border-md); color:var(--text-primary); background:var(--bg2); }
+.qa-btn svg { width:14px; height:14px; flex-shrink:0; color:var(--text-tertiary); }
+
+/* MINI CHART BARS */
+.mini-bars { display:flex; align-items:flex-end; gap:3px; height:52px; margin-top:1rem; }
+.mb { flex:1; background:var(--border-md); border-radius:2px 2px 0 0; transition:background 0.2s; cursor:default; }
+.mb:hover { background:var(--text-tertiary); }
+.mb.hi { background:var(--text-secondary); }
+.bar-labels { display:flex; justify-content:space-between; margin-top:4px; }
+.bar-label { font-size:0.55rem; color:var(--text-tertiary); }
+
+/* CONVERSATIONS TABLE */
+.conv-table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
+.conv-table th { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); text-align:left; padding:0 0 0.6rem; border-bottom:1px solid var(--border); font-weight:400; }
+.conv-table td { font-size:0.72rem; color:var(--text-secondary); padding:0.65rem 0; border-bottom:1px solid var(--border); vertical-align:middle; }
+.conv-table tr:last-child td { border-bottom:none; }
+.conv-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.62rem; padding:2px 7px; border-radius:20px; border:1px solid var(--border); }
+.conv-badge.resolved { color:#5c9c6e; border-color:rgba(92,156,110,0.25); }
+.conv-badge.escalated { color:#c45c5c; border-color:rgba(196,92,92,0.25); }
+.conv-badge.pending { color:var(--text-tertiary); }
+
+/* HIDDEN PANELS */
+.luna-panel-section { display:none; }
+.luna-panel-section.active { display:flex; flex-direction:column; gap:1.5rem; }
+
+/* SIDEBAR MOBILE TOGGLE */
+.sb-mobile-toggle {
+  display:none; background:none; border:1px solid var(--border); border-radius:7px;
+  padding:5px 10px; cursor:pointer; color:var(--text-secondary); font-family:inherit;
+  font-size:0.72rem; align-items:center; gap:5px;
+}
+.sb-mobile-toggle svg { width:13px; height:13px; }
+
+@media(max-width:900px) {
+  .luna-sidebar { display:none; width:0; }
+  .luna-sidebar.mob-open { display:flex; position:fixed; top:48px; left:0; bottom:0; z-index:150; width:200px; }
+  .sb-mobile-toggle { display:flex; }
+  .luna-stats { grid-template-columns:1fr 1fr; }
+  .luna-row, .luna-row.wide-left, .luna-row.wide-right { grid-template-columns:1fr; }
+}
+@media(max-width:640px) {
+  .luna-stats { grid-template-columns:1fr 1fr; }
+  .luna-topbar { padding:1.2rem 1.2rem 0; flex-wrap:wrap; gap:0.8rem; }
+  .luna-body { padding:1.2rem 1.2rem 3rem; }
+}
+
+
+/* ══════════════════════ KNOWLEDGE BASE ══════════════════════ */
+.kb-table { width:100%; border-collapse:collapse; margin-top:1rem; }
+.kb-table th {
+  font-size:0.6rem; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--text-tertiary); text-align:left; padding:0 1rem 0.7rem;
+  border-bottom:1px solid var(--border); font-weight:400;
+}
+.kb-table th:first-child { width:38%; }
+.kb-row td {
+  padding:0; border-bottom:1px solid var(--border); vertical-align:top;
+}
+.kb-row:last-child td { border-bottom:none; }
+.kb-row td:first-child { border-right:1px solid var(--border); }
+
+.kb-cell {
+  width:100%; min-height:52px; padding:0.85rem 1rem;
+  background:transparent; border:none; outline:none; resize:none;
+  font-size:0.75rem; color:var(--text-secondary); font-family:inherit;
+  line-height:1.6;
+}
+.kb-cell:focus { color:var(--text-primary); background:var(--bg3); }
+.kb-cell::placeholder { color:var(--text-tertiary); }
+.kb-cell.question { font-weight:500; color:var(--text-primary); }
+.kb-cell.question::placeholder { font-weight:400; color:var(--text-tertiary); }
+
+.kb-fixed-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:0.58rem; text-transform:uppercase; letter-spacing:0.05em;
+  color:var(--text-tertiary); border:1px solid var(--border);
+  border-radius:4px; padding:1px 6px; margin-left:0.5rem; vertical-align:middle;
+}
+
+.kb-row-actions {
+  display:flex; align-items:center; justify-content:flex-end;
+  padding:0 0.5rem; opacity:0; transition:opacity 0.15s;
+}
+.kb-row:hover .kb-row-actions { opacity:1; }
+.kb-delete-btn {
+  background:none; border:none; cursor:pointer; padding:4px;
+  color:var(--text-tertiary); transition:color 0.15s; line-height:1;
+}
+.kb-delete-btn:hover { color:#c45c5c; }
+.kb-delete-btn svg { width:13px; height:13px; }
+
+.kb-add-btn {
+  display:flex; align-items:center; gap:0.5rem; margin-top:1rem;
+  background:none; border:1px dashed var(--border); border-radius:8px;
+  padding:0.75rem 1rem; font-size:0.75rem; color:var(--text-tertiary);
+  cursor:pointer; font-family:inherit; transition:all 0.18s; width:100%;
+}
+.kb-add-btn:hover { border-color:var(--border-md); color:var(--text-secondary); background:var(--bg3); }
+.kb-add-btn svg { width:14px; height:14px; }
+
+.kb-save-row {
+  display:flex; justify-content:flex-end; margin-top:1rem;
+}
+.kb-save-btn {
+  background:var(--btn-bg); color:var(--btn-text); border:none;
+  border-radius:8px; padding:8px 20px; font-size:0.75rem; font-weight:500;
+  cursor:pointer; font-family:inherit; transition:opacity 0.2s;
+}
+.kb-save-btn:hover { opacity:0.85; }
+.kb-saved-toast {
+  font-size:0.7rem; color:#5c9c6e; margin-right:auto;
+  align-self:center; opacity:0; transition:opacity 0.3s;
+}
+.kb-saved-toast.show { opacity:1; }
+
+
+/* ══════════════════════ INTEGRATIONS ══════════════════════ */
+.int-grid { display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem; }
+
+.int-card {
+  display:flex; align-items:center; gap:1rem;
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  padding:1.1rem 1.3rem; transition:border-color 0.18s;
+}
+.int-card:hover { border-color:var(--border-md); }
+.int-card.connected { border-color:rgba(92,156,110,0.3); }
+
+.int-logo {
+  width:40px; height:40px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; font-weight:700; letter-spacing:-0.02em;
+}
+.int-logo.shopify { background:#1a1a1a; color:#96bf48; border:1px solid rgba(150,191,72,0.2); }
+.int-logo.meta    { background:#1a1a1a; color:#1877f2; border:1px solid rgba(24,119,242,0.2); }
+.int-logo.bosta   { background:#1a1a1a; color:#ff6b35; border:1px solid rgba(255,107,53,0.2); }
+
+[data-theme="light"] .int-logo.shopify { background:#f0f0ed; }
+[data-theme="light"] .int-logo.meta    { background:#eef3fc; }
+[data-theme="light"] .int-logo.bosta   { background:#fff3ef; }
+
+.int-info { flex:1; }
+.int-name { font-size:0.82rem; font-weight:500; color:var(--text-primary); margin-bottom:0.15rem; }
+.int-desc { font-size:0.68rem; color:var(--text-tertiary); line-height:1.5; }
+
+.int-status {
+  display:flex; align-items:center; gap:0.5rem;
+  font-size:0.68rem; color:var(--text-tertiary);
+  margin-right:0.75rem;
+}
+.int-status-dot { width:6px; height:6px; border-radius:50%; background:var(--border-md); flex-shrink:0; }
+.int-status-dot.on { background:#5c9c6e; box-shadow:0 0 6px rgba(92,156,110,0.5); }
+
+.int-btn {
+  flex-shrink:0; border-radius:8px; padding:7px 16px;
+  font-size:0.72rem; font-weight:500; cursor:pointer; font-family:inherit;
+  transition:all 0.18s; white-space:nowrap;
+}
+.int-btn.connect {
+  background:var(--btn-bg); color:var(--btn-text); border:none;
+}
+.int-btn.connect:hover { opacity:0.85; }
+.int-btn.disconnect {
+  background:none; color:var(--text-tertiary);
+  border:1px solid var(--border);
+}
+.int-btn.disconnect:hover { border-color:#c45c5c; color:#c45c5c; }
+
+/* Connect modal */
+.int-modal-overlay {
+  position:fixed; inset:0; z-index:400;
+  background:var(--overlay-bg); backdrop-filter:blur(8px);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity 0.2s;
+}
+.int-modal-overlay.open { opacity:1; pointer-events:all; }
+.int-modal {
+  background:var(--bg2); border:1px solid var(--border-md); border-radius:14px;
+  padding:2rem; width:100%; max-width:360px; position:relative;
+  transform:translateY(12px); transition:transform 0.2s;
+}
+.int-modal-overlay.open .int-modal { transform:translateY(0); }
+.int-modal-title { font-size:1rem; font-weight:400; letter-spacing:-0.02em; margin-bottom:0.25rem; }
+.int-modal-sub { font-size:0.7rem; color:var(--text-tertiary); margin-bottom:1.5rem; line-height:1.6; }
+.int-modal-close {
+  position:absolute; top:12px; right:14px; background:none; border:none;
+  cursor:pointer; color:var(--text-tertiary); font-size:1.1rem; transition:color 0.2s;
+}
+.int-modal-close:hover { color:var(--text-primary); }
+.int-field { margin-bottom:0.8rem; }
+.int-field-label { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); margin-bottom:0.3rem; }
+.int-field-input {
+  width:100%; background:var(--input-bg); border:1px solid var(--border);
+  border-radius:8px; padding:9px 12px; font-size:0.78rem; color:var(--text-primary);
+  outline:none; transition:border-color 0.2s; font-family:inherit;
+}
+.int-field-input:focus { border-color:var(--border-md); }
+.int-field-input::placeholder { color:var(--text-tertiary); }
+.int-connect-btn {
+  width:100%; background:var(--btn-bg); color:var(--btn-text); border:none;
+  border-radius:8px; padding:10px; font-size:0.78rem; font-weight:500;
+  cursor:pointer; font-family:inherit; transition:opacity 0.2s; margin-top:0.4rem;
+}
+.int-connect-btn:hover { opacity:0.85; }
+.int-helper { font-size:0.65rem; color:var(--text-tertiary); margin-top:0.8rem; text-align:center; }
+.int-helper a { color:var(--text-secondary); text-decoration:underline; cursor:pointer; }
+
+</style>
+</head>
+<body>
+<script>
+// On load: hide all screens except landing via inline style
+document.addEventListener('DOMContentLoaded', function() {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) {
+    if (screens[i].classList.contains('active')) {
+      screens[i].style.display = (screens[i].id === 'agentview' || screens[i].id === 'onboarding') ? 'flex' : 'block';
+    } else {
+      screens[i].style.display = 'none';
+    }
+  }
+});
+
+/* ══ KNOWLEDGE BASE ══ */
+var kbRowCount = 2;
+
+function kbAddRow() {
+  var tbody = gel('kb-body');
+  if (!tbody) return;
+  kbRowCount++;
+  var tr = document.createElement('tr');
+  tr.className = 'kb-row';
+  tr.setAttribute('data-id', kbRowCount);
+  tr.innerHTML =
+    '<td><textarea class="kb-cell question" rows="2" placeholder="Type your question…"></textarea></td>' +
+    '<td><textarea class="kb-cell" rows="2" placeholder="Type the answer Luna should give…"></textarea></td>' +
+    '<td style="width:40px;vertical-align:middle;text-align:center;">' +
+      '<div class="kb-row-actions">' +
+        '<button class="kb-delete-btn" onclick="kbDeleteRow(this)" title="Remove">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>' +
+        '</button>' +
+      '</div>' +
+    '</td>';
+  tbody.appendChild(tr);
+  // focus the question field
+  var q = tr.querySelector('.kb-cell.question');
+  if (q) q.focus();
+}
+
+function kbDeleteRow(btn) {
+  var row = btn.closest('.kb-row');
+  if (row) row.remove();
+}
+
+function kbSave() {
+  var toast = gel('kb-saved-toast');
+  if (toast) {
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  }
+}
+
+
+/* ══ INTEGRATIONS ══ */
+var intConnected = { shopify: false, meta: false, bosta: false };
+
+function openIntModal(name) {
+  var m = gel('int-modal-' + name);
+  if (m) m.classList.add('open');
+}
+function closeIntModal(name) {
+  var m = gel('int-modal-' + name);
+  if (m) m.classList.remove('open');
+}
+
+function doConnect(name) {
+  intConnected[name] = true;
+
+  // Update card UI
+  var card = gel('int-' + name);
+  if (card) card.classList.add('connected');
+
+  var dot = gel(name + '-dot');
+  if (dot) dot.classList.add('on');
+
+  var statusText = gel(name + '-status-text');
+  if (statusText) statusText.textContent = 'Connected';
+
+  var btn = gel(name + '-btn');
+  if (btn) {
+    btn.textContent = 'Disconnect';
+    btn.className = 'int-btn disconnect';
+    btn.onclick = function() { doDisconnect(name); };
+  }
+
+  closeIntModal(name);
+}
+
+function doDisconnect(name) {
+  intConnected[name] = false;
+
+  var card = gel('int-' + name);
+  if (card) card.classList.remove('connected');
+
+  var dot = gel(name + '-dot');
+  if (dot) dot.classList.remove('on');
+
+  var statusText = gel(name + '-status-text');
+  if (statusText) statusText.textContent = 'Not connected';
+
+  var btn = gel(name + '-btn');
+  if (btn) {
+    btn.textContent = 'Connect';
+    btn.className = 'int-btn connect';
+    btn.onclick = function() { openIntModal(name); };
+  }
+}
+
+// Close int modals on overlay click
+document.addEventListener('click', function(e) {
+  var modals = ['shopify','meta','bosta'];
+  for (var i = 0; i < modals.length; i++) {
+    var overlay = gel('int-modal-' + modals[i]);
+    if (overlay && e.target === overlay) closeIntModal(modals[i]);
+  }
+});
+
+</script>
+
+<!-- ══════ NAV (always visible) ══════ -->
+<nav class="nav" id="main-nav">
+  <span class="nav-logo" onclick="goTo('landing')">Krew</span>
+  <div class="nav-center" id="nav-center">
+    <button class="nav-link" onclick="scrollTo_('#products')">Products</button>
+    <button class="nav-link" onclick="scrollTo_('#vision')">Vision</button>
+    <button class="nav-link">Contact</button>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <svg viewBox="0 0 24 24" id="themeIcon"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+      <span id="themeLabel">Light</span>
+    </button>
+    <!-- shown when logged out -->
+    <div id="auth-btns" style="display:flex;gap:0.6rem;">
+      <button class="btn-nav btn-nav-ghost" onclick="openModal('login')">Log in</button>
+      <button class="btn-nav btn-nav-solid" onclick="openModal('register')">Sign up</button>
+    </div>
+    <!-- shown when logged in -->
+    <div id="profile-area" style="display:none;" class="profile-wrap">
+      <div class="profile-btn" id="profile-btn" onclick="toggleDropdown()">JD</div>
+      <div class="dropdown" id="profile-dropdown">
+        <div class="dropdown-header">
+          <div class="dropdown-name" id="dd-name">John Doe</div>
+          <div class="dropdown-email" id="dd-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90fafff8fed0f2e2f1fef4bef3fffd">[email&#160;protected]</a></div>
+        </div>
+        <button class="dropdown-item" onclick="goTo('mykrew');closeDropdown()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          My Krew
+        </button>
+        <button class="dropdown-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </button>
+        <div class="dropdown-sep"></div>
+        <button class="dropdown-item danger" onclick="logout();closeDropdown()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Sign out
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════ AUTH MODALS ══════ -->
+<!-- LOGIN -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login-modal')">×</button>
+    <div class="modal-title">Welcome back.</div>
+    <div class="modal-sub">Sign in to your Krew workspace</div>
+    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" placeholder="you@brand.com" id="login-email"/></div>
+    <div class="field"><div class="field-label">Password</div><input class="field-input" type="password" placeholder="••••••••••" id="login-pass"/></div>
+    <button class="btn-modal-primary" onclick="doLogin()">Sign in</button>
+    <div class="modal-switch">No account? <a onclick="switchModal('login-modal','register-modal')">Sign up</a></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="modal-overlay" id="register-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register-modal')">×</button>
+    <div class="modal-title">Create your account.</div>
+    <div class="modal-sub">Join Krew and access your AI team</div>
+    <div class="modal-row">
+      <div class="field"><div class="field-label">First name</div><input class="field-input" type="text" placeholder="John" id="reg-first"/></div>
+      <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" placeholder="Doe" id="reg-last"/></div>
+    </div>
+    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" placeholder="you@brand.com" id="reg-email"/></div>
+    <div class="field"><div class="field-label">Password</div><input class="field-input" type="password" placeholder="••••••••••" id="reg-pass"/></div>
+    <button class="btn-modal-primary" onclick="doRegister()">Create account</button>
+    <div class="modal-switch">Already have an account? <a onclick="switchModal('register-modal','login-modal')">Log in</a></div>
+  </div>
+</div>
+
+<!-- ══════ LANDING PAGE ══════ -->
+<div class="screen active" id="landing">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-tag">A Krew product</div>
+      <h1>Luna</h1>
+      <p class="hero-sub-name">Customer Operations Agent</p>
+      <p class="hero-sub">Your brand's inbox, fully operated. Luna handles Instagram and WhatsApp DMs with your tone — guiding customers, managing orders, and turning conversations into intelligence.</p>
+      <div class="hero-cta">
+        <button class="btn-primary-lg" onclick="openModal('register')">Get early access</button>
+        <button class="btn-ghost-lg" onclick="scrollTo_('#products')">Learn more</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">~0s</div><div class="stat-label">Response time</div></div>
+      <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Coverage</div></div>
+      <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Consistency</div></div>
+      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Scale</div></div>
+    </div>
+  </div>
+
+  <div class="lp-section" id="products">
+    <div class="eyebrow">Krew — First Product</div>
+    <div class="feature-split">
+      <div>
+        <h2 class="sec-title" style="margin-bottom:0.25rem">Luna</h2>
+        <p style="font-size:0.65rem;color:var(--text-tertiary);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.9rem">Customer Operations Agent by Krew</p>
+        <p class="sec-body">Not a chatbot. Luna is a fully operational AI agent handling Instagram and WhatsApp DMs with your brand's tone — managing orders, guiding product decisions, and escalating when needed.</p>
+      </div>
+      <div class="mini-cards">
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div><div class="mini-card-title">IG & WhatsApp</div><div class="mini-card-body">Brand-native responses across every channel.</div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div><div class="mini-card-title">Order Flow</div><div class="mini-card-body">Structured data capture from every conversation.</div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><div class="mini-card-title">Escalation</div><div class="mini-card-body">Complex cases handed off with full context.</div></div>
+        <div class="mini-card"><div class="mini-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div><div class="mini-card-title">Reports</div><div class="mini-card-body">Weekly behavior and inquiry summaries.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="lp-section">
+    <div class="eyebrow">Luna — Intelligence Layer</div>
+    <div class="feature-split">
+      <div>
+        <h2 class="sec-title">Conversations become data.</h2>
+        <p class="sec-body">Every message your customers send contains a signal. Luna extracts the patterns — surfacing what your brand needs to know to improve products, content, and decisions.</p>
+      </div>
+      <ul class="insights-list">
+        <li class="insight-item"><span class="insight-num">01</span> What are customers asking most?</li>
+        <li class="insight-item"><span class="insight-num">02</span> Where do they hesitate before buying?</li>
+        <li class="insight-item"><span class="insight-num">03</span> Which products generate the most inquiries?</li>
+        <li class="insight-item"><span class="insight-num">04</span> What complaints repeat?</li>
+        <li class="insight-item"><span class="insight-num">05</span> When does engagement peak?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="lp-section" id="vision">
+    <div class="eyebrow">The Krew Ecosystem</div>
+    <h2 class="sec-title">One company.<br>A growing family of agents.</h2>
+    <p class="sec-body">Luna is the first product under Krew. A full pipeline of named, specialized agents is being built — each one covering a different layer of your brand operations.</p>
+    <div class="pipeline">
+      <div class="pipeline-item active">
+        <div class="pl-left"><span>Luna</span><span class="pl-tag live">Live</span></div>
+        <div style="display:flex;align-items:center;gap:0.7rem;"><span style="font-size:0.68rem;color:var(--text-tertiary)">Customer Operations</span><div class="status-dot live"></div></div>
+      </div>
+      <div class="pipeline-item">
+        <div class="pl-left"><span>Ivy</span><span class="pl-tag">Soon</span></div>
+        <span style="font-size:0.68rem;color:var(--text-tertiary)">Financial Visibility</span>
+      </div>
+      <div class="pipeline-item">
+        <div class="pl-left"><span>—</span><span class="pl-tag">Soon</span></div>
+        <span style="font-size:0.68rem;color:var(--text-tertiary)">Performance Reporting</span>
+      </div>
+      <div class="pipeline-item">
+        <div class="pl-left"><span>—</span><span class="pl-tag">Soon</span></div>
+        <span style="font-size:0.68rem;color:var(--text-tertiary)">Marketing Intelligence</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-section">
+    <div class="eyebrow">Early Access</div>
+    <h2 class="sec-title">Start with Luna.<br>Scale with Krew.</h2>
+    <p class="sec-body">We're onboarding select brands into Luna now. Be among the first to turn your inbox into an operation.</p>
+    <div class="hero-cta" style="justify-content:center">
+      <button class="btn-primary-lg" onclick="openModal('register')">Request access</button>
+      <button class="btn-ghost-lg">Talk to the team</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Krew</div>
+    <div style="font-size:0.68rem;color:var(--text-tertiary)">Luna · Customer Operations Agent</div>
+    <div class="footer-copy">© 2025 Krew. All rights reserved.</div>
+  </footer>
+</div>
+
+<!-- ══════ ONBOARDING SCREEN ══════ -->
+<div class="screen" id="onboarding">
+  <!-- Progress bar (updated by JS) -->
+  <div class="ob-progress" id="ob-progress-bar">
+    <div class="ob-step-label">
+      <span id="ob-step-text">Step 1 of 4</span>
+      <span id="ob-step-pct">25%</span>
+    </div>
+    <div class="ob-progress-track"><div class="ob-progress-fill" id="ob-fill" style="width:25%"></div></div>
+  </div>
+
+  <!-- Step container -->
+  <div class="ob-card" id="ob-card">
+    <div class="ob-eyebrow" id="ob-eyebrow">About your business</div>
+    <div class="ob-question" id="ob-question">What type of business do you run?</div>
+    <div class="ob-sub" id="ob-sub">This helps Luna adapt her tone and responses to your industry.</div>
+    <div class="ob-options" id="ob-options"></div>
+    <div class="ob-nav">
+      <button class="ob-back" id="ob-back-btn" onclick="obBack()">← Back</button>
+      <button class="ob-next" id="ob-next-btn" onclick="obNext()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ LOADING SCREEN ══════ -->
+<div id="ob-loading">
+  <div class="ob-spinner"></div>
+  <div>
+    <div class="ob-loader-text" id="ob-loader-text">Building your Krew…</div>
+    <div class="ob-loader-sub" style="text-align:center;margin-top:0.3rem">Optimizing Luna for your business</div>
+  </div>
+</div>
+
+<!-- ══════ MY KREW ══════ -->
+<div class="screen" id="mykrew">
+  <div class="mk-main">
+    <div class="mk-greeting a1">
+      <h2 id="mk-hello">Good morning, John.</h2>
+      <p>Your agents are running. Here's what's happening.</p>
+    </div>
+
+    <div class="mk-notifs a2">
+      <div class="notif-chip"><div class="notif-chip-dot"></div><span class="notif-tag">Luna</span>3 recurring size questions flagged this week</div>
+      <div class="notif-chip"><div class="notif-chip-dot"></div><span class="notif-tag">Luna</span>47 DMs handled overnight · 2 escalated</div>
+      <div class="notif-chip"><div class="notif-chip-dot"></div><span class="notif-tag">Ivy</span>Cash flow report ready — Feb 2025</div>
+      <div class="notif-chip"><div class="notif-chip-dot"></div><span class="notif-tag">Ivy</span>Profit margin dipped 2.1% vs last month</div>
+      <div class="notif-chip"><div class="notif-chip-dot"></div><span class="notif-tag">Luna</span>Avg response 0.4s — all clear</div>
+    </div>
+
+    <div class="mk-section-eye a3">Your agents</div>
+
+    <div class="agents-grid a4">
+      <!-- LUNA -->
+      <div class="agent-card" onclick="openAgent('luna')">
+        <div class="ac-top">
+          <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+          <div class="ac-status live"><div class="status-dot live"></div>Live</div>
+        </div>
+        <div class="ac-body">
+          <div class="ac-name">Luna</div>
+          <div class="ac-role">Customer Operations Agent</div>
+          <div class="ac-desc">Handles Instagram and WhatsApp DMs with your brand's tone. Guides customers, manages orders, escalates edge cases, and surfaces patterns from every conversation.</div>
+        </div>
+        <div class="ac-footer">
+          <div class="ac-stats"><div><div class="ac-sn">247</div><div class="ac-sl">DMs this week</div></div><div><div class="ac-sn">0.4s</div><div class="ac-sl">Avg response</div></div></div>
+          <div class="ac-open">Open <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+
+      <!-- IVY -->
+      <div class="agent-card" onclick="openAgent('ivy')">
+        <div class="ac-top">
+          <div class="ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+          <div class="ac-status live"><div class="status-dot live"></div>Live</div>
+        </div>
+        <div class="ac-body">
+          <div class="ac-name">Ivy</div>
+          <div class="ac-role">Financial Visibility Agent</div>
+          <div class="ac-desc">Tracks expenses, cash flow, and profitability in real time. Surfaces financial signals and alerts so you always know exactly where your money stands.</div>
+        </div>
+        <div class="ac-footer">
+          <div class="ac-stats"><div><div class="ac-sn">$84k</div><div class="ac-sl">Revenue MTD</div></div><div><div class="ac-sn">+12%</div><div class="ac-sl">vs last month</div></div></div>
+          <div class="ac-open">Open <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+
+      <!-- SOON 1 -->
+      <div class="agent-card locked">
+        <div class="ac-top">
+          <div class="ac-icon" style="opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+          <div class="ac-status"><div class="status-dot"></div>Soon</div>
+        </div>
+        <div class="ac-body">
+          <div class="ac-name" style="color:var(--text-tertiary)">—</div>
+          <div class="ac-role">Performance Reporting</div>
+          <div class="ac-desc">Automated weekly and monthly performance reports across all operations. Zero manual work, full clarity.</div>
+        </div>
+        <div class="ac-footer"><span class="ac-soon">Coming to Krew</span></div>
+      </div>
+
+      <!-- SOON 2 -->
+      <div class="agent-card locked">
+        <div class="ac-top">
+          <div class="ac-icon" style="opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg></div>
+          <div class="ac-status"><div class="status-dot"></div>Soon</div>
+        </div>
+        <div class="ac-body">
+          <div class="ac-name" style="color:var(--text-tertiary)">—</div>
+          <div class="ac-role">Marketing Intelligence</div>
+          <div class="ac-desc">Connects ad spend, content performance, and conversion data into one clear intelligence layer.</div>
+        </div>
+        <div class="ac-footer"><span class="ac-soon">Coming to Krew</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ AGENT VIEW ══════ -->
+<div class="screen" id="agentview">
+  <div class="luna-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="luna-sidebar" id="luna-sidebar">
+      <div class="sb-logo">
+        <div class="sb-logo-name">Luna</div>
+        <div class="sb-logo-role">Customer Operations · Krew</div>
+      </div>
+      <nav class="sb-nav">
+        <button class="sb-item active" onclick="lunaNav('overview',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Overview</span>
+        </button>
+        <button class="sb-item" onclick="lunaNav('conversations',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          <span>Conversations</span>
+        </button>
+        <button class="sb-item" onclick="lunaNav('issues',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Issues</span>
+        </button>
+        <button class="sb-item" onclick="lunaNav('reports',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Reports</span>
+        </button>
+        <button class="sb-item" onclick="lunaNav('knowledge',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <span>Knowledge</span>
+        </button>
+        <button class="sb-item" onclick="lunaNav('settings',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+      <div class="sb-bottom">
+        <button class="sb-item" onclick="goTo('mykrew')" style="color:var(--text-tertiary)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 19l-7-7 7-7"/></svg>
+          <span>My Krew</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="luna-main">
+
+      <!-- TOP BAR -->
+      <div class="luna-topbar">
+        <div class="luna-topbar-left">
+          <h2 id="luna-section-title">daily support summary</h2>
+          <p id="luna-section-sub">customer support overview and insights</p>
+        </div>
+        <div class="luna-topbar-right">
+          <button class="sb-mobile-toggle" onclick="toggleLunaSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            Menu
+          </button>
+
+          <!-- TIME FILTER -->
+          <div class="time-filter" id="time-filter-wrap">
+            <button class="time-filter-btn" onclick="toggleTimeFilter()">
+              <span id="time-label">Today</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="time-dropdown" id="time-dropdown">
+              <button class="time-opt active" onclick="setTime('Today',this)">Today</button>
+              <button class="time-opt" onclick="setTime('Yesterday',this)">Yesterday</button>
+              <button class="time-opt" onclick="setTime('This Week',this)">This Week</button>
+              <button class="time-opt" onclick="setTime('Last Week',this)">Last Week</button>
+              <button class="time-opt" onclick="setTime('This Month',this)">This Month</button>
+              <button class="time-opt" onclick="setTime('Last Month',this)">Last Month</button>
+              <div class="time-sep"></div>
+              <button class="time-opt" onclick="toggleCustomRange()">Custom Range</button>
+              <div class="custom-range" id="custom-range">
+                <input type="date" id="date-from" />
+                <input type="date" id="date-to" />
+                <button onclick="applyCustomRange()" style="background:var(--btn-bg);color:var(--btn-text);border:none;border-radius:6px;padding:5px 10px;font-size:0.7rem;cursor:pointer;font-family:inherit">Apply</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="luna-user-chip">
+            <div class="luna-user-avatar" id="luna-avatar">JD</div>
+            <span id="luna-username">hazem3h10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="luna-body">
+
+        <!-- ══ OVERVIEW PANEL ══ -->
+        <div class="luna-panel-section active" id="panel-overview">
+
+          <!-- STAT CARDS -->
+          <div class="luna-stats">
+            <div class="ls-card">
+              <div class="ls-card-top">
+                <div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11"/></svg></div>
+                <div class="ls-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>12%</div>
+              </div>
+              <div class="ls-label">Orders from DMs</div>
+              <div class="ls-value">48</div>
+            </div>
+            <div class="ls-card">
+              <div class="ls-card-top">
+                <div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>
+                <div class="ls-delta down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7l10 10M17 7v10H7"/></svg>8%</div>
+              </div>
+              <div class="ls-label">Return Requests</div>
+              <div class="ls-value">23</div>
+            </div>
+            <div class="ls-card">
+              <div class="ls-card-top">
+                <div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                <div class="ls-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>5%</div>
+              </div>
+              <div class="ls-label">Refund Requests</div>
+              <div class="ls-value">15</div>
+            </div>
+            <div class="ls-card">
+              <div class="ls-card-top">
+                <div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div>
+                <div class="ls-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>18%</div>
+              </div>
+              <div class="ls-label">Total Conversations</div>
+              <div class="ls-value">142</div>
+            </div>
+          </div>
+
+          <!-- DAILY BREAKDOWN + MONTHLY TRENDS -->
+          <div class="luna-row">
+            <div class="l-panel">
+              <div class="l-panel-title">Daily Breakdown</div>
+              <div class="l-panel-sub">Conversation volume by hour</div>
+              <div class="mini-bars">
+                <div class="mb" style="height:30%"></div><div class="mb" style="height:20%"></div>
+                <div class="mb" style="height:25%"></div><div class="mb" style="height:40%"></div>
+                <div class="mb" style="height:60%"></div><div class="mb" style="height:75%"></div>
+                <div class="mb hi" style="height:95%"></div><div class="mb" style="height:80%"></div>
+                <div class="mb" style="height:70%"></div><div class="mb" style="height:65%"></div>
+                <div class="mb" style="height:50%"></div><div class="mb" style="height:45%"></div>
+              </div>
+              <div class="bar-labels">
+                <span class="bar-label">8am</span><span class="bar-label">10</span>
+                <span class="bar-label">12</span><span class="bar-label">2pm</span>
+                <span class="bar-label">4</span><span class="bar-label">6</span>
+                <span class="bar-label">8</span><span class="bar-label">10</span>
+                <span class="bar-label">12</span><span class="bar-label">2am</span>
+                <span class="bar-label">4</span><span class="bar-label">6</span>
+              </div>
+            </div>
+            <div class="l-panel">
+              <div class="l-panel-title">Monthly Trends</div>
+              <div class="l-panel-sub">Conversations over time</div>
+              <div class="mini-bars">
+                <div class="mb" style="height:55%"></div><div class="mb" style="height:62%"></div>
+                <div class="mb" style="height:48%"></div><div class="mb" style="height:70%"></div>
+                <div class="mb" style="height:65%"></div><div class="mb hi" style="height:92%"></div>
+                <div class="mb" style="height:78%"></div>
+              </div>
+              <div class="bar-labels">
+                <span class="bar-label">Mon</span><span class="bar-label">Tue</span>
+                <span class="bar-label">Wed</span><span class="bar-label">Thu</span>
+                <span class="bar-label">Fri</span><span class="bar-label">Sat</span>
+                <span class="bar-label">Sun</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOP ISSUES -->
+          <div class="l-panel">
+            <div class="l-panel-title">Top Issues</div>
+            <div class="l-panel-sub">Most common customer concerns</div>
+            <div class="issue-list">
+              <div class="issue-item">
+                <div class="issue-num">12</div>
+                <div class="issue-info"><div class="issue-name">Sizing issue</div><div class="issue-sub">mentions today</div></div>
+                <div class="issue-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>20%</div>
+              </div>
+              <div class="issue-item">
+                <div class="issue-num">8</div>
+                <div class="issue-info"><div class="issue-name">Late delivery</div><div class="issue-sub">mentions today</div></div>
+                <div class="issue-delta dn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M7 7l10 10M17 7v10H7"/></svg>10%</div>
+              </div>
+              <div class="issue-item">
+                <div class="issue-num">5</div>
+                <div class="issue-info"><div class="issue-name">Color mismatch</div><div class="issue-sub">mentions today</div></div>
+                <div class="issue-delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>15%</div>
+              </div>
+              <div class="issue-item">
+                <div class="issue-num">4</div>
+                <div class="issue-info"><div class="issue-name">Product quality</div><div class="issue-sub">mentions today</div></div>
+                <div class="issue-delta dn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M7 7l10 10M17 7v10H7"/></svg>5%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SENTIMENT + QUICK ACTIONS -->
+          <div class="luna-row">
+            <div class="l-panel">
+              <div class="l-panel-title">Sentiment Analysis</div>
+              <div class="l-panel-sub">Customer mood overview</div>
+              <div class="sentiment-list">
+                <div class="sent-item">
+                  <div class="sent-header"><span class="sent-label">Angry</span><span class="sent-pct">15%</span></div>
+                  <div class="sent-track"><div class="sent-fill angry" style="width:15%"></div></div>
+                </div>
+                <div class="sent-item">
+                  <div class="sent-header"><span class="sent-label">Neutral</span><span class="sent-pct">45%</span></div>
+                  <div class="sent-track"><div class="sent-fill neutral" style="width:45%"></div></div>
+                </div>
+                <div class="sent-item">
+                  <div class="sent-header"><span class="sent-label">Positive</span><span class="sent-pct">40%</span></div>
+                  <div class="sent-track"><div class="sent-fill positive" style="width:40%"></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="l-panel">
+              <div class="l-panel-title">Quick Actions</div>
+              <div class="l-panel-sub">Export and share reports</div>
+              <div class="qa-list">
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>export daily report (pdf/csv)</button>
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>send summary to email</button>
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>send to whatsapp</button>
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>open conversations</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /overview -->
+
+        <!-- ══ CONVERSATIONS PANEL ══ -->
+        <div class="luna-panel-section" id="panel-conversations">
+          <div class="l-panel">
+            <div class="l-panel-title">All Conversations</div>
+            <div class="l-panel-sub">Recent DMs handled by Luna</div>
+            <table class="conv-table">
+              <thead><tr><th>Customer</th><th>Channel</th><th>Topic</th><th>Status</th><th>Time</th></tr></thead>
+              <tbody>
+                <tr><td>@sarah.style</td><td>Instagram</td><td>Size inquiry</td><td><span class="conv-badge resolved">● Resolved</span></td><td style="color:var(--text-tertiary)">2m ago</td></tr>
+                <tr><td>+20 100 123 456</td><td>WhatsApp</td><td>Order status</td><td><span class="conv-badge resolved">● Resolved</span></td><td style="color:var(--text-tertiary)">14m ago</td></tr>
+                <tr><td>@moda.eg</td><td>Instagram</td><td>Return request</td><td><span class="conv-badge escalated">↑ Escalated</span></td><td style="color:var(--text-tertiary)">31m ago</td></tr>
+                <tr><td>+20 111 987 654</td><td>WhatsApp</td><td>Refund</td><td><span class="conv-badge pending">○ Pending</span></td><td style="color:var(--text-tertiary)">1h ago</td></tr>
+                <tr><td>@nour.fashion</td><td>Instagram</td><td>Color mismatch</td><td><span class="conv-badge escalated">↑ Escalated</span></td><td style="color:var(--text-tertiary)">2h ago</td></tr>
+                <tr><td>@brand.lover</td><td>Instagram</td><td>Availability</td><td><span class="conv-badge resolved">● Resolved</span></td><td style="color:var(--text-tertiary)">3h ago</td></tr>
+                <tr><td>+20 155 443 221</td><td>WhatsApp</td><td>Delivery ETA</td><td><span class="conv-badge resolved">● Resolved</span></td><td style="color:var(--text-tertiary)">4h ago</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ══ ISSUES PANEL ══ -->
+        <div class="luna-panel-section" id="panel-issues">
+          <div class="l-panel">
+            <div class="l-panel-title">All Issues</div>
+            <div class="l-panel-sub">Flagged and recurring problems</div>
+            <div class="issue-list">
+              <div class="issue-item"><div class="issue-num">12</div><div class="issue-info"><div class="issue-name">Sizing issue</div><div class="issue-sub">Customers can't find their size in the chart</div></div><div class="issue-delta up">↑ 20%</div></div>
+              <div class="issue-item"><div class="issue-num">8</div><div class="issue-info"><div class="issue-name">Late delivery</div><div class="issue-sub">Orders taking longer than expected</div></div><div class="issue-delta dn">↓ 10%</div></div>
+              <div class="issue-item"><div class="issue-num">5</div><div class="issue-info"><div class="issue-name">Color mismatch</div><div class="issue-sub">Product color differs from photos</div></div><div class="issue-delta up">↑ 15%</div></div>
+              <div class="issue-item"><div class="issue-num">4</div><div class="issue-info"><div class="issue-name">Product quality</div><div class="issue-sub">Quality below customer expectations</div></div><div class="issue-delta dn">↓ 5%</div></div>
+              <div class="issue-item"><div class="issue-num">3</div><div class="issue-info"><div class="issue-name">Wrong item received</div><div class="issue-sub">Fulfillment errors flagged</div></div><div class="issue-delta up">↑ 8%</div></div>
+            </div>
+          </div>
+          <div class="luna-row">
+            <div class="l-panel">
+              <div class="l-panel-title">Sentiment Analysis</div>
+              <div class="l-panel-sub">Customer mood on flagged issues</div>
+              <div class="sentiment-list">
+                <div class="sent-item"><div class="sent-header"><span class="sent-label">Angry</span><span class="sent-pct">15%</span></div><div class="sent-track"><div class="sent-fill angry" style="width:15%"></div></div></div>
+                <div class="sent-item"><div class="sent-header"><span class="sent-label">Neutral</span><span class="sent-pct">45%</span></div><div class="sent-track"><div class="sent-fill neutral" style="width:45%"></div></div></div>
+                <div class="sent-item"><div class="sent-header"><span class="sent-label">Positive</span><span class="sent-pct">40%</span></div><div class="sent-track"><div class="sent-fill positive" style="width:40%"></div></div></div>
+              </div>
+            </div>
+            <div class="l-panel">
+              <div class="l-panel-title">Quick Actions</div>
+              <div class="l-panel-sub">Respond to flagged issues</div>
+              <div class="qa-list">
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>export issues report</button>
+                <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>flag for team review</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ REPORTS PANEL ══ -->
+        <div class="luna-panel-section" id="panel-reports">
+          <div class="luna-stats">
+            <div class="ls-card"><div class="ls-card-top"><div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div><div class="ls-delta up">↑ 18%</div></div><div class="ls-label">Total DMs (Month)</div><div class="ls-value">1,842</div></div>
+            <div class="ls-card"><div class="ls-card-top"><div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="ls-delta up">↑ 3%</div></div><div class="ls-label">Resolution Rate</div><div class="ls-value">96%</div></div>
+            <div class="ls-card"><div class="ls-card-top"><div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="ls-delta up">↓ 0.1s</div></div><div class="ls-label">Avg Response</div><div class="ls-value">0.4s</div></div>
+            <div class="ls-card"><div class="ls-card-top"><div class="ls-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="ls-delta down">↑ 2</div></div><div class="ls-label">Escalations</div><div class="ls-value">31</div></div>
+          </div>
+          <div class="l-panel">
+            <div class="l-panel-title">Monthly Volume</div>
+            <div class="l-panel-sub">DM volume over the past 6 months</div>
+            <div class="mini-bars" style="height:70px">
+              <div class="mb" style="height:55%"></div><div class="mb" style="height:68%"></div>
+              <div class="mb" style="height:44%"></div><div class="mb" style="height:78%"></div>
+              <div class="mb" style="height:60%"></div><div class="mb hi" style="height:94%"></div>
+            </div>
+            <div class="bar-labels">
+              <span class="bar-label">Sep</span><span class="bar-label">Oct</span>
+              <span class="bar-label">Nov</span><span class="bar-label">Dec</span>
+              <span class="bar-label">Jan</span><span class="bar-label">Feb</span>
+            </div>
+          </div>
+          <div class="l-panel">
+            <div class="l-panel-title">Export Reports</div>
+            <div class="l-panel-sub">Download or share your data</div>
+            <div class="qa-list">
+              <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>daily report (PDF)</button>
+              <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>weekly report (CSV)</button>
+              <button class="qa-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>email monthly summary</button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ══ KNOWLEDGE BASE PANEL ══ -->
+        <div class="luna-panel-section" id="panel-knowledge">
+          <div class="l-panel">
+            <div class="l-panel-title">Knowledge Base</div>
+            <div class="l-panel-sub">Add questions and answers — Luna will use these to reply to your customers.</div>
+
+            <table class="kb-table" id="kb-table">
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>Answer</th>
+                  <th style="width:40px"></th>
+                </tr>
+              </thead>
+              <tbody id="kb-body">
+                <!-- Fixed row 1 -->
+                <tr class="kb-row" data-fixed="true">
+                  <td>
+                    <textarea class="kb-cell question" rows="2" placeholder="Question…" readonly
+                    >What's the delivery time?</textarea>
+                  </td>
+                  <td>
+                    <textarea class="kb-cell" rows="2" placeholder="Write your answer here…"
+                    >We deliver within 3–5 business days inside Egypt, and 7–14 days for international orders.</textarea>
+                  </td>
+                  <td style="width:40px;vertical-align:middle;text-align:center;">
+                    <span class="kb-fixed-badge">Fixed</span>
+                  </td>
+                </tr>
+                <!-- Fixed row 2 -->
+                <tr class="kb-row" data-fixed="true">
+                  <td>
+                    <textarea class="kb-cell question" rows="2" placeholder="Question…" readonly
+                    >What's your exchange and refund policy?</textarea>
+                  </td>
+                  <td>
+                    <textarea class="kb-cell" rows="2" placeholder="Write your answer here…"
+                    >You can exchange or return any item within 14 days of delivery, as long as it's unused and in original packaging. Refunds are processed within 5–7 business days.</textarea>
+                  </td>
+                  <td style="width:40px;vertical-align:middle;text-align:center;">
+                    <span class="kb-fixed-badge">Fixed</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <button class="kb-add-btn" onclick="kbAddRow()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+              Add question
+            </button>
+
+            <div class="kb-save-row">
+              <span class="kb-saved-toast" id="kb-saved-toast">✓ Saved</span>
+              <button class="kb-save-btn" onclick="kbSave()">Save knowledge base</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ SETTINGS PANEL ══ -->
+        <div class="luna-panel-section" id="panel-settings">
+
+          <!-- INTEGRATIONS -->
+          <div class="l-panel">
+            <div class="l-panel-title">Integrations</div>
+            <div class="l-panel-sub">Connect your tools so Luna can access your store, channels, and shipping data.</div>
+            <div class="int-grid">
+
+              <!-- Shopify -->
+              <div class="int-card" id="int-shopify">
+                <div class="int-logo shopify">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M15.337 3.277s-.118-.064-.332-.064c-.194 0-.46.054-.78.216-.45-1.294-1.247-2.483-2.648-2.483-.038 0-.077 0-.116.003C11.077.334 10.562.1 10.12.1c-3.251 0-4.82 4.066-5.31 6.133-.9.278-1.538.475-1.618.5C2.444 7.03 2.42 7.054 2.35 7.7L1 18.7l11.073 1.9L18 19.098V3.41s-.486-.075-.663-.133zm-2.89 1.037c-.63.194-1.322.41-2.017.623.195-.75.567-1.496 1.01-1.99.168-.18.4-.38.672-.49.263.603.335 1.46.335 1.857zm-1.47-3.024c.218 0 .4.046.56.135-.254.133-.503.337-.737.595-.602.65-1.063 1.661-1.247 2.638-.573.178-1.134.35-1.657.514C8.36 3.25 9.657 1.29 10.977 1.29z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <div class="int-info">
+                  <div class="int-name">Shopify</div>
+                  <div class="int-desc">Sync your product catalog, inventory, and orders. Luna answers stock and order questions automatically.</div>
+                </div>
+                <div class="int-status" id="shopify-status">
+                  <div class="int-status-dot" id="shopify-dot"></div>
+                  <span id="shopify-status-text">Not connected</span>
+                </div>
+                <button class="int-btn connect" id="shopify-btn" onclick="openIntModal('shopify')">Connect</button>
+              </div>
+
+              <!-- Meta -->
+              <div class="int-card" id="int-meta">
+                <div class="int-logo meta">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                </div>
+                <div class="int-info">
+                  <div class="int-name">Meta Business</div>
+                  <div class="int-desc">Connect Instagram DMs and WhatsApp Business. Luna reads and replies on your behalf in real time.</div>
+                </div>
+                <div class="int-status" id="meta-status">
+                  <div class="int-status-dot" id="meta-dot"></div>
+                  <span id="meta-status-text">Not connected</span>
+                </div>
+                <button class="int-btn connect" id="meta-btn" onclick="openIntModal('meta')">Connect</button>
+              </div>
+
+              <!-- Bosta -->
+              <div class="int-card" id="int-bosta">
+                <div class="int-logo bosta">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M5 8h14M5 8a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v0a2 2 0 01-2 2M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M10 12h4"/>
+                  </svg>
+                </div>
+                <div class="int-info">
+                  <div class="int-name">Bosta</div>
+                  <div class="int-desc">Plug in your Bosta account so Luna can track shipments and give customers live delivery updates.</div>
+                </div>
+                <div class="int-status" id="bosta-status">
+                  <div class="int-status-dot" id="bosta-dot"></div>
+                  <span id="bosta-status-text">Not connected</span>
+                </div>
+                <button class="int-btn connect" id="bosta-btn" onclick="openIntModal('bosta')">Connect</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- LUNA CONFIG -->
+          <div class="l-panel">
+            <div class="l-panel-title">Luna Configuration</div>
+            <div class="l-panel-sub">Customize how Luna behaves for your brand</div>
+            <div style="display:flex;flex-direction:column;gap:1.2rem;margin-top:1rem">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.4rem">Brand tone</div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem">Friendly</button>
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem;border-color:var(--border-hover);color:var(--text-primary)">Professional ✓</button>
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem">Casual</button>
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem">Luxury</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.4rem">Auto-escalate after</div>
+                <select style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:0.75rem;color:var(--text-primary);outline:none;font-family:inherit">
+                  <option>3 messages without resolution</option>
+                  <option>5 messages without resolution</option>
+                  <option>Any complaint</option>
+                  <option>Never (manual only)</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.4rem">Active channels</div>
+                <div style="display:flex;gap:0.5rem">
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem;border-color:var(--border-hover);color:var(--text-primary)">Instagram ✓</button>
+                  <button class="qa-btn" style="width:auto;padding:6px 14px;font-size:0.7rem;border-color:var(--border-hover);color:var(--text-primary)">WhatsApp ✓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- /luna-body -->
+    </main>
+  </div>
+</div>
+
+<script>
+var MOON = '<path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>';
+var SUN = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+var theme = 'dark';
+var user = null;
+
+function gel(id) { return document.getElementById(id); }
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  var dark = theme === 'dark';
+  if (gel('themeIcon')) gel('themeIcon').innerHTML = dark ? MOON : SUN;
+  if (gel('themeLabel')) gel('themeLabel').textContent = dark ? 'Light' : 'Dark';
+}
+
+function goTo(id) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) {
+    screens[i].classList.remove('active');
+    screens[i].style.display = 'none';
+  }
+  var s = gel(id);
+  if (s) {
+    s.classList.add('active');
+    // agentview needs flex, others block
+    s.style.display = (id === 'agentview' || id === 'onboarding') ? 'flex' : 'block';
+  }
+  window.scrollTo(0, 0);
+  var nc = gel('nav-center');
+  if (nc) nc.style.display = id === 'landing' ? 'flex' : 'none';
+}
+
+function scrollTo_(selector) {
+  var t = document.querySelector(selector);
+  if (t) t.scrollIntoView({ behavior: 'smooth' });
+}
+
+function openModal(type) {
+  closeAllModals();
+  var id = type === 'login' ? 'login-modal' : 'register-modal';
+  var m = gel(id);
+  if (m) m.classList.add('open');
+}
+
+function closeModal(id) {
+  var m = gel(id);
+  if (m) m.classList.remove('open');
+}
+
+function closeAllModals() {
+  var modals = document.querySelectorAll('.modal-overlay');
+  for (var i = 0; i < modals.length; i++) modals[i].classList.remove('open');
+}
+
+function switchModal(fromId, toId) {
+  closeModal(fromId);
+  setTimeout(function() {
+    var m = gel(toId);
+    if (m) m.classList.add('open');
+  }, 150);
+}
+
+function setLoggedIn(firstName, lastName, email) {
+  user = { firstName: firstName, lastName: lastName, email: email };
+  var initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  if (gel('profile-btn')) gel('profile-btn').textContent = initials;
+  if (gel('dd-name')) gel('dd-name').textContent = firstName + ' ' + lastName;
+  if (gel('dd-email')) gel('dd-email').textContent = email;
+  var hour = new Date().getHours();
+  var greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  if (gel('mk-hello')) gel('mk-hello').textContent = greeting + ', ' + firstName + '.';
+  if (gel('auth-btns')) gel('auth-btns').style.display = 'none';
+  if (gel('profile-area')) gel('profile-area').style.display = 'block';
+}
+
+function doLogin() {
+  var emailEl = gel('login-email');
+  var email = (emailEl && emailEl.value.trim()) ? emailEl.value.trim() : 'user@brand.com';
+  closeAllModals();
+  setLoggedIn('John', 'Doe', email);
+  goTo('mykrew');
+}
+
+function doRegister() {
+  var firstEl = gel('reg-first');
+  var lastEl = gel('reg-last');
+  var emailEl = gel('reg-email');
+  var first = (firstEl && firstEl.value.trim()) ? firstEl.value.trim() : 'John';
+  var last = (lastEl && lastEl.value.trim()) ? lastEl.value.trim() : 'Doe';
+  var email = (emailEl && emailEl.value.trim()) ? emailEl.value.trim() : 'user@brand.com';
+  closeAllModals();
+  setLoggedIn(first, last, email);
+  goTo('onboarding');
+  obInit();
+}
+
+function logout() {
+  user = null;
+  if (gel('auth-btns')) gel('auth-btns').style.display = 'flex';
+  if (gel('profile-area')) gel('profile-area').style.display = 'none';
+  goTo('landing');
+}
+
+function toggleDropdown() {
+  var dd = gel('profile-dropdown');
+  if (dd) dd.classList.toggle('open');
+}
+
+function closeDropdown() {
+  var dd = gel('profile-dropdown');
+  if (dd) dd.classList.remove('open');
+}
+
+function openAgent(agent) {
+  var luna = gel('luna-dash');
+  var ivy = gel('ivy-dash');
+  if (luna) luna.style.display = 'none';
+  if (ivy) ivy.style.display = 'none';
+  if (agent === 'luna') {
+    if (gel('av-name')) gel('av-name').textContent = 'Luna';
+    if (gel('av-role')) gel('av-role').textContent = 'Customer Operations Agent · Krew';
+    if (luna) luna.style.display = 'block';
+  } else {
+    if (gel('av-name')) gel('av-name').textContent = 'Ivy';
+    if (gel('av-role')) gel('av-role').textContent = 'Financial Visibility Agent · Krew';
+    if (ivy) ivy.style.display = 'block';
+  }
+  goTo('agentview');
+}
+
+document.addEventListener('click', function(e) {
+  var wrap = gel('profile-area');
+  if (wrap && !wrap.contains(e.target)) closeDropdown();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  var overlays = document.querySelectorAll('.modal-overlay');
+  for (var i = 0; i < overlays.length; i++) {
+    (function(overlay) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
+    })(overlays[i]);
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeAllModals(); closeDropdown(); }
+});
+
+/* ══════ ONBOARDING LOGIC ══════ */
+var obSteps = [
+  {
+    eyebrow: 'Step 1 — Business type',
+    question: 'What type of business do you run?',
+    sub: 'This helps Luna adapt her tone and responses to your industry.',
+    key: 'businessType',
+    options: ['Fashion','Accessories','Fragrances','Cosmetics','General E-commerce','Other']
+  },
+  {
+    eyebrow: 'Step 2 — Revenue range',
+    question: 'What is your average monthly revenue?',
+    sub: 'Helps us understand your scale so we can set Luna up correctly.',
+    key: 'revenueRange',
+    options: ['0 – 50,000','50,000 – 200,000','200,000 – 500,000','500,000+']
+  },
+  {
+    eyebrow: 'Step 3 — DM volume',
+    question: 'How many customer DMs do you receive per day?',
+    sub: 'This determines how Luna is configured for your inbox load.',
+    key: 'dmVolume',
+    options: ['0 – 20','20 – 60','60 – 150','150+']
+  },
+  {
+    eyebrow: 'Step 4 — Main challenge',
+    question: 'What is your biggest challenge right now?',
+    sub: 'Luna will prioritize solving this for you first.',
+    key: 'painPoint',
+    options: ['Slow response time','Missed orders in DMs','Managing team replies','Tracking customer issues','Scaling customer support']
+  }
+];
+
+var obCurrentStep = 0;
+var obAnswers = {};
+var obSelected = null;
+
+function obInit() {
+  obCurrentStep = 0;
+  obAnswers = {};
+  obSelected = null;
+  obRender(false);
+}
+
+function obRender(animate) {
+  var step = obSteps[obCurrentStep];
+  var total = obSteps.length;
+  var pct = Math.round(((obCurrentStep + 1) / total) * 100);
+
+  // Progress
+  if (gel('ob-step-text')) gel('ob-step-text').textContent = 'Step ' + (obCurrentStep + 1) + ' of ' + total;
+  if (gel('ob-step-pct')) gel('ob-step-pct').textContent = pct + '%';
+  if (gel('ob-fill')) gel('ob-fill').style.width = pct + '%';
+
+  // Content
+  if (gel('ob-eyebrow')) gel('ob-eyebrow').textContent = step.eyebrow;
+  if (gel('ob-question')) gel('ob-question').textContent = step.question;
+  if (gel('ob-sub')) gel('ob-sub').textContent = step.sub;
+
+  // Back button
+  if (gel('ob-back-btn')) gel('ob-back-btn').style.visibility = obCurrentStep === 0 ? 'hidden' : 'visible';
+
+  // Restore selection if revisiting
+  obSelected = obAnswers[step.key] || null;
+
+  // Render options
+  var container = gel('ob-options');
+  if (!container) return;
+  container.innerHTML = '';
+  step.options.forEach(function(opt) {
+    var btn = document.createElement('button');
+    btn.className = 'ob-option' + (obSelected === opt ? ' selected' : '');
+    btn.innerHTML = '<span>' + opt + '</span><span class="ob-option-check"></span>';
+    btn.addEventListener('click', function() { obSelect(opt); });
+    container.appendChild(btn);
+  });
+
+  obUpdateNext();
+
+  // Animate card in
+  var card = gel('ob-card');
+  if (card && animate) {
+    card.style.animation = 'none';
+    card.offsetHeight; // reflow
+    card.style.animation = 'obFadeUp 0.4s ease both';
+  }
+}
+
+function obSelect(value) {
+  obSelected = value;
+  var btns = document.querySelectorAll('.ob-option');
+  for (var i = 0; i < btns.length; i++) {
+    var txt = btns[i].querySelector('span') ? btns[i].querySelector('span').textContent : '';
+    if (txt === value) btns[i].classList.add('selected');
+    else btns[i].classList.remove('selected');
+  }
+  obUpdateNext();
+}
+
+function obUpdateNext() {
+  var btn = gel('ob-next-btn');
+  if (!btn) return;
+  if (obSelected) {
+    btn.classList.add('ready');
+    btn.textContent = obCurrentStep === obSteps.length - 1 ? 'Finish' : 'Continue';
+  } else {
+    btn.classList.remove('ready');
+    btn.textContent = 'Continue';
+  }
+}
+
+function obNext() {
+  if (!obSelected) return;
+  var step = obSteps[obCurrentStep];
+  obAnswers[step.key] = obSelected;
+
+  if (obCurrentStep < obSteps.length - 1) {
+    obCurrentStep++;
+    obSelected = null;
+    obRender(true);
+  } else {
+    // Save answers to user profile
+    if (user) user.onboarding = obAnswers;
+    obShowLoading();
+  }
+}
+
+function obBack() {
+  if (obCurrentStep === 0) return;
+  obCurrentStep--;
+  obSelected = obAnswers[obSteps[obCurrentStep].key] || null;
+  obRender(true);
+}
+
+function obShowLoading() {
+  // Force hide ALL screens with inline style
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) {
+    screens[i].classList.remove('active');
+    screens[i].style.display = 'none';
+  }
+
+  // Show loading overlay
+  var loading = gel('ob-loading');
+  if (loading) loading.style.display = 'flex';
+
+  var messages = ['Building your Krew…', 'Configuring Luna…', 'Almost ready…'];
+  var loaderText = gel('ob-loader-text');
+  var idx = 0;
+  var interval = setInterval(function() {
+    idx++;
+    if (idx < messages.length && loaderText) loaderText.textContent = messages[idx];
+  }, 800);
+
+  setTimeout(function() {
+    clearInterval(interval);
+    if (loading) loading.style.display = 'none';
+    goTo('mykrew');
+    obShowWelcomeToast();
+  }, 2600);
+}
+function obShowWelcomeToast() {
+  var businessType = (obAnswers && obAnswers.businessType) ? obAnswers.businessType : 'your business';
+  var existing = document.querySelector('.ob-welcome-toast');
+  if (existing) existing.remove();
+  var toast = document.createElement('div');
+  toast.className = 'ob-welcome-toast';
+  toast.innerHTML = '<div class="ob-toast-dot"></div><span>Luna is now optimized for <strong>' + businessType + '</strong></span>';
+  document.body.appendChild(toast);
+  setTimeout(function() {
+    toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(10px)';
+    setTimeout(function() { if (toast.parentNode) toast.remove(); }, 400);
+  }, 4000);
+}
+
+
+/* ══ LUNA SIDEBAR NAV ══ */
+var currentLunaPanel = 'overview';
+var sectionTitles = {
+  overview:      ['daily support summary',   'customer support overview and insights'],
+  conversations: ['conversations',           'all DMs handled by Luna'],
+  issues:        ['issues',                  'recurring and flagged customer problems'],
+  reports:       ['reports',                 'performance data and exports'],
+  settings:      ['settings',               'configure Luna for your brand'],
+  knowledge:     ['knowledge base',           'teach Luna how to answer your customers']
+};
+
+function lunaNav(section, btn) {
+  // deactivate all
+  var items = document.querySelectorAll('.sb-item');
+  for (var i=0;i<items.length;i++) items[i].classList.remove('active');
+  if (btn) btn.classList.add('active');
+
+  // hide all panels
+  var panels = document.querySelectorAll('.luna-panel-section');
+  for (var i=0;i<panels.length;i++) panels[i].classList.remove('active');
+  var target = gel('panel-' + section);
+  if (target) target.classList.add('active');
+
+  // update title
+  var titles = sectionTitles[section] || ['Luna',''];
+  if (gel('luna-section-title')) gel('luna-section-title').textContent = titles[0];
+  if (gel('luna-section-sub'))   gel('luna-section-sub').textContent   = titles[1];
+
+  currentLunaPanel = section;
+  closeLunaSidebar();
+}
+
+function toggleLunaSidebar() {
+  var sb = gel('luna-sidebar');
+  if (sb) sb.classList.toggle('mob-open');
+}
+function closeLunaSidebar() {
+  var sb = gel('luna-sidebar');
+  if (sb) sb.classList.remove('mob-open');
+}
+
+/* ══ TIME FILTER ══ */
+function toggleTimeFilter() {
+  var dd = gel('time-dropdown');
+  if (dd) dd.classList.toggle('open');
+}
+function setTime(label, btn) {
+  if (gel('time-label')) gel('time-label').textContent = label;
+  var opts = document.querySelectorAll('.time-opt');
+  for (var i=0;i<opts.length;i++) opts[i].classList.remove('active');
+  if (btn) btn.classList.add('active');
+  // hide custom range
+  var cr = gel('custom-range');
+  if (cr) cr.classList.remove('show');
+  var dd = gel('time-dropdown');
+  if (dd) dd.classList.remove('open');
+}
+function toggleCustomRange() {
+  var cr = gel('custom-range');
+  if (cr) cr.classList.toggle('show');
+}
+function applyCustomRange() {
+  var from = gel('date-from') ? gel('date-from').value : '';
+  var to   = gel('date-to')   ? gel('date-to').value   : '';
+  if (from && to) {
+    if (gel('time-label')) gel('time-label').textContent = from + ' → ' + to;
+    var dd = gel('time-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+}
+
+// close time dropdown on outside click
+document.addEventListener('click', function(e) {
+  var wrap = gel('time-filter-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    var dd = gel('time-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+// Update luna avatar when user logs in
+var _origSetLoggedIn = setLoggedIn;
+setLoggedIn = function(firstName, lastName, email) {
+  _origSetLoggedIn(firstName, lastName, email);
+  var initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  if (gel('luna-avatar'))    gel('luna-avatar').textContent    = initials;
+  if (gel('luna-username'))  gel('luna-username').textContent  = firstName.toLowerCase() + lastName.toLowerCase();
+};
+
+</script>
+
+
+<!-- ══════ INTEGRATION MODALS ══════ -->
+<!-- Shopify Modal -->
+<div class="int-modal-overlay" id="int-modal-shopify">
+  <div class="int-modal">
+    <button class="int-modal-close" onclick="closeIntModal('shopify')">×</button>
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.2rem">
+      <div class="int-logo shopify" style="width:36px;height:36px;font-size:0.9rem">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15.337 3.277s-.118-.064-.332-.064c-.194 0-.46.054-.78.216-.45-1.294-1.247-2.483-2.648-2.483-.038 0-.077 0-.116.003C11.077.334 10.562.1 10.12.1c-3.251 0-4.82 4.066-5.31 6.133-.9.278-1.538.475-1.618.5C2.444 7.03 2.42 7.054 2.35 7.7L1 18.7l11.073 1.9L18 19.098V3.41s-.486-.075-.663-.133z" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <div class="int-modal-title">Connect Shopify</div>
+      </div>
+    </div>
+    <div class="int-modal-sub">Enter your Shopify store URL and API key. Luna will sync your products, inventory, and orders automatically.</div>
+    <div class="int-field"><div class="int-field-label">Store URL</div><input class="int-field-input" type="text" placeholder="yourstore.myshopify.com" id="shopify-url"/></div>
+    <div class="int-field"><div class="int-field-label">Admin API Key</div><input class="int-field-input" type="password" placeholder="shpat_••••••••••••••••" id="shopify-key"/></div>
+    <button class="int-connect-btn" onclick="doConnect('shopify')">Connect Shopify</button>
+    <div class="int-helper">Need help? <a>View setup guide →</a></div>
+  </div>
+</div>
+
+<!-- Meta Modal -->
+<div class="int-modal-overlay" id="int-modal-meta">
+  <div class="int-modal">
+    <button class="int-modal-close" onclick="closeIntModal('meta')">×</button>
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.2rem">
+      <div class="int-logo meta" style="width:36px;height:36px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+      </div>
+      <div>
+        <div class="int-modal-title">Connect Meta Business</div>
+      </div>
+    </div>
+    <div class="int-modal-sub">Link your Meta Business account to activate Luna on Instagram DMs and WhatsApp Business.</div>
+    <div class="int-field"><div class="int-field-label">Business Account ID</div><input class="int-field-input" type="text" placeholder="123456789012345" id="meta-id"/></div>
+    <div class="int-field"><div class="int-field-label">Access Token</div><input class="int-field-input" type="password" placeholder="EAABsbCS…" id="meta-token"/></div>
+    <button class="int-connect-btn" onclick="doConnect('meta')">Connect Meta</button>
+    <div class="int-helper">Need help? <a>View setup guide →</a></div>
+  </div>
+</div>
+
+<!-- Bosta Modal -->
+<div class="int-modal-overlay" id="int-modal-bosta">
+  <div class="int-modal">
+    <button class="int-modal-close" onclick="closeIntModal('bosta')">×</button>
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.2rem">
+      <div class="int-logo bosta" style="width:36px;height:36px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14M5 8a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v0a2 2 0 01-2 2M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M10 12h4"/></svg>
+      </div>
+      <div>
+        <div class="int-modal-title">Connect Bosta</div>
+      </div>
+    </div>
+    <div class="int-modal-sub">Connect your Bosta account so Luna can track shipments and give customers live delivery status updates.</div>
+    <div class="int-field"><div class="int-field-label">API Key</div><input class="int-field-input" type="password" placeholder="bosta_live_••••••••••••" id="bosta-key"/></div>
+    <button class="int-connect-btn" onclick="doConnect('bosta')">Connect Bosta</button>
+    <div class="int-helper">Find your API key in <a>Bosta Dashboard → Settings → API</a></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Read(//d/KrewAi/Krew-Ai-Backend/**)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Read(//d/**)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
