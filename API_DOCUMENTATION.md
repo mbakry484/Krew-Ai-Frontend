@@ -15,10 +15,11 @@ All endpoints are prefixed with `/api`. Auth uses a bearer token in the `Authori
 5. [Luna — Overview](#luna--overview)
 6. [Luna — Conversations](#luna--conversations)
 7. [Luna — Issues](#luna--issues)
-8. [Luna — Reports](#luna--reports)
-9. [Luna — Knowledge Base](#luna--knowledge-base)
-10. [Luna — Settings](#luna--settings)
-11. [Integrations](#integrations)
+8. [Luna — Exchanges & Refunds](#luna--exchanges--refunds)
+9. [Luna — Reports](#luna--reports)
+10. [Luna — Knowledge Base](#luna--knowledge-base)
+11. [Luna — Settings](#luna--settings)
+12. [Integrations](#integrations)
 
 ---
 
@@ -94,21 +95,76 @@ Returns:
 
 ## Luna — Conversations
 
-### GET /api/luna/conversations?period=today|week|month&status=all|resolved|escalated|pending
-Returns:
+### GET /api/luna/conversations?status=all|resolved|escalated|pending
+Returns the list of conversations for the inbox. Filter by status with the `status` query param.
 ```json
 {
   "conversations": [
     {
       "id": "string",
-      "customer": "@sarah.style",
-      "channel": "instagram | whatsapp",
-      "topic": "Size inquiry",
+      "customer_name": "Sarah M.",
+      "handle": "@sarah.style",
+      "platform": "instagram | whatsapp",
       "status": "resolved | escalated | pending",
-      "timestamp": "2m ago"
+      "last_message": "string",
+      "timestamp": "2m ago",
+      "luna_enabled": true,
+      "unread_count": 2
     }
   ]
 }
+```
+
+### GET /api/luna/conversations/:id/messages
+Returns the full message thread for a specific conversation.
+```json
+{
+  "messages": [
+    {
+      "id": "string",
+      "from": "customer | luna | agent",
+      "text": "string",
+      "time": "10:32 AM"
+    }
+  ]
+}
+```
+
+### POST /api/luna/conversations/:id/messages
+Send a message as the agent. Only valid when `luna_enabled` is `false` (after takeover).
+```json
+// Body
+{ "text": "string" }
+
+// Response
+{ "message": { "id": "string", "from": "agent", "text": "string", "time": "string" } }
+```
+
+### PATCH /api/luna/conversations/:id/luna
+Toggle Luna on or off for a specific conversation.
+```json
+// Body
+{ "enabled": true }
+
+// Response
+{ "success": true, "luna_enabled": true }
+```
+
+### POST /api/luna/conversations/:id/takeover
+Agent takes over the conversation from Luna. Sets `luna_enabled = false` server-side.
+```json
+// Body
+{}
+
+// Response
+{ "success": true }
+```
+
+### PATCH /api/luna/conversations/:id/read
+Mark a conversation as read (resets `unread_count` to 0).
+```json
+// Response
+{ "success": true }
 ```
 
 ---
@@ -139,6 +195,57 @@ Returns: `{ download_url: string }`
 ### POST /api/luna/issues/flag-team
 Body: `{ issue_ids: string[] }`
 Returns: `{ success: boolean }`
+
+---
+
+## Luna — Exchanges & Refunds
+
+### GET /api/luna/exchanges-refunds?status=all|pending|done|dismissed
+Returns the list of exchange and refund requests. Filter by status with the `status` query param.
+
+> **Creation-time requirement:** When Luna detects an exchange or refund intent in a conversation, it **must** save the `conversation_id` of that conversation on the request record at creation time. This field cannot be backfilled and is required for the "open conversation" chat button to function.
+
+```json
+{
+  "requests": [
+    {
+      "id": "string",
+      "type": "exchange | refund",
+      "status": "pending | done | dismissed",
+      "customer_name": "Sarah M.",
+      "order_id": "#ORD-4821",
+      "date": "2024-03-24",
+      "reason": "Wrong size received — ordered L, got M",
+      "conversation_id": "string"
+    }
+  ]
+}
+```
+
+### PATCH /api/luna/exchanges-refunds/:id/status
+Update the status of a specific request (mark as done or dismissed).
+```json
+// Body
+{ "status": "done" | "dismissed" }
+
+// Response
+{ "success": true, "request": { "id": "string", "status": "done" | "dismissed" } }
+```
+
+### GET /api/luna/exchanges-refunds/:id/conversation
+Called when the user clicks the chat bubble button on a request card. Returns the conversation data needed for the Conversations tab to open and highlight the correct thread.
+
+The frontend navigates to `/dashboard/luna/conversations?open=<conversation_id>` on success. The Conversations page reads the `open` query param on mount and sets the initially selected thread.
+```json
+// Response
+{
+  "conversation_id": "string",
+  "customer_name": "Sarah M.",
+  "handle": "@sarah.style",
+  "platform": "instagram | whatsapp",
+  "status": "resolved | escalated | pending"
+}
+```
 
 ---
 

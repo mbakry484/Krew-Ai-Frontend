@@ -38,21 +38,138 @@ body {
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   height: 48px; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 2rem; border-bottom: 1px solid var(--border);
-  background: var(--bg); backdrop-filter: blur(20px);
-  transition: background 0.3s, border-color 0.3s;
+  padding: 0 2rem;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  backdrop-filter: blur(0px);
+  transition: background 0.35s, border-color 0.35s, backdrop-filter 0.35s;
+}
+.nav.scrolled {
+  background: var(--bg);
+  border-bottom-color: var(--border);
+  backdrop-filter: blur(20px);
 }
 .nav-logo {
   font-size: 0.82rem; font-weight: 500; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--text-primary); cursor: pointer;
+  text-transform: uppercase; color: var(--text-primary); cursor: pointer; flex-shrink: 0;
 }
-.nav-center { display: flex; align-items: center; gap: 1.8rem; }
+.nav-center { display: flex; align-items: center; gap: 0.2rem; }
 .nav-link {
   font-size: 0.75rem; color: var(--text-secondary); text-decoration: none;
-  letter-spacing: 0.02em; transition: color 0.2s; cursor: pointer; background: none; border: none; font-family: inherit;
+  letter-spacing: 0.02em; transition: color 0.2s, background 0.15s; cursor: pointer;
+  background: none; border: none; font-family: inherit;
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 6px;
 }
-.nav-link:hover { color: var(--text-primary); }
+.nav-link:hover { color: var(--text-primary); background: var(--tag-bg); }
 .nav-right { display: flex; align-items: center; gap: 0.8rem; }
+
+/* Mega dropdown */
+.mega-item { position: relative; }
+.mega-chevron { width: 10px; height: 10px; transition: transform 0.2s; flex-shrink: 0; opacity: 0.5; }
+.mega-item:hover .mega-chevron { transform: rotate(180deg); }
+
+.mega-panel {
+  position: absolute; top: calc(100% + 10px); left: 50%;
+  min-width: 240px;
+  background: var(--dropdown-bg); border: 1px solid var(--border-md);
+  border-radius: 12px; padding: 0.4rem;
+  opacity: 0; pointer-events: none;
+  transform: translateX(-50%) translateY(-8px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+  z-index: 300;
+}
+.mega-item:hover .mega-panel {
+  opacity: 1; pointer-events: all;
+  transform: translateX(-50%) translateY(0);
+}
+
+.mega-link {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.75rem 0.9rem; border-radius: 8px; cursor: pointer;
+  transition: background 0.15s; border: none; background: none;
+  font-family: inherit; text-align: left; width: 100%; text-decoration: none;
+}
+.mega-link:hover { background: var(--bg3); }
+.mega-link.dimmed { opacity: 0.4; pointer-events: none; cursor: default; }
+.mega-link-icon {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary); flex-shrink: 0;
+}
+.mega-link-icon svg { width: 13px; height: 13px; }
+.mega-link-body { flex: 1; }
+.mega-link-name { font-size: 0.78rem; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+.mega-link-desc { font-size: 0.65rem; color: var(--text-tertiary); line-height: 1.4; }
+.mega-link-badge {
+  flex-shrink: 0; font-size: 0.54rem; text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-tertiary);
+}
+.mega-link-badge.live { color: #5c9c6e; border-color: rgba(92,156,110,0.3); }
+
+/* Hamburger button */
+.nav-hamburger {
+  display: none; flex-direction: column; justify-content: center; gap: 4px;
+  background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px;
+}
+.nav-hamburger span {
+  display: block; width: 17px; height: 1.5px;
+  background: var(--text-secondary); border-radius: 1px; transition: all 0.2s;
+}
+.nav-hamburger:hover span { background: var(--text-primary); }
+
+/* Mobile nav overlay */
+.mobile-nav-overlay {
+  display: none; position: fixed; inset: 0; z-index: 250;
+  background: var(--overlay-bg); backdrop-filter: blur(4px);
+}
+.mobile-nav-overlay.open { display: block; }
+
+/* Mobile nav drawer */
+.mobile-nav-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 260;
+  width: 275px; background: var(--bg2);
+  border-left: 1px solid var(--border-md);
+  padding: 1.2rem;
+  display: flex; flex-direction: column; gap: 0.15rem;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+}
+.mobile-nav-drawer.open { transform: translateX(0); }
+.mobile-nav-close {
+  align-self: flex-end; background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 1.2rem; line-height: 1;
+  padding: 4px; margin-bottom: 0.8rem; transition: color 0.2s;
+}
+.mobile-nav-close:hover { color: var(--text-primary); }
+.mobile-nav-section { margin-bottom: 0.4rem; }
+.mobile-nav-label {
+  font-size: 0.57rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-tertiary); padding: 0.3rem 0.7rem 0.2rem;
+}
+.mobile-nav-link {
+  display: block; padding: 0.6rem 0.8rem; border-radius: 7px;
+  font-size: 0.78rem; color: var(--text-secondary); cursor: pointer;
+  transition: background 0.15s, color 0.15s; background: none;
+  border: none; font-family: inherit; text-align: left; width: 100%;
+}
+.mobile-nav-link:hover { background: var(--bg3); color: var(--text-primary); }
+.mobile-nav-link.dimmed { opacity: 0.38; pointer-events: none; }
+.mobile-nav-divider { height: 1px; background: var(--border); margin: 0.8rem 0; }
+.mobile-nav-btn-ghost {
+  width: 100%; background: none; border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer;
+  font-family: inherit; transition: all 0.2s; margin-bottom: 0.5rem; text-align: center;
+}
+.mobile-nav-btn-ghost:hover { border-color: var(--border-md); color: var(--text-primary); }
+.mobile-nav-btn-solid {
+  width: 100%; background: var(--btn-bg); color: var(--btn-text); border: none;
+  border-radius: 8px; padding: 9px; font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  font-family: inherit; transition: opacity 0.2s; text-align: center;
+}
+.mobile-nav-btn-solid:hover { opacity: 0.85; }
 
 .theme-toggle {
   background: none; border: 1px solid var(--border); border-radius: 20px;
@@ -385,6 +502,11 @@ footer { padding: 1.8rem 2rem; max-width: 960px; margin: 0 auto; display: flex; 
 .hero-content>*:nth-child(1){animation-delay:.1s} .hero-content>*:nth-child(2){animation-delay:.2s}
 .hero-content>*:nth-child(3){animation-delay:.3s} .hero-content>*:nth-child(4){animation-delay:.4s}
 .hero-content>*:nth-child(5){animation-delay:.5s}
+
+@media(max-width:900px){
+  .nav-hamburger { display: flex; }
+  #auth-btns { display: none !important; }
+}
 
 @media(min-width:641px) and (max-width:900px){
   .nav-center { display: none !important; }
@@ -856,6 +978,28 @@ footer { padding: 1.8rem 2rem; max-width: 960px; margin: 0 auto; display: flex; 
 .kb-saved-toast.show { opacity:1; }
 
 
+/* ══════════════════════ FAQ ══════════════════════ */
+.faq-list { margin-top: 2rem; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-item:last-child { border-bottom: none; }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 1.1rem 1.5rem; background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 0.82rem; color: var(--text-primary);
+  text-align: left; transition: background 0.15s; gap: 1rem;
+}
+.faq-q:hover { background: var(--bg3); }
+.faq-q span { flex: 1; }
+.faq-chevron { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-tertiary); transition: transform 0.25s; }
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+.faq-a {
+  overflow: hidden; max-height: 0;
+  transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0.3s;
+  padding: 0 1.5rem;
+}
+.faq-item.open .faq-a { max-height: 300px; padding: 0 1.5rem 1.3rem; }
+.faq-a p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.85; font-weight: 300; }
+
 /* ══════════════════════ INTEGRATIONS ══════════════════════ */
 .int-grid { display:flex; flex-direction:column; gap:0.75rem; margin-top:1rem; }
 
@@ -1071,11 +1215,64 @@ document.addEventListener('click', function(e) {
 <!-- ══════ NAV (always visible) ══════ -->
 <nav class="nav" id="main-nav">
   <span class="nav-logo" onclick="goTo('landing')">Krew</span>
+
   <div class="nav-center" id="nav-center">
-    <button class="nav-link" onclick="scrollTo_('#products')">Products</button>
-    <button class="nav-link" onclick="scrollTo_('#vision')">Vision</button>
-    <button class="nav-link">Contact</button>
+    <!-- Agents + mega dropdown -->
+    <div class="mega-item">
+      <button class="nav-link">
+        Agents
+        <svg class="mega-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="mega-panel">
+        <button class="mega-link" onclick="openAgent('luna')">
+          <div class="mega-link-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          </div>
+          <div class="mega-link-body">
+            <div class="mega-link-name">Luna</div>
+            <div class="mega-link-desc">Customer Operations Agent</div>
+          </div>
+          <div class="mega-link-badge live">Live</div>
+        </button>
+        <div class="mega-link dimmed">
+          <div class="mega-link-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div class="mega-link-body">
+            <div class="mega-link-name">Ivy</div>
+            <div class="mega-link-desc">Financial Visibility</div>
+          </div>
+          <div class="mega-link-badge">Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About + mega dropdown -->
+    <div class="mega-item">
+      <button class="nav-link">
+        About
+        <svg class="mega-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="mega-panel">
+        <button class="mega-link" onclick="scrollTo_('#vision')">
+          <div class="mega-link-body">
+            <div class="mega-link-name">Our Vision</div>
+            <div class="mega-link-desc">The Krew ecosystem and where we're headed</div>
+          </div>
+        </button>
+        <button class="mega-link" onclick="scrollTo_('#products')">
+          <div class="mega-link-body">
+            <div class="mega-link-name">How It Works</div>
+            <div class="mega-link-desc">How Luna operates inside your business</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <button class="nav-link" onclick="scrollTo_('#faq')">FAQ</button>
   </div>
+
   <div class="nav-right">
     <button class="theme-toggle" onclick="toggleTheme()">
       <svg viewBox="0 0 24 24" id="themeIcon"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
@@ -1084,7 +1281,7 @@ document.addEventListener('click', function(e) {
     <!-- shown when logged out -->
     <div id="auth-btns" style="display:flex;gap:0.6rem;">
       <button class="btn-nav btn-nav-ghost" onclick="openModal('login')">Log in</button>
-      <button class="btn-nav btn-nav-solid" onclick="openModal('register')">Sign up</button>
+      <button class="btn-nav btn-nav-solid" onclick="openModal('register')">Get early access</button>
     </div>
     <!-- shown when logged in -->
     <div id="profile-area" style="display:none;" class="profile-wrap">
@@ -1092,7 +1289,7 @@ document.addEventListener('click', function(e) {
       <div class="dropdown" id="profile-dropdown">
         <div class="dropdown-header">
           <div class="dropdown-name" id="dd-name">John Doe</div>
-          <div class="dropdown-email" id="dd-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90fafff8fed0f2e2f1fef4bef3fffd">[email&#160;protected]</a></div>
+          <div class="dropdown-email" id="dd-email">user@brand.com</div>
         </div>
         <button class="dropdown-item" onclick="goTo('mykrew');closeDropdown()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -1109,8 +1306,32 @@ document.addEventListener('click', function(e) {
         </button>
       </div>
     </div>
+    <!-- Hamburger (mobile/tablet) -->
+    <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- ══════ MOBILE NAV DRAWER ══════ -->
+<div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+<div class="mobile-nav-drawer" id="mobile-nav-drawer">
+  <button class="mobile-nav-close" onclick="closeMobileNav()">×</button>
+  <div class="mobile-nav-section">
+    <div class="mobile-nav-label">Agents</div>
+    <button class="mobile-nav-link" onclick="openAgent('luna');closeMobileNav()">Luna — Customer Operations</button>
+    <button class="mobile-nav-link dimmed">Ivy — Financial Visibility</button>
+  </div>
+  <div class="mobile-nav-section">
+    <div class="mobile-nav-label">About</div>
+    <button class="mobile-nav-link" onclick="scrollTo_('#vision');closeMobileNav()">Our Vision</button>
+    <button class="mobile-nav-link" onclick="scrollTo_('#products');closeMobileNav()">How It Works</button>
+  </div>
+  <button class="mobile-nav-link" onclick="scrollTo_('#faq');closeMobileNav()">FAQ</button>
+  <div class="mobile-nav-divider"></div>
+  <button class="mobile-nav-btn-ghost" onclick="openModal('login');closeMobileNav()">Log in</button>
+  <button class="mobile-nav-btn-solid" onclick="openModal('register');closeMobileNav()">Get early access</button>
+</div>
 
 <!-- ══════ AUTH MODALS ══════ -->
 <!-- LOGIN -->
@@ -1222,6 +1443,56 @@ document.addEventListener('click', function(e) {
       <div class="pipeline-item">
         <div class="pl-left"><span>—</span><span class="pl-tag">Soon</span></div>
         <span style="font-size:0.68rem;color:var(--text-tertiary)">Marketing Intelligence</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ SECTION -->
+  <div class="lp-section" id="faq">
+    <div class="eyebrow">FAQ</div>
+    <h2 class="sec-title">Common questions.</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>What is Luna?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>Luna is an AI agent built for customer-facing brand operations. It handles Instagram and WhatsApp DMs autonomously — answering product questions, guiding orders, and escalating complex cases to your team — all in your brand's voice.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>How does Luna connect to my Instagram and WhatsApp?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>Luna connects through the official Meta Business API. Once you grant access in your Integrations page, Luna starts receiving and responding to messages in real time — no custom dev work required.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>Can I control what Luna says?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>Yes. Through the Knowledge Base, you define the answers to common questions. Luna uses these alongside your product catalog to respond accurately. You can also review and override any conversation at any time.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>What happens when Luna can't handle a conversation?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>Luna escalates it. When a conversation needs a human, Luna flags it and hands it off with full context — the entire message history, product inquiry, and reason for escalation — so your team can step in seamlessly.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>Is there a free trial or setup fee?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>We're currently in early access. Selected brands get a guided onboarding with no upfront setup fee. Pricing is structured around usage and scales with your operation. Request access to learn more.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          <span>How quickly can I get Luna up and running?</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-a"><p>Most brands are live within 48 hours. The onboarding flow captures your brand tone and key information, integrations connect in minutes, and Luna starts handling conversations from day one.</p></div>
       </div>
     </div>
   </div>
@@ -2251,6 +2522,41 @@ document.addEventListener('click', function(e) {
     if (dd) dd.classList.remove('open');
   }
 });
+
+// ══ SCROLL-AWARE NAV ══
+(function() {
+  var nav = gel('main-nav');
+  function onScroll() {
+    if (nav) {
+      if (window.scrollY > 8) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+
+// ══ MOBILE NAV DRAWER ══
+function toggleMobileNav() {
+  var drawer = gel('mobile-nav-drawer');
+  var overlay = gel('mobile-nav-overlay');
+  if (drawer) drawer.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('open');
+}
+function closeMobileNav() {
+  var drawer = gel('mobile-nav-drawer');
+  var overlay = gel('mobile-nav-overlay');
+  if (drawer) drawer.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+}
+
+// ══ FAQ ACCORDION ══
+function toggleFaq(btn) {
+  var item = btn.closest('.faq-item');
+  var wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!wasOpen) item.classList.add('open');
+}
 
 // Update luna avatar when user logs in
 var _origSetLoggedIn = setLoggedIn;

@@ -107,3 +107,178 @@ select option:checked {
 @media(max-width: 640px) {
   html { font-size: 12px; }
 }
+
+/* ── Hero layout ── */
+.hero-grid {
+  grid-template-columns: 0.85fr 1.15fr;
+}
+@media (max-width: 960px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-right {
+    display: none;
+  }
+}
+
+/* ── Demo — desktop card shadow (theme-aware) ── */
+.demo-desktop-card {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
+}
+[data-theme="light"] .demo-desktop-card {
+  box-shadow: 0 12px 48px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* ── Demo — phone shadow (theme-aware) ── */
+.demo-phone {
+  box-shadow: 0 28px 70px rgba(0,0,0,0.65), -8px 0 32px rgba(193,53,132,0.18);
+}
+[data-theme="light"] .demo-phone {
+  box-shadow: 0 28px 70px rgba(0,0,0,0.5), -8px 0 32px rgba(193,53,132,0.22), 0 0 0 0.5px rgba(255,255,255,0.25);
+}
+
+/* ── Demo chat — dynamically inserted elements ── */
+.demo-dm-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+.demo-dm-row.in  { flex-direction: row; }
+.demo-dm-row.out { flex-direction: row-reverse; }
+
+.demo-dm-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 0.42rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.demo-dm-bubble {
+  max-width: 78%;
+  padding: 6px 9px;
+  border-radius: 16px;
+  font-size: 0.64rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.demo-dm-bubble.in {
+  background: rgba(255,255,255,0.13);
+  color: #fff;
+  border-bottom-left-radius: 4px;
+}
+.demo-dm-bubble.out {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.demo-dm-typing {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255,255,255,0.13);
+  padding: 8px 11px;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+}
+.demo-dm-typing span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.demo-dm-typing span:nth-child(2) { animation-delay: 0.15s; }
+.demo-dm-typing span:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+  30%            { transform: translateY(-4px); opacity: 1;   }
+}
+
+.demo-dm-ts {
+  text-align: center;
+  font-size: 0.54rem;
+  color: rgba(255,255,255,0.3);
+  margin: 5px 0;
+}
+
+.demo-luna-lbl {
+  font-size: 0.48rem;
+  color: rgba(255,255,255,0.38);
+  text-align: right;
+  padding-right: 4px;
+  margin-top: 1px;
+}
+
+/* ── Luna live dot ── */
+.luna-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3dbb77;
+  box-shadow: 0 0 6px rgba(61,187,119,0.7);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── Typing dots in conversation list ── */
+.typing-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(61,187,119,0.8);
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.30s; }
+
+/* ── Demo chat — light mode overrides ── */
+[data-theme="light"] .demo-dm-bubble.in {
+  background: rgba(0,0,0,0.07);
+  color: #1a1a1a;
+}
+[data-theme="light"] .demo-dm-typing {
+  background: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .demo-dm-typing span {
+  background: rgba(0,0,0,0.35);
+}
+[data-theme="light"] .demo-dm-ts {
+  color: rgba(0,0,0,0.3);
+}
+[data-theme="light"] .demo-luna-lbl {
+  color: rgba(0,0,0,0.35);
+}
+
+/* ── Integration logo chips ── */
+.integ-logo-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* ── Stats strip ── */
+.stats-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+}
+@media (max-width: 640px) {
+  .stats-strip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

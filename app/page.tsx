@@ -2,7 +2,8 @@
 
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTheme } from '@/components/ThemeProvider';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -13,6 +14,23 @@ import { useEffect, useRef } from 'react';
 
 export default function LandingPage() {
   const chatRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const dk = theme === 'dark';
+  // phone palette — switches with theme
+  const ph = {
+    bg:          dk ? '#0a0a0a'                       : '#ffffff',
+    border:      dk ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(0,0,0,0.10)',
+    topbar:      dk ? '#0a0a0a'                       : '#f8f7f5',
+    topBorder:   dk ? 'rgba(255,255,255,0.10)'        : 'rgba(0,0,0,0.08)',
+    name:        dk ? '#ffffff'                       : '#1a1a1a',
+    sub:         dk ? 'rgba(255,255,255,0.4)'         : 'rgba(0,0,0,0.4)',
+    lunaChip:    dk ? { bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.75)' }
+                    : { bg: 'rgba(0,0,0,0.06)',       border: 'rgba(0,0,0,0.12)',       color: 'rgba(0,0,0,0.65)'       },
+    inputBorder: dk ? 'rgba(255,255,255,0.18)'        : 'rgba(0,0,0,0.14)',
+    placeholder: dk ? 'rgba(255,255,255,0.28)'        : 'rgba(0,0,0,0.3)',
+    icon:        dk ? 'rgba(255,255,255,0.45)'        : 'rgba(0,0,0,0.35)',
+    backArrow:   dk ? 'rgba(255,255,255,0.8)'         : 'rgba(0,0,0,0.7)',
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.querySelector(id);
@@ -100,7 +118,7 @@ export default function LandingPage() {
 
         {/* ── HERO – SPLIT LAYOUT ── */}
         <div className="min-h-screen flex flex-col">
-          <div className="flex-1 grid hero-grid max-w-[1100px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
+          <div className="flex-1 grid hero-grid max-w-[1320px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
 
             {/* LEFT */}
             <div className="hero-left flex flex-col gap-[1.1rem] py-12 pr-8">
@@ -149,8 +167,8 @@ export default function LandingPage() {
             </div>
 
             {/* RIGHT – layered demo */}
-            <div className="hero-right flex items-center justify-start py-8 pl-4 overflow-visible">
-              <div className="demo-wrap relative w-full" style={{ height: '380px' }}>
+            <div className="hero-right flex items-center justify-start py-6 pl-4 overflow-visible">
+              <div className="demo-wrap relative w-full" style={{ height: '540px' }}>
 
                 {/* IG gradient glow */}
                 <div className="demo-glow absolute inset-[-40px] rounded-full pointer-events-none z-0" style={{
@@ -158,9 +176,9 @@ export default function LandingPage() {
                 }} />
 
                 {/* BACK: desktop dashboard */}
-                <div className="absolute top-0 left-0 right-[-20px] bg-background2 border border-border-md rounded-[14px] overflow-hidden z-[1] shadow-[0_20px_60px_rgba(0,0,0,0.35)]" style={{ height: '330px' }}>
+                <div className="demo-desktop-card absolute top-0 left-0 right-0 bg-background2 border border-border-md rounded-[16px] overflow-hidden z-[1]" style={{ height: '470px' }}>
                   {/* mac bar */}
-                  <div className="bg-background3 border-b border-border px-[0.8rem] py-[0.55rem] flex items-center gap-2">
+                  <div className="bg-background3 border-b border-border px-[0.9rem] py-[0.65rem] flex items-center gap-2">
                     <div className="flex gap-[5px] mr-[0.6rem]">
                       <span className="w-2 h-2 rounded-full bg-[#ff5f57]" />
                       <span className="w-2 h-2 rounded-full bg-[#ffbd2e]" />
@@ -169,25 +187,25 @@ export default function LandingPage() {
                     <span className="flex-1 text-center text-[0.62rem] text-text-tertiary mr-6">Luna — Conversations</span>
                   </div>
                   {/* body */}
-                  <div className="flex" style={{ height: 'calc(330px - 32px)' }}>
+                  <div className="flex" style={{ height: 'calc(470px - 36px)' }}>
                     {/* tiny sidebar */}
-                    <div className="w-[44px] border-r border-border bg-background flex flex-col items-center py-[0.8rem] gap-[0.7rem] shrink-0">
+                    <div className="w-[52px] border-r border-border bg-background flex flex-col items-center py-[1rem] gap-[0.85rem] shrink-0">
                       {[
                         <path key="a" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>,
                         <path key="b" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9"/>,
                         <><circle key="c1" cx="12" cy="12" r="3"/><path key="c2" d="M12 1v4M12 19v4"/></>,
                         <path key="d" d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                       ].map((icon, i) => (
-                        <div key={i} className={`w-[22px] h-[22px] rounded-[5px] flex items-center justify-center text-text-tertiary ${i === 0 ? 'bg-background3 text-text-secondary' : ''}`}>
-                          <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{icon}</svg>
+                        <div key={i} className={`w-[26px] h-[26px] rounded-[6px] flex items-center justify-center text-text-tertiary ${i === 0 ? 'bg-background3 text-text-secondary' : ''}`}>
+                          <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{icon}</svg>
                         </div>
                       ))}
                     </div>
                     {/* conversation list */}
                     <div className="flex-1 overflow-hidden">
-                      <div className="px-[0.85rem] py-[0.7rem] pb-[0.5rem] border-b border-border flex items-center justify-between">
-                        <span className="text-[0.68rem] font-medium text-text-primary">All conversations</span>
-                        <span className="text-[0.55rem] bg-background4 border border-border rounded-[10px] px-[6px] py-[1px] text-text-tertiary">142 this week</span>
+                      <div className="px-[1rem] py-[0.8rem] pb-[0.6rem] border-b border-border flex items-center justify-between">
+                        <span className="text-[0.72rem] font-medium text-text-primary">All conversations</span>
+                        <span className="text-[0.58rem] bg-background4 border border-border rounded-[10px] px-[8px] py-[2px] text-text-tertiary">142 this week</span>
                       </div>
                       {[
                         { init: 'ZN', grad: 'linear-gradient(135deg,#667eea,#764ba2)', name: 'zaynab.nour', preview: null, time: 'now', dot: true, typing: true },
@@ -195,13 +213,14 @@ export default function LandingPage() {
                         { init: 'SR', grad: 'linear-gradient(135deg,#4facfe,#00f2fe)', name: 'sara.rami', preview: "What's the return policy?", time: '5m', dot: false, typing: false },
                         { init: 'NA', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', name: 'nour.ali', preview: 'When will size M restock?', time: '8m', dot: false, typing: false },
                         { init: 'YK', grad: 'linear-gradient(135deg,#fa709a,#fee140)', name: 'yasmin.k', preview: 'Order confirmed! Thank you', time: '12m', dot: false, typing: false },
+                        { init: 'DM', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', name: 'dina.m', preview: 'Is express shipping available?', time: '18m', dot: false, typing: false },
                       ].map((row, i) => (
-                        <div key={i} className={`flex items-center gap-[0.55rem] px-[0.85rem] py-[0.6rem] border-b border-border ${i === 0 ? 'bg-background3' : ''}`}>
-                          <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[0.5rem] font-bold text-white" style={{ background: row.grad }}>{row.init}</div>
+                        <div key={i} className={`flex items-center gap-[0.65rem] px-[1rem] py-[0.75rem] border-b border-border ${i === 0 ? 'bg-background3' : ''}`}>
+                          <div className="w-[28px] h-[28px] rounded-full shrink-0 flex items-center justify-center text-[0.52rem] font-bold text-white" style={{ background: row.grad }}>{row.init}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[0.65rem] font-medium text-text-primary mb-[1px]">{row.name}</div>
+                            <div className="text-[0.7rem] font-medium text-text-primary mb-[2px]">{row.name}</div>
                             {row.typing ? (
-                              <div className="flex items-center gap-1 text-[0.57rem] text-text-tertiary">
+                              <div className="flex items-center gap-1 text-[0.6rem] text-text-tertiary">
                                 <span className="w-[4px] h-[4px] rounded-full bg-[#3dbb77] shadow-[0_0_4px_rgba(61,187,119,0.6)] animate-pulse" />
                                 Luna is replying
                                 <span className="flex gap-[2px]">
@@ -209,11 +228,11 @@ export default function LandingPage() {
                                 </span>
                               </div>
                             ) : (
-                              <div className="text-[0.58rem] text-text-tertiary truncate">{row.preview}</div>
+                              <div className="text-[0.62rem] text-text-tertiary truncate">{row.preview}</div>
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-[3px] shrink-0">
-                            <span className="text-[0.55rem] text-text-tertiary">{row.time}</span>
+                            <span className="text-[0.58rem] text-text-tertiary">{row.time}</span>
                             {row.dot && <span className="w-[6px] h-[6px] rounded-full bg-[#3d8bff]" />}
                           </div>
                         </div>
@@ -223,36 +242,36 @@ export default function LandingPage() {
                 </div>
 
                 {/* FRONT: Instagram phone */}
-                <div className="absolute bottom-0 left-[-10px] z-[3] rounded-[22px] overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.6),-8px_0_30px_rgba(193,53,132,0.15)]" style={{ width: '155px', background: '#000', border: '1px solid rgba(255,255,255,0.18)' }}>
+                <div className="demo-phone absolute bottom-0 left-[20px] z-[3] rounded-[26px] overflow-hidden" style={{ width: '210px', background: ph.bg, border: ph.border }}>
 
                   {/* IG topbar */}
-                  <div className="border-b flex items-center gap-[0.35rem] px-[0.6rem] py-[0.45rem]" style={{ background: '#000', borderColor: 'rgba(255,255,255,0.1)' }}>
-                    <svg className="w-[13px] h-[13px] text-white opacity-80 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                    <div className="relative w-6 h-6 shrink-0">
+                  <div className="border-b flex items-center gap-[0.45rem] px-[0.75rem] py-[0.6rem]" style={{ background: ph.topbar, borderColor: ph.topBorder }}>
+                    <svg className="w-[15px] h-[15px] shrink-0" style={{ color: ph.backArrow }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                    <div className="relative w-[28px] h-[28px] shrink-0">
                       <div className="absolute inset-[-2px] rounded-full" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }} />
-                      <div className="absolute inset-[1.5px] rounded-full" style={{ background: '#000' }} />
-                      <div className="absolute inset-[3px] rounded-full flex items-center justify-center text-[0.38rem] font-bold text-white" style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>ZN</div>
+                      <div className="absolute inset-[1.5px] rounded-full" style={{ background: ph.topbar }} />
+                      <div className="absolute inset-[3.5px] rounded-full flex items-center justify-center text-[0.42rem] font-bold text-white" style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>ZN</div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[0.57rem] font-semibold text-white">zaynab.nour</div>
-                      <div className="text-[0.48rem]" style={{ color: 'rgba(255,255,255,0.4)' }}>Active now</div>
+                      <div className="text-[0.64rem] font-semibold" style={{ color: ph.name }}>zaynab.nour</div>
+                      <div className="text-[0.52rem]" style={{ color: ph.sub }}>Active now</div>
                     </div>
-                    <div className="flex items-center gap-[3px] rounded-[20px] px-[5px] py-[2px] text-[0.46rem] font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.7)' }}>
-                      <span className="w-1 h-1 rounded-full bg-[#3dbb77] animate-pulse" />
+                    <div className="flex items-center gap-[4px] rounded-[20px] px-[7px] py-[3px] text-[0.5rem] font-medium" style={{ background: ph.lunaChip.bg, border: `1px solid ${ph.lunaChip.border}`, color: ph.lunaChip.color }}>
+                      <span className="w-[5px] h-[5px] rounded-full bg-[#3dbb77] animate-pulse" />
                       Luna
                     </div>
                   </div>
 
                   {/* chat body */}
-                  <div ref={chatRef} className="demo-chat-body px-[0.55rem] py-[0.55rem] pb-[0.4rem] flex flex-col gap-[0.35rem] overflow-hidden" style={{ background: '#000', height: '210px' }} />
+                  <div ref={chatRef} className="demo-chat-body px-[0.65rem] py-[0.65rem] pb-[0.5rem] flex flex-col gap-[0.45rem] overflow-hidden" style={{ background: ph.bg, height: '280px' }} />
 
                   {/* input bar */}
-                  <div className="flex items-center gap-[0.4rem] px-[0.55rem] py-[0.4rem] border-t" style={{ background: '#000', borderColor: 'rgba(255,255,255,0.1)' }}>
-                    <svg className="w-[15px] h-[15px] shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    <div className="flex-1 rounded-[18px] flex items-center px-2 py-1" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
-                      <span className="text-[0.52rem] flex-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Message...</span>
+                  <div className="flex items-center gap-[0.5rem] px-[0.65rem] py-[0.55rem] border-t" style={{ background: ph.topbar, borderColor: ph.topBorder }}>
+                    <svg className="w-[17px] h-[17px] shrink-0" style={{ color: ph.icon }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <div className="flex-1 rounded-[20px] flex items-center px-3 py-[5px]" style={{ border: `1px solid ${ph.inputBorder}` }}>
+                      <span className="text-[0.56rem] flex-1" style={{ color: ph.placeholder }}>Message...</span>
                     </div>
-                    <svg className="w-[15px] h-[15px] shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                    <svg className="w-[17px] h-[17px] shrink-0" style={{ color: ph.icon }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                   </div>
                 </div>
               </div>
@@ -420,8 +439,30 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* FAQ teaser — links to /faq */}
+        <div className="py-20 px-8 max-w-[960px] mx-auto text-center" id="faq">
+          <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">FAQ</div>
+          <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] mb-4">
+            Have questions?
+          </h2>
+          <p className="text-[0.8rem] text-text-secondary font-light mb-8 max-w-[400px] mx-auto leading-[1.8]">
+            We've answered the most common ones about Luna, pricing, and integrations.
+          </p>
+          <Link
+            href="/faq"
+            className="inline-flex items-center gap-2 border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
+          >
+            Browse FAQ
+            <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </Link>
+        </div>
+
+        <div className="h-[1px] bg-border" />
+
         {/* CTA Section */}
-        <div className="text-center border-t border-b border-border py-20 px-8">
+        <div className="text-center border-b border-border py-20 px-8">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Early Access</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] mx-auto mb-[0.9rem]">
             Start with Luna.<br />Scale with Krew.

@@ -9,12 +9,13 @@ import { useState } from 'react';
 // =============================================================================
 // No API calls from this component. It's a static navigation sidebar.
 // The sidebar links map to these pages:
-//   Overview       → GET /api/luna/overview
-//   Conversations  → GET /api/luna/conversations
-//   Issues         → GET /api/luna/issues
-//   Reports        → GET /api/luna/reports
-//   Knowledge Base → GET/POST /api/luna/knowledge-base
-//   Settings       → GET/PUT /api/luna/settings
+//   Overview            → GET /api/luna/overview
+//   Conversations       → GET /api/luna/conversations
+//   Issues              → GET /api/luna/issues
+//   Exchanges & Refunds → GET /api/luna/exchanges-refunds
+//   Reports             → GET /api/luna/reports
+//   Knowledge Base      → GET/POST /api/luna/knowledge-base
+//   Settings            → GET/PUT /api/luna/settings
 // =============================================================================
 
 const menuItems = [
@@ -47,6 +48,15 @@ const menuItems = [
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    )
+  },
+  {
+    href: '/dashboard/luna/exchanges-refunds',
+    label: 'Exchanges',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
       </svg>
     )
   },
@@ -138,14 +148,14 @@ export default function LunaSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 max-md:hidden sticky top-12 h-[calc(100vh-48px)] overflow-y-auto">
+      <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 max-md:hidden sticky top-0 h-screen overflow-y-auto">
         <SidebarContent />
       </aside>
 
       {/* Mobile toggle button — sits inside the top bar area of each page */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="hidden max-md:flex fixed top-[60px] left-4 z-[160] items-center gap-[5px] bg-background border border-border rounded-[7px] px-[10px] py-[5px] text-[0.72rem] text-text-secondary hover:border-border-md hover:text-text-primary transition-all duration-200"
+        className="hidden max-md:flex fixed top-3 left-4 z-[160] items-center gap-[5px] bg-background border border-border rounded-[7px] px-[10px] py-[5px] text-[0.72rem] text-text-secondary hover:border-border-md hover:text-text-primary transition-all duration-200"
       >
         <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="3" y1="6" x2="21" y2="6"/>
@@ -162,7 +172,7 @@ export default function LunaSidebar() {
             className="fixed inset-0 z-[140] bg-black/30"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed top-12 left-0 bottom-0 z-[150] w-[200px] flex flex-col py-6 border-r border-border bg-background">
+          <aside className="fixed top-0 left-0 bottom-0 z-[150] w-[200px] flex flex-col py-6 border-r border-border bg-background">
             <SidebarContent onLinkClick={() => setMobileOpen(false)} />
           </aside>
         </>

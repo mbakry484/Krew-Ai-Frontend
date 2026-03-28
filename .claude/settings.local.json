@@ -9,7 +9,8 @@
       "Bash(findstr:*)",
       "Read(//d/**)",
       "Bash(cat:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -l \"hero-grid\\\\|demo-wrap\\\\|demo-dm\" f:/Krew-Ai-Frontend/.next/static/css/*.css)"
     ],
     "deny": [],
     "ask": []

@@ -52,7 +52,7 @@ export default function IssuesPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen pt-12 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         <LunaSidebar />
 

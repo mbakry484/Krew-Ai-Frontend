@@ -78,7 +78,7 @@ export default function LunaOverview() {
   const initials = `${userInfo.first_name?.[0] || ''}${userInfo.last_name?.[0] || ''}`.toUpperCase();
 
   return (
-    <div className="min-h-screen pt-12 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <div className="flex flex-1">
         <LunaSidebar />
 
