@@ -16,6 +16,14 @@ export default function LandingPage() {
   const chatRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const dk = theme === 'dark';
+
+  // Hero animation: keep elements at opacity:0 until after first paint,
+  // then apply the animation class. Double RAF guarantees the browser has
+  // committed the opacity:0 state before the animation starts — no flash.
+  const [heroReady, setHeroReady] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setHeroReady(true)));
+  }, []);
   // phone palette — switches with theme
   const ph = {
     bg:          dk ? '#0a0a0a'                       : '#ffffff',
@@ -121,53 +129,41 @@ export default function LandingPage() {
           <div className="flex-1 grid hero-grid max-w-[1320px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
 
             {/* LEFT */}
-            <div className="hero-left flex flex-col gap-[1.1rem] py-12 pr-8">
-              <div className="text-[0.62rem] uppercase tracking-[0.12em] text-text-tertiary">
-                Krew — AI Operations Platform
-              </div>
+            <div className="hero-left flex flex-col gap-[1.2rem] py-20 pr-8">
 
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-[5px] bg-tag-bg border border-border-md rounded-[6px] px-[9px] py-[3px] text-[0.68rem] font-medium text-text-secondary">
-                  <span className="luna-dot" />
-                  Luna
-                </span>
-                <span className="text-[0.62rem] text-text-tertiary">is live</span>
-              </div>
-
-              <h1 className="text-[clamp(2rem,3.2vw,3.1rem)] font-light tracking-[-0.035em] leading-[1.1] text-text-primary mt-[0.2rem]">
-                AI agents built<br />for your brand<br /><em className="not-italic text-text-secondary">operations.</em>
+              <h1
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[clamp(2.3rem,3.6vw,3.5rem)] tracking-[-0.04em] leading-[1.08] text-text-primary`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '0ms' }}
+              >
+                <span className="font-bold">Luna.</span>
+                <span className="font-light"> Your brand&apos;s<br />customer service,<br />automated.</span>
               </h1>
 
-              <p className="text-[0.81rem] text-text-secondary max-w-[340px] leading-[1.78] font-light">
-                Luna is the first Krew agent — handling every Instagram customer message automatically, with your products, your tone, and zero manual effort.
+              <p
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.88rem] text-text-secondary max-w-[480px] leading-[1.78] font-light`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '120ms' }}
+              >
+                Luna handles every customer DM — orders, returns, questions — automatically.
               </p>
 
-              <div className="flex gap-[0.65rem] mt-[0.3rem] flex-wrap">
-                <Link href="/auth/signup" className="bg-btn-bg text-btn-text border-none rounded-[8px] px-5 py-[9px] text-[0.77rem] font-medium hover:opacity-85 transition-opacity duration-200">
+              <div
+                className={`${heroReady ? 'hero-blur-in' : ''} flex gap-[0.9rem] mt-[0.2rem] flex-wrap items-center`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '220ms' }}
+              >
+                <Link href="/auth/signup" className="bg-btn-bg text-btn-text border-none rounded-[8px] px-5 py-[9px] text-[0.8rem] font-medium hover:opacity-85 transition-opacity duration-200">
                   Start with Luna
                 </Link>
-                <button onClick={() => scrollToSection('#products')} className="border border-border text-text-secondary rounded-[8px] px-5 py-[9px] text-[0.77rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
-                  See how it works
-                </button>
-              </div>
-
-              <div className="flex items-center gap-[1.2rem] flex-wrap mt-[0.15rem]">
-                {['~0s response time', '24/7 coverage', 'Arabic & English'].map((item) => (
-                  <span key={item} className="flex items-center gap-[5px] text-[0.67rem] text-text-tertiary before:content-[''] before:w-[3px] before:h-[3px] before:rounded-full before:bg-text-tertiary">
-                    {item}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 pt-4 mt-[0.2rem] border-t border-border">
-                <span className="text-[0.62rem] text-text-tertiary">More agents coming →</span>
-                <span className="inline-flex items-center gap-1 bg-tag-bg border border-border rounded px-2 py-[2px] text-[0.6rem] text-text-tertiary">Ivy · Finance</span>
-                <span className="inline-flex items-center gap-1 bg-tag-bg border border-border rounded px-2 py-[2px] text-[0.6rem] text-text-tertiary">+ more</span>
+                <Link href="/agents/luna" className="text-text-secondary text-[0.8rem] font-light hover:text-text-primary transition-colors duration-200">
+                  Explore Luna →
+                </Link>
               </div>
             </div>
 
             {/* RIGHT – layered demo */}
-            <div className="hero-right flex items-center justify-start py-6 pl-4 overflow-visible">
+            <div
+              className={`hero-right ${heroReady ? 'hero-blur-in-slow' : ''} flex items-center justify-start py-6 pl-4 overflow-visible`}
+              style={{ opacity: heroReady ? undefined : 0, animationDelay: '100ms' }}
+            >
               <div className="demo-wrap relative w-full" style={{ height: '540px' }}>
 
                 {/* IG gradient glow */}

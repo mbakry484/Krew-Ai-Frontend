@@ -13,7 +13,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Blocking script: reads localStorage and sets data-theme before first paint
+            — prevents dark/light flash on load. Must be synchronous (no defer/async). */}
+        <script dangerouslySetInnerHTML={{ __html:
+          `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}`
+        }} />
+      </head>
       <body>
         <ThemeProvider>
           {children}

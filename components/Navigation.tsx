@@ -251,9 +251,16 @@ export default function Navigation() {
             <div className="relative hidden lg:block">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-[30px] h-[30px] rounded-full bg-background4 border border-border-md flex items-center justify-center text-[0.62rem] font-semibold text-text-secondary tracking-[0.02em] hover:border-border-hover transition-colors duration-200"
+                className="w-[30px] h-[30px] rounded-full bg-background3 border border-border-md flex items-center justify-center text-[0.87rem] font-medium text-text-primary hover:border-border-hover transition-colors duration-200"
               >
-                {userInfo.first_name?.[0]}{userInfo.last_name?.[0]}
+                {(userInfo.first_name && userInfo.last_name
+                  ? (userInfo.first_name[0] + userInfo.last_name[0])
+                  : userInfo.first_name
+                    ? userInfo.first_name.slice(0, 2)
+                    : userInfo.email
+                      ? userInfo.email.slice(0, 2)
+                      : '?'
+                ).toUpperCase()}
               </button>
               <div className={`absolute top-[calc(100%+10px)] right-0 w-[200px] bg-dropdown-bg border border-border-md rounded-[10px] overflow-hidden ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.2)] ${dropdownOpen ? panelVisible : panelHidden}`}>
                 <div className="px-4 py-[0.9rem] border-b border-border">
@@ -269,7 +276,10 @@ export default function Navigation() {
                   </svg>
                   My Krew
                 </button>
-                <button className="w-full flex items-center gap-[0.6rem] px-4 py-[0.7rem] text-[0.75rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 text-left">
+                <button
+                  onClick={() => { router.push('/settings'); setDropdownOpen(false); }}
+                  className="w-full flex items-center gap-[0.6rem] px-4 py-[0.7rem] text-[0.75rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 text-left"
+                >
                   <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                     <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
