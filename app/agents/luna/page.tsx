@@ -1,11 +1,8 @@
 'use client';
 
-import Navigation from '@/components/Navigation';
-
 export default function LunaAgentPage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-48px)] text-center px-6">
         <h1 className="text-[clamp(3rem,6vw,6rem)] font-bold tracking-[-0.04em] leading-[1.04] text-text-primary mb-5">
           Luna

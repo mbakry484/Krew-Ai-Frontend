@@ -1,6 +1,5 @@
 'use client';
 
-import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
@@ -121,7 +120,6 @@ export default function LandingPage() {
 
   return (
     <>
-      <Navigation />
       <div id="landing" className="min-h-screen pt-12">
 
         {/* ── HERO – SPLIT LAYOUT ── */}

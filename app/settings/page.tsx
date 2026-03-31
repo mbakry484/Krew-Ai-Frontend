@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import { isLoggedIn } from '@/lib/auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -502,49 +501,48 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background2 flex flex-col">
-      <Navigation />
+    <div className="min-h-screen">
+      {/* Full-bleed layout below fixed navbar (h-12 = 3rem) */}
+      <div className="flex pt-12 min-h-screen">
 
-      <div className="flex-1 max-w-[1060px] mx-auto w-full px-8 pt-10 pb-16">
-        {/* Page header */}
-        <div className="mb-8">
-          <h1 className="text-[1.4rem] font-[400] tracking-[-0.025em] text-text-primary lowercase">
-            settings
-          </h1>
-          <p className="text-[0.75rem] text-text-secondary mt-[3px]">
-            manage your account and preferences
-          </p>
-        </div>
+        {/* Left settings panel — flush to viewport left edge, mirrors Luna sidebar */}
+        <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
+          {/* Title + subtitle */}
+          <div className="px-[1.2rem] pb-[1.5rem] border-b border-border mb-4">
+            <h1 className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary lowercase">settings</h1>
+            <p className="text-[0.62rem] text-text-tertiary mt-[3px] leading-[1.5]">manage your account and preferences</p>
+          </div>
 
-        {/* Two-column layout */}
-        <div className="flex gap-8 items-start">
-
-          {/* Left tab list */}
-          <nav className="w-[170px] shrink-0 flex flex-col gap-[2px]">
+          {/* Section tabs */}
+          <nav className="flex flex-col gap-[2px] px-[0.6rem]">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full text-left px-3 py-[0.55rem] text-[0.8rem] rounded-[7px] transition-all duration-150 ${
+                className={`w-full text-left px-[0.8rem] py-[0.65rem] text-[0.75rem] rounded-[8px] transition-all duration-150 ${
                   activeTab === tab.id
-                    ? 'bg-background3 text-text-primary font-medium border-l-[2px] border-text-primary pl-[10px] rounded-l-none'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-background3'
-                } ${tab.id === 'danger' ? 'mt-3 text-red-400/60 hover:text-red-400/90' : ''}`}
+                    ? 'bg-background3 text-text-primary font-medium'
+                    : tab.id === 'danger'
+                      ? 'text-red-400/60 hover:bg-background3 hover:text-red-400/90'
+                      : 'text-text-tertiary hover:bg-background3 hover:text-text-secondary'
+                } ${tab.id === 'danger' ? 'mt-3' : ''}`}
               >
                 {tab.label}
               </button>
             ))}
           </nav>
+        </aside>
 
-          {/* Right content */}
-          <div className="flex-1 min-w-0">
+        {/* Right content area */}
+        <main className="flex-1 bg-background2 overflow-y-auto">
+          <div className="px-8 py-10 pb-16">
             {activeTab === 'account'       && <AccountSection       userInfo={userInfo} showToast={showToast} />}
             {activeTab === 'integrations'  && <IntegrationsSection  showToast={showToast} />}
             {activeTab === 'notifications' && <NotificationsSection showToast={showToast} />}
             {activeTab === 'billing'       && <BillingSection       showToast={showToast} />}
             {activeTab === 'danger'        && <DangerSection        showToast={showToast} />}
           </div>
-        </div>
+        </main>
       </div>
 
       {toast && (

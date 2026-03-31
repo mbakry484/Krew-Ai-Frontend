@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import ConditionalNavigation from "@/components/ConditionalNavigation";
 
 export const metadata: Metadata = {
   title: "Krew — AI Operations",
@@ -23,6 +25,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
+          <Suspense fallback={null}>
+            <ConditionalNavigation />
+          </Suspense>
           {children}
         </ThemeProvider>
       </body>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Navigation from '@/components/Navigation';
 
 // ─── Intersection-observer hook ───────────────────────────────────────────────
 function useInView(threshold = 0.12) {
@@ -398,7 +397,6 @@ export default function VisionPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
 
       {/* ── HERO ── */}
       <section className="pt-36 pb-28 px-8 max-w-[1100px] mx-auto">

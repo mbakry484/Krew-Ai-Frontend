@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import { isLoggedIn } from '@/lib/auth';
 
 // =============================================================================
@@ -100,7 +99,6 @@ export default function MyKrewDashboard() {
 
   return (
     <>
-      <Navigation />
       <div className="min-h-screen pt-12">
         <div className="max-w-[1100px] mx-auto px-10 py-12">
 

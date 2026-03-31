@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 
 type Category = 'general' | 'luna' | 'pricing' | 'integrations';
@@ -122,7 +121,6 @@ export default function FaqPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
 
       <main className="pt-24 pb-24 px-6">
         <div className="max-w-[760px] mx-auto">
