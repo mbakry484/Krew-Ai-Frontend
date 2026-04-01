@@ -45,6 +45,7 @@ export default function Navigation() {
   };
 
   const isLandingPage = pathname === '/';
+  const showNavLinks = isLandingPage || pathname.startsWith('/agents') || pathname.startsWith('/about') || pathname === '/faq';
 
   const scrollTo = (id: string) => {
     const el = document.querySelector(id);
@@ -66,8 +67,8 @@ export default function Navigation() {
           Krew
         </Link>
 
-        {/* Center mega links — landing only, desktop */}
-        {isLandingPage && (
+        {/* Center mega links — landing + agents/about/faq pages, desktop */}
+        {showNavLinks && (
           <div className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
 
             {/* ── Agents ── */}
@@ -171,7 +172,14 @@ export default function Navigation() {
 
                   {/* Col 2 — How It Works */}
                   <button
-                    onClick={() => { scrollTo('#products'); }}
+                    onClick={() => {
+                      setHoveredMega(null);
+                      if (isLandingPage) {
+                        scrollTo('#products');
+                      } else {
+                        router.push('/#products');
+                      }
+                    }}
                     className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150"
                   >
                     {/* Icon */}

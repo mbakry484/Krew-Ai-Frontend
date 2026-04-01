@@ -110,11 +110,20 @@ function PlusIcon({ open }: { open: boolean }) {
 
 export default function FaqPage() {
   const [activeTab, setActiveTab] = useState<Category>('general');
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndices, setOpenIndices] = useState<Set<number>>(new Set());
 
   const handleTabChange = (tab: Category) => {
     setActiveTab(tab);
-    setOpenIndex(null);
+    setOpenIndices(new Set());
+  };
+
+  const toggleIndex = (i: number) => {
+    setOpenIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
   };
 
   const items = FAQ_DATA[activeTab];
@@ -160,11 +169,11 @@ export default function FaqPage() {
           {/* Accordion */}
           <div>
             {items.map((item, i) => {
-              const isOpen = openIndex === i;
+              const isOpen = openIndices.has(i);
               return (
                 <div key={i} className="border-b border-border last:border-b-0">
                   <button
-                    onClick={() => setOpenIndex(isOpen ? null : i)}
+                    onClick={() => toggleIndex(i)}
                     className="w-full flex items-center justify-between gap-6 py-[1.35rem] text-left group"
                   >
                     <span className={`text-[1rem] font-light tracking-[-0.01em] leading-snug transition-colors duration-150 ${isOpen ? 'text-text-primary' : 'text-text-primary group-hover:text-text-secondary'}`}>
