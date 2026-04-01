@@ -11,7 +11,12 @@
       "Bash(cat:*)",
       "Bash(npx tsc:*)",
       "Bash(grep -l \"hero-grid\\\\|demo-wrap\\\\|demo-dm\" f:/Krew-Ai-Frontend/.next/static/css/*.css)",
-      "Bash(find /f/Krew-Ai-Frontend -type f -name *.css)"
+      "Bash(find /f/Krew-Ai-Frontend -type f -name *.css)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r 'CREATE TABLE' D:/KrewAi/Krew-Ai-Backend/*.sql)",
+      "Bash(grep:*)",
+      "Bash(find /d/KrewAi/krew-ai-backend -maxdepth 3 -type f \\\\\\(-name *.py -o -name *.js -o -name *.ts \\\\\\) -not -path */node_modules/*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

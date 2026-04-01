@@ -1,86 +1,45 @@
 'use client';
 
-// =============================================================================
-// BACKEND API NOTES (for backend team)
-// =============================================================================
-//
-// GET /api/luna/conversations?status=all|escalated|pending|resolved
-//   Returns list of conversations for the inbox.
-//   Response:
-//   {
-//     "conversations": [
-//       {
-//         "id": "string",
-//         "customer_name": "string",           // Display name e.g. "Sarah M."
-//         "handle": "string",                  // e.g. "@sarah.style"
-//         "platform": "instagram" | "whatsapp",
-//         "status": "resolved" | "escalated" | "pending",
-//         "last_message": "string",            // Preview of last message
-//         "timestamp": "string",               // e.g. "2m ago"
-//         "luna_enabled": boolean,             // Whether Luna is currently handling this chat
-//         "unread_count": number               // Unread message count
-//       }
-//     ]
-//   }
-//
-// GET /api/luna/conversations/:id/messages
-//   Returns all messages for a specific conversation.
-//   Response:
-//   {
-//     "messages": [
-//       {
-//         "id": "string",
-//         "from": "customer" | "luna" | "agent",
-//         "text": "string",
-//         "time": "string"                     // e.g. "10:32 AM"
-//       }
-//     ]
-//   }
-//
-// POST /api/luna/conversations/:id/messages
-//   Send a message as the agent (only valid when luna_enabled is false / takeover active).
-//   Body: { "text": "string" }
-//   Returns: { "message": { id, from: "agent", text, time } }
-//
-// PATCH /api/luna/conversations/:id/luna
-//   Toggle Luna on or off for a specific conversation.
-//   Body: { "enabled": boolean }
-//   Returns: { "success": boolean, "luna_enabled": boolean }
-//
-// POST /api/luna/conversations/:id/takeover
-//   Agent takes over the conversation from Luna. Sets luna_enabled = false.
-//   Body: {} (empty)
-//   Returns: { "success": boolean }
-//
-// =============================================================================
-
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
+import {
+  getConversations,
+  getConversation,
+  sendConversationMessage,
+  handoverConversation,
+  restoreLuna,
+} from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
-type Platform = 'instagram' | 'whatsapp';
+type Platform = 'instagram' | 'shopify' | 'whatsapp';
 type Status = 'resolved' | 'escalated' | 'pending';
-type MessageFrom = 'customer' | 'luna' | 'agent';
+type MessageFrom = 'customer' | 'luna' | 'agent' | 'system';
 
 interface Message {
   id: string;
   from: MessageFrom;
   text: string;
   time: string;
+  image_url?: string | null;
 }
 
 interface Conversation {
   id: string;
+  customer_id: string;
   customer_name: string;
   handle: string;
   platform: Platform;
   status: Status;
+  is_escalated: boolean;
+  escalation_type?: string | null;
+  escalation_reason?: string | null;
   last_message: string;
   timestamp: string;
   luna_enabled: boolean;
   unread_count: number;
-  messages: Message[];
+  message_count: number;
 }
 
 const FILTER_TABS: { label: string; value: 'all' | Status }[] = [
@@ -90,108 +49,18 @@ const FILTER_TABS: { label: string; value: 'all' | Status }[] = [
   { label: 'Resolved', value: 'resolved' },
 ];
 
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: '1',
-    customer_name: 'Sarah M.',
-    handle: '@sarah.style',
-    platform: 'instagram',
-    status: 'escalated',
-    last_message: "I've been waiting 2 weeks for my order!",
-    timestamp: '2m ago',
-    luna_enabled: true,
-    unread_count: 2,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'Hi, where is my order #1234?', time: '10:28 AM' },
-      { id: 'm2', from: 'luna', text: 'Hi Sarah! Let me check that order for you right away.', time: '10:28 AM' },
-      { id: 'm3', from: 'customer', text: "It's been 10 days already!", time: '10:29 AM' },
-      { id: 'm4', from: 'luna', text: 'I understand your frustration. Your order is currently in transit and should arrive by tomorrow.', time: '10:29 AM' },
-      { id: 'm5', from: 'customer', text: "I've been waiting 2 weeks for my order!", time: '10:31 AM' },
-    ],
-  },
-  {
-    id: '2',
-    customer_name: 'Mike R.',
-    handle: '@mike.runs',
-    platform: 'whatsapp',
-    status: 'pending',
-    last_message: 'Do you have the blue one in size L?',
-    timestamp: '8m ago',
-    luna_enabled: true,
-    unread_count: 1,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'Hey, do you have the blue hoodie in size L?', time: '10:20 AM' },
-      { id: 'm2', from: 'luna', text: 'Hi Mike! Let me check our inventory for you.', time: '10:20 AM' },
-      { id: 'm3', from: 'customer', text: 'Do you have the blue one in size L?', time: '10:22 AM' },
-    ],
-  },
-  {
-    id: '3',
-    customer_name: 'Emma L.',
-    handle: '@emma.looks',
-    platform: 'instagram',
-    status: 'pending',
-    last_message: 'I want to return my order, it was the wrong color.',
-    timestamp: '15m ago',
-    luna_enabled: false,
-    unread_count: 0,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'I received my order but it was the wrong color.', time: '10:05 AM' },
-      { id: 'm2', from: 'luna', text: 'I\'m so sorry about that Emma! I can help you with a return.', time: '10:05 AM' },
-      { id: 'm3', from: 'agent', text: 'Hi Emma, I\'ve taken over to personally assist you. I\'ll arrange a free return pickup for tomorrow.', time: '10:08 AM' },
-      { id: 'm4', from: 'customer', text: 'I want to return my order, it was the wrong color.', time: '10:10 AM' },
-    ],
-  },
-  {
-    id: '4',
-    customer_name: 'James K.',
-    handle: '@james.k',
-    platform: 'whatsapp',
-    status: 'resolved',
-    last_message: 'Thanks! That was super helpful.',
-    timestamp: '1h ago',
-    luna_enabled: true,
-    unread_count: 0,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'What are your shipping options?', time: '9:00 AM' },
-      { id: 'm2', from: 'luna', text: 'We offer standard (3-5 days) and express (1-2 days) shipping!', time: '9:00 AM' },
-      { id: 'm3', from: 'customer', text: 'Thanks! That was super helpful.', time: '9:02 AM' },
-    ],
-  },
-  {
-    id: '5',
-    customer_name: 'Nour A.',
-    handle: '@nour.a',
-    platform: 'instagram',
-    status: 'resolved',
-    last_message: 'Got it, appreciate the quick reply.',
-    timestamp: '2h ago',
-    luna_enabled: true,
-    unread_count: 0,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'Is this item available in red?', time: '8:30 AM' },
-      { id: 'm2', from: 'luna', text: 'Yes! The red version is in stock in all sizes.', time: '8:30 AM' },
-      { id: 'm3', from: 'customer', text: 'Got it, appreciate the quick reply.', time: '8:31 AM' },
-    ],
-  },
-  {
-    id: '6',
-    customer_name: 'Carlos D.',
-    handle: '@carlos.d',
-    platform: 'whatsapp',
-    status: 'escalated',
-    last_message: 'This is unacceptable, I want a refund NOW.',
-    timestamp: '5m ago',
-    luna_enabled: true,
-    unread_count: 3,
-    messages: [
-      { id: 'm1', from: 'customer', text: 'My package arrived damaged.', time: '10:25 AM' },
-      { id: 'm2', from: 'luna', text: 'I\'m really sorry to hear that Carlos. Can you share a photo?', time: '10:25 AM' },
-      { id: 'm3', from: 'customer', text: 'I already sent it yesterday and no one helped me!', time: '10:26 AM' },
-      { id: 'm4', from: 'customer', text: 'This is unacceptable, I want a refund NOW.', time: '10:27 AM' },
-    ],
-  },
-];
+function formatTimestamp(iso: string): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return date.toLocaleDateString();
+}
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -217,6 +86,13 @@ function PlatformBadge({ platform }: { platform: Platform }) {
       <span className="inline-flex items-center gap-[3px] text-[0.58rem] px-[5px] py-[2px] rounded-[4px] bg-[#e8d5f5] text-[#7c3aed]">
         <InstagramIcon className="w-[9px] h-[9px]" />
         IG
+      </span>
+    );
+  }
+  if (platform === 'shopify') {
+    return (
+      <span className="inline-flex items-center gap-[3px] text-[0.58rem] px-[5px] py-[2px] rounded-[4px] bg-[#d4edda] text-[#2d6a4f]">
+        Shopify
       </span>
     );
   }
@@ -253,24 +129,164 @@ function LunaToggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boo
 
 export default function ConversationsPage() {
   const router = useRouter();
-  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const searchParams = useSearchParams();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<'all' | Status>('all');
-  const [selectedId, setSelectedId] = useState<string | null>('1');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch conversation list
+  const fetchConversations = useCallback(async (statusFilter: 'all' | Status = 'all') => {
+    try {
+      setError(null);
+      const data = await getConversations(statusFilter);
+      setConversations(data.conversations || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load conversations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch messages for selected conversation
+  const fetchMessages = useCallback(async (id: string) => {
+    setMessagesLoading(true);
+    try {
+      const data = await getConversation(id);
+      const msgs: Message[] = (data.messages || []).map((m: Message) => ({
+        ...m,
+        from: m.from === 'agent' && m.text.startsWith('[') && m.text.endsWith(']') ? 'system' : m.from,
+      }));
+      setMessages(msgs);
+      // Update the conversation in list with latest data
+      if (data.conversation) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === id
+              ? { ...c, ...data.conversation, unread_count: 0 }
+              : c
+          )
+        );
+      }
+    } catch (err: any) {
+      // silently fail for messages
+    } finally {
+      setMessagesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn()) {
       router.push('/auth/login');
+      return;
     }
-    // API: GET /api/luna/conversations?status=all
-    // Replace MOCK_CONVERSATIONS with API response
-  }, [router]);
+    fetchConversations('all');
+  }, [router, fetchConversations]);
+
+  // Open conversation from ?open= query param (e.g. navigated from exchanges/refunds page)
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId && conversations.length > 0) {
+      setSelectedId(openId);
+    }
+  }, [searchParams, conversations]);
+
+  // Realtime: subscribe to new/updated messages for the selected conversation
+  useEffect(() => {
+    if (!selectedId) return;
+
+    const channel = supabase
+      .channel(`messages:${selectedId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedId}`,
+        },
+        (payload) => {
+          const raw = payload.new as {
+            id: string;
+            sender: string;
+            content: string;
+            image_url?: string | null;
+            created_at: string;
+          };
+          const isSystemMsg = raw.content.startsWith('[') && raw.content.endsWith(']');
+          const fromMap: Record<string, MessageFrom> = {
+            customer: 'customer',
+            ai: 'luna',
+            human: isSystemMsg ? 'system' : 'agent',
+          };
+          const newMsg: Message = {
+            id: raw.id,
+            from: fromMap[raw.sender] ?? 'customer',
+            text: raw.content,
+            image_url: raw.image_url ?? null,
+            time: new Date(raw.created_at).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          };
+          setMessages((prev) => {
+            // Avoid duplicates (optimistic message already added for 'agent')
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          // Update conversation last_message in the list
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === selectedId
+                ? { ...c, last_message: raw.content, timestamp: raw.created_at }
+                : c
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedId]);
+
+  // Realtime: subscribe to conversation list changes (new convos, status updates)
+  useEffect(() => {
+    const channel = supabase
+      .channel('conversations:list')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        () => {
+          // Re-fetch the list when any conversation changes
+          fetchConversations(filter);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [filter, fetchConversations]);
+
+  // Fetch messages when selection changes
+  useEffect(() => {
+    if (selectedId) {
+      fetchMessages(selectedId);
+    }
+  }, [selectedId, fetchMessages]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedId, conversations]);
+  }, [messages]);
 
   const filtered = filter === 'all'
     ? conversations
@@ -278,41 +294,100 @@ export default function ConversationsPage() {
 
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
-  const handleLunaToggle = (id: string, enabled: boolean) => {
-    // API: PATCH /api/luna/conversations/:id/luna  { enabled }
+  const handleFilterChange = (f: 'all' | Status) => {
+    setFilter(f);
+    setLoading(true);
+    fetchConversations(f);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    setSelectedId(id);
+    // Optimistically clear unread count
+    setConversations((prev) =>
+      prev.map((c) => c.id === id ? { ...c, unread_count: 0 } : c)
+    );
+  };
+
+  const handleLunaToggle = async (id: string, enabled: boolean) => {
+    // Optimistic update
     setConversations((prev) =>
       prev.map((c) => c.id === id ? { ...c, luna_enabled: enabled } : c)
     );
+    try {
+      if (enabled) {
+        await restoreLuna(id);
+      } else {
+        await handoverConversation(id);
+        // Reload messages to show handover system message
+        if (selectedId === id) fetchMessages(id);
+      }
+    } catch (err: any) {
+      // Revert on failure
+      setConversations((prev) =>
+        prev.map((c) => c.id === id ? { ...c, luna_enabled: !enabled } : c)
+      );
+    }
   };
 
-  const handleTakeover = (id: string) => {
-    // API: POST /api/luna/conversations/:id/takeover
+  const handleTakeover = async (id: string) => {
     setConversations((prev) =>
-      prev.map((c) => c.id === id ? { ...c, luna_enabled: false } : c)
+      prev.map((c) => c.id === id ? { ...c, luna_enabled: false, is_escalated: true } : c)
     );
+    try {
+      await handoverConversation(id);
+      if (selectedId === id) fetchMessages(id);
+    } catch (err: any) {
+      setConversations((prev) =>
+        prev.map((c) => c.id === id ? { ...c, luna_enabled: true, is_escalated: false } : c)
+      );
+    }
   };
 
-  const handleSend = () => {
-    if (!inputText.trim() || !selectedId) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const newMsg: Message = { id: `m${Date.now()}`, from: 'agent', text: inputText.trim(), time: timeStr };
-    // API: POST /api/luna/conversations/:id/messages  { text: inputText }
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === selectedId
-          ? { ...c, messages: [...c.messages, newMsg], last_message: inputText.trim(), timestamp: 'just now' }
-          : c
-      )
-    );
+  const handleSend = async () => {
+    if (!inputText.trim() || !selectedId || sending) return;
+    const text = inputText.trim();
     setInputText('');
+    setSending(true);
+
+    // Optimistic message
+    const tempId = `temp-${Date.now()}`;
+    const now = new Date();
+    const tempMsg: Message = {
+      id: tempId,
+      from: 'agent',
+      text,
+      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+
+    try {
+      const data = await sendConversationMessage(selectedId, text);
+      // Replace temp message with real one from server
+      setMessages((prev) =>
+        prev.map((m) => m.id === tempId ? { ...data.message } : m)
+      );
+      // Update conversation last_message
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedId
+            ? { ...c, last_message: text, timestamp: new Date().toISOString() }
+            : c
+        )
+      );
+    } catch (err: any) {
+      // Remove temp message on failure and restore input
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setInputText(text);
+    } finally {
+      setSending(false);
+    }
   };
 
   const escalatedCount = conversations.filter((c) => c.status === 'escalated').length;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1 h-screen overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         <LunaSidebar />
 
         <main className="flex-1 flex flex-col overflow-hidden bg-background2">
@@ -325,18 +400,19 @@ export default function ConversationsPage() {
                   conversations
                 </h2>
                 <p className="text-[0.68rem] text-text-secondary">
-                  {conversations.length} total · {escalatedCount > 0 && (
-                    <span className="text-[#e07070]">{escalatedCount} escalated</span>
+                  {loading ? 'loading...' : `${conversations.length} total`}
+                  {!loading && escalatedCount > 0 && (
+                    <> · <span className="text-[#e07070]">{escalatedCount} escalated</span></>
                   )}
                 </p>
               </div>
 
-              {/* Filter tabs — pill style, left-aligned under title */}
+              {/* Filter tabs */}
               <div className="flex items-center gap-[5px]">
                 {FILTER_TABS.map((tab) => (
                   <button
                     key={tab.value}
-                    onClick={() => setFilter(tab.value)}
+                    onClick={() => handleFilterChange(tab.value)}
                     className={`flex items-center gap-[5px] px-[10px] py-[5px] rounded-[6px] text-[0.7rem] font-[450] transition-all duration-150 border ${
                       filter === tab.value
                         ? 'bg-text-primary text-background border-text-primary'
@@ -362,7 +438,21 @@ export default function ConversationsPage() {
 
             {/* Left: Chat list */}
             <div className="w-[260px] shrink-0 border-r border-border bg-background overflow-y-auto">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
+                  loading...
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-32 gap-2 px-4">
+                  <p className="text-[0.68rem] text-[#e07070] text-center">{error}</p>
+                  <button
+                    onClick={() => fetchConversations(filter)}
+                    className="text-[0.65rem] text-text-secondary underline"
+                  >
+                    retry
+                  </button>
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
                   no conversations
                 </div>
@@ -371,13 +461,7 @@ export default function ConversationsPage() {
                   {filtered.map((conv) => (
                     <button
                       key={conv.id}
-                      onClick={() => {
-                        setSelectedId(conv.id);
-                        // Mark as read — API: PATCH /api/luna/conversations/:id/read
-                        setConversations((prev) =>
-                          prev.map((c) => c.id === conv.id ? { ...c, unread_count: 0 } : c)
-                        );
-                      }}
+                      onClick={() => handleSelectConversation(conv.id)}
                       className={`w-full text-left px-4 py-[0.85rem] border-b border-border transition-colors duration-150 ${
                         selectedId === conv.id
                           ? 'bg-background3'
@@ -387,16 +471,28 @@ export default function ConversationsPage() {
                       <div className="flex items-center gap-[0.6rem]">
                         {/* Avatar */}
                         <div className="w-[28px] h-[28px] rounded-full bg-background3 border border-border flex items-center justify-center text-[0.58rem] font-medium text-text-secondary shrink-0">
-                          {conv.customer_name.split(' ').map((n) => n[0]).join('')}
+                          {conv.customer_name.slice(0, 2).toUpperCase()}
                         </div>
-                        {/* Name + timestamp */}
+                        {/* Name */}
                         <span className="flex-1 text-[0.72rem] text-text-primary font-[450] truncate">{conv.customer_name}</span>
                         {/* Escalation flag */}
                         {conv.status === 'escalated' && (
-                          <span className="w-[6px] h-[6px] rounded-full bg-[#e07070] shrink-0" title="escalated" />
+                          <span className="w-[6px] h-[6px] rounded-full bg-[#e07070] shrink-0" title={conv.escalation_type || 'escalated'} />
                         )}
-                        <span className="text-[0.58rem] text-text-tertiary shrink-0">{conv.timestamp}</span>
+                        {conv.unread_count > 0 && (
+                          <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] rounded-full bg-text-secondary text-background text-[0.52rem] px-[3px] shrink-0">
+                            {conv.unread_count}
+                          </span>
+                        )}
+                        <span className="text-[0.58rem] text-text-tertiary shrink-0">
+                          {formatTimestamp(conv.timestamp)}
+                        </span>
                       </div>
+                      {conv.last_message && (
+                        <p className="text-[0.63rem] text-text-tertiary truncate mt-[3px] pl-[34px]">
+                          {conv.last_message}
+                        </p>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -410,7 +506,7 @@ export default function ConversationsPage() {
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-background shrink-0">
                   <div className="flex items-center gap-3">
                     <div className="w-[30px] h-[30px] rounded-full bg-background3 border border-border flex items-center justify-center text-[0.6rem] font-medium text-text-secondary">
-                      {selected.customer_name.split(' ').map((n) => n[0]).join('')}
+                      {selected.customer_name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -425,6 +521,9 @@ export default function ConversationsPage() {
                         }`}>
                           <StatusDot status={selected.status} />
                           {selected.status}
+                          {selected.escalation_type && selected.status === 'escalated' && (
+                            <span className="opacity-70"> · {selected.escalation_type}</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-[0.62rem] text-text-tertiary mt-[1px]">{selected.handle}</div>
@@ -456,32 +555,62 @@ export default function ConversationsPage() {
 
                 {/* Messages area */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-[0.6rem]">
-                  {selected.messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${msg.from === 'customer' ? 'items-start' : 'items-end'} max-w-[75%] ${msg.from === 'customer' ? '' : 'self-end'}`}
-                    >
-                      <div
-                        className={`px-[0.85rem] py-[0.6rem] rounded-[10px] text-[0.72rem] leading-[1.5] ${
-                          msg.from === 'customer'
-                            ? 'bg-background border border-border text-text-primary rounded-tl-[3px]'
-                            : msg.from === 'luna'
-                            ? 'bg-background3 border border-border text-text-primary rounded-tr-[3px]'
-                            : 'bg-text-secondary text-background rounded-tr-[3px]'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                      <div className="flex items-center gap-[4px] mt-[3px]">
-                        {msg.from !== 'customer' && (
-                          <span className={`text-[0.55rem] ${msg.from === 'luna' ? 'text-text-tertiary' : 'text-text-tertiary'}`}>
-                            {msg.from === 'luna' ? '✦ Luna' : 'You'}
-                          </span>
-                        )}
-                        <span className="text-[0.55rem] text-text-tertiary">{msg.time}</span>
-                      </div>
+                  {messagesLoading ? (
+                    <div className="flex items-center justify-center flex-1 text-[0.7rem] text-text-tertiary">
+                      loading messages...
                     </div>
-                  ))}
+                  ) : messages.length === 0 ? (
+                    <div className="flex items-center justify-center flex-1 text-[0.7rem] text-text-tertiary">
+                      no messages yet
+                    </div>
+                  ) : (
+                    messages.map((msg) => {
+                      if (msg.from === 'system') {
+                        return (
+                          <div key={msg.id} className="flex items-center gap-3 my-[0.4rem]">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-[0.6rem] text-text-tertiary shrink-0 px-1">
+                              {msg.text.replace(/^\[|\]$/g, '')}
+                            </span>
+                            <div className="flex-1 h-px bg-border" />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex flex-col ${msg.from === 'customer' ? 'items-start' : 'items-end'} max-w-[75%] ${msg.from === 'customer' ? '' : 'self-end'}`}
+                        >
+                          <div
+                            className={`px-[0.85rem] py-[0.6rem] rounded-[10px] text-[0.72rem] leading-[1.5] ${
+                              msg.from === 'customer'
+                                ? 'bg-background border border-border text-text-primary rounded-tl-[3px]'
+                                : msg.from === 'luna'
+                                ? 'bg-background3 border border-border text-text-primary rounded-tr-[3px]'
+                                : 'bg-text-secondary text-background rounded-tr-[3px]'
+                            }`}
+                          >
+                            {msg.image_url && (
+                              <img
+                                src={msg.image_url}
+                                alt="attachment"
+                                className="max-w-[180px] rounded-[6px] mb-[6px]"
+                              />
+                            )}
+                            {msg.text}
+                          </div>
+                          <div className="flex items-center gap-[4px] mt-[3px]">
+                            {msg.from !== 'customer' && (
+                              <span className="text-[0.55rem] text-text-tertiary">
+                                {msg.from === 'luna' ? '✦ Luna' : 'You'}
+                              </span>
+                            )}
+                            <span className="text-[0.55rem] text-text-tertiary">{msg.time}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -502,11 +631,12 @@ export default function ConversationsPage() {
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                         placeholder="Type a message..."
-                        className="flex-1 bg-background2 border border-border rounded-[8px] px-4 py-[0.65rem] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-md transition-colors duration-150"
+                        disabled={sending}
+                        className="flex-1 bg-background2 border border-border rounded-[8px] px-4 py-[0.65rem] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-md transition-colors duration-150 disabled:opacity-50"
                       />
                       <button
                         onClick={handleSend}
-                        disabled={!inputText.trim()}
+                        disabled={!inputText.trim() || sending}
                         className="w-[34px] h-[34px] rounded-[8px] bg-text-secondary flex items-center justify-center hover:opacity-80 transition-opacity duration-150 disabled:opacity-30 shrink-0"
                       >
                         <svg className="w-[13px] h-[13px] text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

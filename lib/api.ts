@@ -156,10 +156,50 @@ export const deleteKnowledgeFAQ = async (index: number) => {
   });
 };
 
-// Conversations API call
-export const getConversations = async () => {
-  return apiRequest('/conversations', {
-    method: 'GET',
+// Conversations API calls
+export const getConversations = async (status: 'all' | 'escalated' | 'pending' | 'resolved' = 'all') => {
+  return apiRequest(`/conversations?status=${status}`, { method: 'GET' });
+};
+
+export const getConversation = async (id: string) => {
+  return apiRequest(`/conversations/${id}`, { method: 'GET' });
+};
+
+export const sendConversationMessage = async (id: string, content: string) => {
+  return apiRequest(`/conversations/${id}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+};
+
+export const handoverConversation = async (id: string) => {
+  return apiRequest(`/conversations/${id}/handover`, { method: 'POST', body: '{}' });
+};
+
+export const restoreLuna = async (id: string) => {
+  return apiRequest(`/conversations/${id}/restore-luna`, { method: 'POST', body: '{}' });
+};
+
+export const resolveConversation = async (id: string) => {
+  return apiRequest(`/conversations/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: 'resolved' }),
+  });
+};
+
+// Exchanges & Refunds API calls
+export const getExchangesRefunds = async (status: 'all' | 'pending' | 'done' | 'dismissed' = 'all') => {
+  return apiRequest(`/exchanges-refunds?status=${status}`, { method: 'GET' });
+};
+
+export const updateExchangeRefundStatus = async (
+  type: 'exchange' | 'refund',
+  id: string,
+  status: 'done' | 'dismissed'
+) => {
+  return apiRequest(`/exchanges-refunds/${type}/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   });
 };
 
