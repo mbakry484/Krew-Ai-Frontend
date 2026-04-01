@@ -63,6 +63,8 @@ interface RequestCardProps {
 
 function RequestCard({ req, onMarkDone, onDismiss, onOpenConversation }: RequestCardProps) {
   const isPending = req.status === 'pending';
+  const [copied, setCopied] = useState(false);
+  const cleanId = String(req.order_id).replace(/^#/, '');
 
   return (
     <div
@@ -76,8 +78,27 @@ function RequestCard({ req, onMarkDone, onDismiss, onOpenConversation }: Request
             <StatusBadge status={req.status} />
           </div>
           <div className="flex items-baseline gap-[0.5rem] mb-[0.25rem] flex-wrap">
-            <span className="text-[0.78rem] font-[450] text-text-primary">{req.customer_name}</span>
-            <span className="font-mono text-[0.65rem] text-text-tertiary">{req.order_id}</span>
+            <span className="relative inline-flex items-center">
+              <span
+                className="text-[0.78rem] font-[450] text-text-primary cursor-pointer hover:text-text-secondary transition-colors duration-150"
+                title="Click to copy ID"
+                onClick={() => {
+                  navigator.clipboard.writeText(cleanId);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+              >
+                #{cleanId}
+              </span>
+              <span
+                className={`absolute left-[calc(100%+6px)] top-1/2 -translate-y-1/2 text-[0.55rem] font-medium text-text-tertiary bg-background3 border border-border rounded-[6px] px-[6px] py-[2px] whitespace-nowrap pointer-events-none transition-all duration-200 ${
+                  copied ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'
+                }`}
+              >
+                Copied
+              </span>
+            </span>
+            <span className="font-mono text-[0.65rem] text-text-tertiary">{req.customer_name}</span>
           </div>
           <div className="text-[0.62rem] text-text-tertiary mb-[0.3rem]">{formatDate(req.date)}</div>
           <p className="text-[0.69rem] text-text-secondary leading-[1.5]">{req.reason}</p>
