@@ -157,7 +157,7 @@ function SettingsContent() {
     try {
       const token = getToken();
       const userInfo = await getUserInfo();
-      const brandId = userInfo.brand_id;
+      const brandId = userInfo.user?.brand_id || userInfo.brand_id;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
       window.location.href = `${apiUrl}/auth/instagram?brand_id=${brandId}&token=${token}`;
     } catch (err: any) {
