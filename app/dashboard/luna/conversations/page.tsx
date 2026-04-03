@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
@@ -127,7 +127,7 @@ function LunaToggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boo
   );
 }
 
-export default function ConversationsPage() {
+function ConversationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -662,5 +662,13 @@ export default function ConversationsPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function ConversationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConversationsContent />
+    </Suspense>
   );
 }

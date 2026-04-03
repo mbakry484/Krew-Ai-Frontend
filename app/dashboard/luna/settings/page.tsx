@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import { connectShopify, getShopifyStatus } from '@/lib/api';
@@ -56,7 +56,7 @@ interface ConnectModal {
   name: 'shopify' | 'meta' | 'bosta' | null;
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -506,5 +506,13 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsContent />
+    </Suspense>
   );
 }
