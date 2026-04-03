@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { isLoggedIn } from '@/lib/auth';
-import { connectShopify, getShopifyStatus } from '@/lib/api';
+import { isLoggedIn, getToken } from '@/lib/auth';
+import { connectShopify, getShopifyStatus, getUserInfo } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 
 // =============================================================================
@@ -32,13 +32,11 @@ import LunaSidebar from '@/components/LunaSidebar';
 // DELETE /api/integrations/shopify/disconnect
 //   Returns: { success: boolean }
 //
-// --- META ---
-// POST /api/integrations/meta/connect
-//   Body: { business_account_id: string, access_token: string }
-//   Returns: { success: boolean }
-//
-// DELETE /api/integrations/meta/disconnect
-//   Returns: { success: boolean }
+// --- META / INSTAGRAM (OAuth) ---
+// GET /auth/instagram?brand_id=<id>&token=<jwt>
+//   Redirects user to Instagram OAuth flow
+//   On success: redirects back to /dashboard/luna/settings?instagram=connected
+//   On failure: redirects back to /dashboard/luna/settings?error=instagram_failed
 //
 // --- BOSTA ---
 // POST /api/integrations/bosta/connect
@@ -53,7 +51,7 @@ type Tone = 'Friendly' | 'Professional' | 'Casual' | 'Luxury';
 type EscalationOption = '3 messages without resolution' | '5 messages without resolution' | 'Any complaint' | 'Never (manual only)';
 
 interface ConnectModal {
-  name: 'shopify' | 'meta' | 'bosta' | null;
+  name: 'shopify' | 'bosta' | null;
 }
 
 function SettingsContent() {
@@ -75,8 +73,6 @@ function SettingsContent() {
   const [modal, setModal] = useState<ConnectModal>({ name: null });
   const [shopDomain, setShopDomain] = useState('');
   const [shopifyKey, setShopifyKey] = useState('');  // unused in OAuth flow, kept for UI
-  const [metaId, setMetaId] = useState('');
-  const [metaToken, setMetaToken] = useState('');
   const [bostaKey, setBostaKey] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
@@ -95,6 +91,19 @@ function SettingsContent() {
       showToast('Shopify connected successfully', 'success');
       router.replace('/dashboard/luna/settings', { scroll: false });
       checkShopifyStatus();
+    }
+  }, [searchParams, router]);
+
+  // Handle Instagram OAuth redirect back
+  useEffect(() => {
+    if (searchParams.get('instagram') === 'connected') {
+      showToast('Instagram connected successfully', 'success');
+      setMetaConnected(true);
+      router.replace('/dashboard/luna/settings', { scroll: false });
+    }
+    if (searchParams.get('error') === 'instagram_failed') {
+      showToast('Failed to connect Instagram. Please try again.', 'error');
+      router.replace('/dashboard/luna/settings', { scroll: false });
     }
   }, [searchParams, router]);
 
@@ -142,18 +151,17 @@ function SettingsContent() {
     }
   };
 
-  // POST /api/integrations/meta/connect  (TODO: implement in lib/api.ts)
-  const handleMetaConnect = async () => {
-    if (!metaId.trim() || !metaToken.trim()) { setFormError('Please fill in all fields'); return; }
-    setFormLoading(true); setFormError('');
+  // Instagram OAuth — redirect to backend
+  const handleInstagramConnect = async () => {
+    setFormLoading(true);
     try {
-      // await connectMeta({ business_account_id: metaId, access_token: metaToken });
-      setMetaConnected(true);
-      closeModal();
-      showToast('Meta Business connected successfully');
+      const token = getToken();
+      const userInfo = await getUserInfo();
+      const brandId = userInfo.brand_id;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
+      window.location.href = `${apiUrl}/auth/instagram?brand_id=${brandId}&token=${token}`;
     } catch (err: any) {
-      setFormError(err.message || 'Failed to connect Meta');
-    } finally {
+      showToast(err.message || 'Failed to start Instagram connection', 'error');
       setFormLoading(false);
     }
   };
@@ -178,7 +186,6 @@ function SettingsContent() {
     setModal({ name: null });
     setFormError('');
     setShopDomain(''); setShopifyKey('');
-    setMetaId(''); setMetaToken('');
     setBostaKey('');
   };
 
@@ -287,14 +294,15 @@ function SettingsContent() {
                         <div className="w-[6px] h-[6px] rounded-full bg-green-400 shadow-[0_0_6px_rgba(92,207,143,0.5)]" />
                       )}
                       <button
-                        onClick={() => intg.connected ? intg.onDisconnect() : setModal({ name: intg.id })}
+                        onClick={() => intg.connected ? intg.onDisconnect() : (intg.id === 'meta' ? handleInstagramConnect() : setModal({ name: intg.id as 'shopify' | 'bosta' }))}
+                        disabled={intg.id === 'meta' && formLoading}
                         className={`rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium transition-all duration-[180ms] whitespace-nowrap ${
                           intg.connected
                             ? 'text-text-tertiary border border-border hover:border-red-400/50 hover:text-red-400/80'
                             : 'bg-btn-bg text-btn-text hover:opacity-85'
-                        }`}
+                        } disabled:opacity-50`}
                       >
-                        {intg.connected ? 'Disconnect' : 'Connect'}
+                        {intg.connected ? 'Disconnect' : (intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect')}
                       </button>
                     </div>
                   </div>
@@ -423,39 +431,6 @@ function SettingsContent() {
                   className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50 mt-1"
                 >
                   {formLoading ? 'Connecting…' : 'Connect Shopify'}
-                </button>
-                <p className="text-[0.65rem] text-text-tertiary text-center mt-3">Need help? View setup guide →</p>
-              </>
-            )}
-
-            {/* Meta modal */}
-            {modal.name === 'meta' && (
-              <>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[#1877f2]" style={{ background: '#1a1a1a', border: '1px solid rgba(24,119,242,0.2)' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
-                    </svg>
-                  </div>
-                  <div className="text-[1rem] font-[400] tracking-[-0.02em]">Connect Meta Business</div>
-                </div>
-                <p className="text-[0.7rem] text-text-tertiary mb-5 leading-[1.6]">
-                  Link your Meta Business account to activate Luna on Instagram DMs and WhatsApp Business.
-                </p>
-                <div className="mb-3">
-                  <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary mb-[0.3rem]">Business Account ID</div>
-                  <input type="text" value={metaId} onChange={(e) => setMetaId(e.target.value)} placeholder="123456789012345"
-                    className="w-full bg-input-bg border border-border rounded-[8px] px-3 py-2 text-[0.78rem] text-text-primary outline-none focus:border-border-md transition-colors duration-200" />
-                </div>
-                <div className="mb-3">
-                  <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary mb-[0.3rem]">Access Token</div>
-                  <input type="password" value={metaToken} onChange={(e) => setMetaToken(e.target.value)} placeholder="EAAB…"
-                    className="w-full bg-input-bg border border-border rounded-[8px] px-3 py-2 text-[0.78rem] text-text-primary outline-none focus:border-border-md transition-colors duration-200" />
-                </div>
-                {formError && <div className="mb-3 text-[0.7rem] text-red-400">{formError}</div>}
-                <button onClick={handleMetaConnect} disabled={formLoading}
-                  className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50 mt-1">
-                  {formLoading ? 'Connecting…' : 'Connect Meta'}
                 </button>
                 <p className="text-[0.65rem] text-text-tertiary text-center mt-3">Need help? View setup guide →</p>
               </>
