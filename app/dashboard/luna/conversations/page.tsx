@@ -390,7 +390,7 @@ function ConversationsContent() {
       <div className="flex flex-1 overflow-hidden">
         <LunaSidebar />
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-background2">
+        <main className="flex-1 flex flex-col overflow-hidden bg-background2 max-md:pt-12">
 
           {/* Top bar */}
           <div className="flex items-end px-6 pt-5 pb-0 bg-background border-b border-border shrink-0">

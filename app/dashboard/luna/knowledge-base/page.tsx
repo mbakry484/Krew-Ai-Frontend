@@ -113,9 +113,9 @@ export default function KnowledgeBasePage() {
       <div className="flex flex-1">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2">
+        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-8 pt-6 pb-0">
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-6 pb-0">
             <div>
               <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem]">
                 Knowledge Base
