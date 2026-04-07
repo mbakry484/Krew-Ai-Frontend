@@ -152,18 +152,22 @@ export default function LunaSidebar() {
         <SidebarContent />
       </aside>
 
-      {/* Mobile toggle button — sits inside the top bar area of each page */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="hidden max-md:flex fixed top-3 left-4 z-[160] items-center gap-[5px] bg-background border border-border rounded-[7px] px-[10px] py-[5px] text-[0.72rem] text-text-secondary hover:border-border-md hover:text-text-primary transition-all duration-200"
-      >
-        <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-        Menu
-      </button>
+      {/* Mobile top bar */}
+      <div className="hidden max-md:flex fixed top-0 left-0 right-0 h-12 z-[160] items-center px-4 bg-background border-b border-border">
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="flex items-center justify-center w-8 h-8 rounded-[7px] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-200"
+          aria-label="Open menu"
+        >
+          <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <span className="flex-1 text-center text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">Luna</span>
+        <div className="w-8" />
+      </div>
 
       {/* Mobile sidebar overlay */}
       {mobileOpen && (

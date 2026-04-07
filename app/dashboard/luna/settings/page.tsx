@@ -259,9 +259,9 @@ function SettingsContent() {
       <div className="flex flex-1">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2">
+        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
-          <div className="px-8 pt-[1.6rem] pb-0">
+          <div className="px-8 max-md:px-4 pt-[1.6rem] pb-0">
             <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem] lowercase">settings</h2>
             <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
           </div>
