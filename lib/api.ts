@@ -123,13 +123,30 @@ export const login = async (data: {
 // Onboarding API call
 export const saveOnboarding = async (data: {
   businessType?: string;
-  platform?: string;
-  customersPerMonth?: string;
-  primaryGoal?: string;
+  revenueRange?: string;
+  dmVolume?: string;
+  painPoint?: string;
+  brandDescription?: string;
 }) => {
+  // Convert camelCase frontend keys to snake_case backend keys
+  const payload: Record<string, string> = {};
+  if (data.businessType) payload.business_type = data.businessType;
+  if (data.revenueRange) payload.revenue_range = data.revenueRange;
+  if (data.dmVolume) payload.dm_volume = data.dmVolume;
+  if (data.painPoint) payload.pain_point = data.painPoint;
+  if (data.brandDescription) payload.brand_description = data.brandDescription;
+
   return apiRequest('/auth/onboarding', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
+  });
+};
+
+// Brand description API call (for settings page)
+export const updateBrandDescription = async (brand_description: string) => {
+  return apiRequest('/auth/brand-description', {
+    method: 'PUT',
+    body: JSON.stringify({ brand_description }),
   });
 };
 
