@@ -73,7 +73,7 @@ const OB_STEPS: OBStep[] = [
     question: 'Describe your brand.',
     sub: 'Two sentences is all Luna needs to match your voice.',
     key: 'brandDescription',
-    placeholder: ' YOUR BRAND is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic.',
+    placeholder: 'KARSA is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic.',
     helper: "Luna will use this to match your brand's tone in every customer reply.",
   },
 ];
@@ -326,7 +326,7 @@ export default function SignupPage() {
                       type="text" required value={formData.business_name}
                       onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
                       className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                      placeholder="YOUR BRAND"
+                      placeholder="KARSA"
                     />
                   </div>
 

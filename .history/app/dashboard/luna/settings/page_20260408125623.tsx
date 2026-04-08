@@ -85,17 +85,11 @@ function SettingsContent() {
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/auth/login'); return; }
-    checkIntegrationStatus();
+    checkShopifyStatus();
     getUserInfo().then(res => {
-      if (res.user) {
-        if (res.user.brand_description) {
-          setBrandDescription(res.user.brand_description);
-          setSavedBrandDescription(res.user.brand_description);
-        }
-        // Meta connection status from brands table
-        if (res.user.instagram_connected) {
-          setMetaConnected(true);
-        }
+      if (res.user?.brand_description) {
+        setBrandDescription(res.user.brand_description);
+        setSavedBrandDescription(res.user.brand_description);
       }
     }).catch(() => {});
   }, [router]);
@@ -105,7 +99,7 @@ function SettingsContent() {
     if (searchParams.get('shopify') === 'connected') {
       showToast('Shopify connected successfully', 'success');
       router.replace('/dashboard/luna/settings', { scroll: false });
-      checkIntegrationStatus();
+      checkShopifyStatus();
     }
   }, [searchParams, router]);
 
@@ -113,15 +107,11 @@ function SettingsContent() {
   useEffect(() => {
     if (searchParams.get('instagram') === 'connected') {
       showToast('Instagram connected successfully', 'success');
+      setMetaConnected(true);
       router.replace('/dashboard/luna/settings', { scroll: false });
-      checkIntegrationStatus();
     }
     if (searchParams.get('error') === 'instagram_failed') {
       showToast('Failed to connect Instagram. Please try again.', 'error');
-      router.replace('/dashboard/luna/settings', { scroll: false });
-    }
-    if (searchParams.get('error') === 'instagram_already_connected') {
-      showToast('This Instagram account is already connected to another brand.', 'error');
       router.replace('/dashboard/luna/settings', { scroll: false });
     }
   }, [searchParams, router]);
@@ -131,17 +121,21 @@ function SettingsContent() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Fetch integration statuses from DB
-  const checkIntegrationStatus = async () => {
+  // GET /api/integrations/shopify/status
+  const checkShopifyStatus = async () => {
     try {
-      const shopifyRes = await getShopifyStatus();
-      setShopifyConnected(!!shopifyRes.linked);
-      setShopifyStoreDomain(shopifyRes.shop_domain || '');
+      const res = await getShopifyStatus();
+      if (res.linked === true) {
+        setShopifyConnected(true);
+        setShopifyStoreDomain(res.shop_domain || '');
+      } else {
+        setShopifyConnected(false);
+        setShopifyStoreDomain('');
+      }
     } catch {
       setShopifyConnected(false);
       setShopifyStoreDomain('');
     }
-    // Meta status is set from getUserInfo() in the useEffect above
   };
 
   const cleanShopDomain = (input: string): string => {
@@ -205,18 +199,20 @@ function SettingsContent() {
   };
 
   // PUT /api/luna/settings
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = () => {
+    // TODO: call PUT /api/luna/settings with { brand_tone: brandTone, escalation_threshold: escalation, active_channels: channels }
+    showToast('Settings saved');
+  };
+
+  const handleSaveBrandDescription = async () => {
+    if (brandDescription === savedBrandDescription) return;
     setDescSaving(true);
     try {
-      // Save brand description if changed
-      if (brandDescription !== savedBrandDescription) {
-        await updateBrandDescription(brandDescription);
-        setSavedBrandDescription(brandDescription);
-      }
-      // TODO: call PUT /api/luna/settings with { brand_tone: brandTone, escalation_threshold: escalation, active_channels: channels }
-      showToast('Settings saved');
+      await updateBrandDescription(brandDescription);
+      setSavedBrandDescription(brandDescription);
+      showToast('Brand description saved');
     } catch (err: any) {
-      showToast(err.message || 'Failed to save settings', 'error');
+      showToast(err.message || 'Failed to save', 'error');
     } finally {
       setDescSaving(false);
     }
@@ -234,9 +230,11 @@ function SettingsContent() {
       connected: shopifyConnected,
       onDisconnect: () => { setShopifyConnected(false); setShopifyStoreDomain(''); showToast('Shopify disconnected'); },
       logo: (
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: '#96bf48' }}>
-          <svg width="18" height="20" viewBox="0 0 24 28" fill="none">
-            <path d="M15.7 1.3c-.1 0-.2 0-.3.1-.1 0-1.5.5-1.5.5S12.7.4 12.5.2c-.2-.2-.6-.2-.7-.2h-.1C11.1 0 10.5.9 10.2 1.6L8.5 2.1c-.3-.9-.8-1.7-1.5-1.7h-.1C6 .4 5.2 1 4.6 2 3.7 3.5 3 6.2 3 6.2L1.2 6.8c-.4.1-.4.1-.5.5C.7 7.6 0 27 0 27l17.4 3 7.6-1.7S16 1.5 15.9 1.4c0-.1-.1-.1-.2-.1zM11.2 3l-1.8.6c.3-1.2.9-2.4 1.8-2.9V3zm-2.5.8L5.6 4.9c.5-2 1.5-3 2.5-3.3l.6 2.2zM8 .8c.1 0 .3.1.4.2-.1 0-.3.1-.4.1.1-.1.1-.2 0-.3zm4.1 5.5l-.8 2.5s-.9-.4-1.9-.4c-1.5 0-1.6.9-1.6 1.2 0 1.3 3.4 1.8 3.4 4.8 0 2.4-1.5 3.9-3.6 3.9-2.5 0-3.7-1.5-3.7-1.5l.7-2.2s1.3 1.1 2.4 1.1c.7 0 1-.6 1-1 0-1.7-2.8-1.8-2.8-4.5 0-2.3 1.7-4.6 5.1-4.6 1.3 0 1.8.4 1.8.4z" fill="white"/>
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#96bf48]" style={{ background: '#1a1a1a', border: '1px solid rgba(150,191,72,0.2)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M15.5 4.5s-.3-1.5-1.8-1.5c0 0-1.2.1-2.2 1.2" strokeLinecap="round"/>
+            <path d="M8 7.5l1 12 7.5 1.5 2.5-13.5-3-.5s-.4-2-2-2.5c0 0-1.8-.3-3 1L8 7.5z" strokeLinejoin="round"/>
+            <path d="M10.5 7l.5 11M14 7.5l-1 10.5" strokeLinecap="round" strokeWidth="1.4"/>
           </svg>
         </div>
       )
@@ -416,13 +414,23 @@ function SettingsContent() {
                 </div>
               </div>
 
-              <button
-                onClick={handleSaveConfig}
-                disabled={descSaving}
-                className="w-full mt-6 bg-btn-bg text-btn-text px-4 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
-              >
-                {descSaving ? 'Saving…' : 'Save settings'}
-              </button>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={handleSaveConfig}
+                  className="flex-1 bg-btn-bg text-btn-text px-4 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200"
+                >
+                  Save settings
+                </button>
+                {brandDescription !== savedBrandDescription && (
+                  <button
+                    onClick={handleSaveBrandDescription}
+                    disabled={descSaving}
+                    className="px-4 py-2 border border-border-hover text-text-primary rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
+                  >
+                    {descSaving ? 'Saving…' : 'Save description'}
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>
@@ -443,9 +451,10 @@ function SettingsContent() {
             {modal.name === 'shopify' && (
               <>
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: '#96bf48' }}>
-                    <svg width="14" height="16" viewBox="0 0 24 28" fill="none">
-                      <path d="M15.7 1.3c-.1 0-.2 0-.3.1-.1 0-1.5.5-1.5.5S12.7.4 12.5.2c-.2-.2-.6-.2-.7-.2h-.1C11.1 0 10.5.9 10.2 1.6L8.5 2.1c-.3-.9-.8-1.7-1.5-1.7h-.1C6 .4 5.2 1 4.6 2 3.7 3.5 3 6.2 3 6.2L1.2 6.8c-.4.1-.4.1-.5.5C.7 7.6 0 27 0 27l17.4 3 7.6-1.7S16 1.5 15.9 1.4c0-.1-.1-.1-.2-.1zM11.2 3l-1.8.6c.3-1.2.9-2.4 1.8-2.9V3zm-2.5.8L5.6 4.9c.5-2 1.5-3 2.5-3.3l.6 2.2zM8 .8c.1 0 .3.1.4.2-.1 0-.3.1-.4.1.1-.1.1-.2 0-.3zm4.1 5.5l-.8 2.5s-.9-.4-1.9-.4c-1.5 0-1.6.9-1.6 1.2 0 1.3 3.4 1.8 3.4 4.8 0 2.4-1.5 3.9-3.6 3.9-2.5 0-3.7-1.5-3.7-1.5l.7-2.2s1.3 1.1 2.4 1.1c.7 0 1-.6 1-1 0-1.7-2.8-1.8-2.8-4.5 0-2.3 1.7-4.6 5.1-4.6 1.3 0 1.8.4 1.8.4z" fill="white"/>
+                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[#96bf48]" style={{ background: '#1a1a1a', border: '1px solid rgba(150,191,72,0.2)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <path d="M15.5 4.5s-.3-1.5-1.8-1.5c0 0-1.2.1-2.2 1.2" strokeLinecap="round"/>
+                      <path d="M8 7.5l1 12 7.5 1.5 2.5-13.5-3-.5s-.4-2-2-2.5c0 0-1.8-.3-3 1L8 7.5z" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div className="text-[1rem] font-[400] tracking-[-0.02em]">Connect Shopify</div>

@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
-import { getUserInfo } from '@/lib/api';
+import { getUserInfo, updateBrandDescription } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Tab = 'account' | 'integrations' | 'notifications' | 'billing' | 'danger';
+type Tab = 'account' | 'brand' | 'integrations' | 'notifications' | 'billing' | 'danger';
 type ToastType = 'success' | 'error' | 'info';
 
 // ─── Shared: Field input ──────────────────────────────────────────────────────
@@ -198,6 +198,76 @@ function AccountSection({
           className="px-5 py-[0.58rem] text-[0.8rem] bg-btn-bg text-btn-text rounded-[8px] font-medium hover:opacity-85 transition-opacity duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Save changes
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section: Brand ──────────────────────────────────────────────────────────
+function BrandSection({
+  brandDescription: initialDesc, showToast,
+}: {
+  brandDescription: string;
+  showToast: (msg: string, type?: ToastType) => void;
+}) {
+  const [description, setDescription] = useState(initialDesc);
+  const [saving, setSaving] = useState(false);
+  const origRef = useRef(initialDesc);
+
+  useEffect(() => {
+    setDescription(initialDesc);
+    origRef.current = initialDesc;
+  }, [initialDesc]);
+
+  const isDirty = description !== origRef.current;
+
+  const handleSave = async () => {
+    if (!isDirty) return;
+    setSaving(true);
+    try {
+      await updateBrandDescription(description);
+      origRef.current = description;
+      showToast('Brand description saved', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-background border border-border rounded-[12px] p-6 flex flex-col gap-5">
+      <div>
+        <h3 className="text-[0.82rem] font-medium text-text-primary lowercase tracking-[-0.01em]">brand description</h3>
+        <p className="text-[0.68rem] text-text-tertiary mt-[3px] leading-[1.6]">
+          Luna uses this to match your brand&#39;s tone in every customer reply. You can update it anytime.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-[0.7rem] uppercase tracking-[0.07em] text-text-tertiary mb-[6px]">
+          Describe your brand
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. YOUR  is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic."
+          rows={4}
+          className="w-full bg-background border border-border rounded-[8px] px-3 py-[0.58rem] text-[0.82rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-hover transition-colors duration-150 resize-none leading-[1.7]"
+        />
+        <p className="text-[0.63rem] text-text-tertiary mt-[0.35rem] leading-[1.6]">
+          Two sentences is all Luna needs to match your voice.
+        </p>
+      </div>
+
+      <div className="pt-2 border-t border-border">
+        <button
+          onClick={handleSave}
+          disabled={!isDirty || saving}
+          className="px-5 py-[0.58rem] text-[0.8rem] bg-btn-bg text-btn-text rounded-[8px] font-medium hover:opacity-85 transition-opacity duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving…' : 'Save changes'}
         </button>
       </div>
     </div>
@@ -479,6 +549,7 @@ function DangerSection({ showToast }: { showToast: (msg: string, type?: ToastTyp
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const TABS: { id: Tab; label: string }[] = [
   { id: 'account',       label: 'Account' },
+  { id: 'brand',         label: 'Brand' },
   { id: 'integrations',  label: 'Integrations' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'billing',       label: 'Billing & Usage' },
@@ -489,6 +560,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('account');
   const [userInfo, setUserInfo] = useState({ first_name: '', last_name: '', email: '' });
+  const [brandDescription, setBrandDescription] = useState('');
   const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
 
   useEffect(() => {
@@ -496,7 +568,7 @@ export default function SettingsPage() {
     // Load cached info immediately
     const stored = localStorage.getItem('user_info');
     if (stored) setUserInfo(JSON.parse(stored));
-    // Fetch fresh data from API
+    // Fetch fresh data from API (includes brand_description)
     getUserInfo().then(res => {
       if (res.user) {
         setUserInfo({
@@ -504,6 +576,7 @@ export default function SettingsPage() {
           last_name: res.user.last_name || '',
           email: res.user.email || '',
         });
+        setBrandDescription(res.user.brand_description || '');
       }
     }).catch(() => {});
   }, [router]);
@@ -549,6 +622,7 @@ export default function SettingsPage() {
         <main className="flex-1 bg-background2 overflow-y-auto">
           <div className="px-8 py-10 pb-16">
             {activeTab === 'account'       && <AccountSection       userInfo={userInfo} showToast={showToast} />}
+            {activeTab === 'brand'         && <BrandSection         brandDescription={brandDescription} showToast={showToast} />}
             {activeTab === 'integrations'  && <IntegrationsSection  showToast={showToast} />}
             {activeTab === 'notifications' && <NotificationsSection showToast={showToast} />}
             {activeTab === 'billing'       && <BillingSection       showToast={showToast} />}

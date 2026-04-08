@@ -240,3 +240,10 @@ export const getShopifyStatus = async () => {
     method: 'GET',
   });
 };
+
+// All integrations status (Shopify + Meta)
+export const getIntegrationStatus = async () => {
+  return apiRequest('/integrations/status', {
+    method: 'GET',
+  });
+};
