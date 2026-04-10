@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 // =============================================================================
@@ -78,21 +78,10 @@ const menuItems = [
       </svg>
     )
   },
-  {
-    href: '/dashboard/luna/settings',
-    label: 'Settings',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    )
-  },
 ];
 
 function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const isActive = (href: string) => {
     if (href === '/dashboard/luna') return pathname === '/dashboard/luna';
@@ -102,9 +91,20 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
   return (
     <>
       {/* Logo */}
-      <div className="px-[1.2rem] pb-[1.5rem] border-b border-border mb-4">
-        <div className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary">Luna</div>
-        <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary mt-[1px]">Customer Operations · Krew</div>
+      <div className="flex items-stretch border-b border-border mb-4">
+        <Link
+          href="/dashboard"
+          title="Back to My Krew"
+          className="flex items-center justify-center w-[38px] shrink-0 border-r border-border text-text-tertiary hover:bg-background3 hover:text-text-secondary transition-all duration-150 group"
+        >
+          <svg className="w-[13px] h-[13px] transition-transform duration-150 group-hover:-translate-x-[2px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 19l-7-7 7-7"/>
+          </svg>
+        </Link>
+        <div className="px-[1rem] pt-[1.1rem] pb-[1.2rem] flex-1">
+          <div className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary mb-[1px]">Luna</div>
+          <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary">Customer Operations · Krew</div>
+        </div>
       </div>
 
       {/* Nav items */}
@@ -126,17 +126,23 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
         ))}
       </nav>
 
-      {/* Back to My Krew */}
+      {/* Settings */}
       <div className="px-[0.6rem] pt-4 border-t border-border mt-auto">
-        <button
-          onClick={() => { router.push('/dashboard'); onLinkClick?.(); }}
-          className="flex items-center gap-[0.7rem] px-[0.8rem] py-[0.65rem] rounded-[8px] text-[0.75rem] text-text-tertiary hover:bg-background3 hover:text-text-secondary transition-all duration-150 w-full"
+        <Link
+          href="/dashboard/luna/settings"
+          onClick={onLinkClick}
+          className={`flex items-center gap-[0.7rem] px-[0.8rem] py-[0.65rem] rounded-[8px] text-[0.75rem] transition-all duration-150 w-full ${
+            pathname === '/dashboard/luna/settings'
+              ? 'bg-background3 text-text-primary'
+              : 'text-text-tertiary hover:bg-background3 hover:text-text-secondary'
+          }`}
         >
           <svg className="w-[15px] h-[15px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M15 19l-7-7 7-7"/>
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span>My Krew</span>
-        </button>
+          <span>Settings</span>
+        </Link>
       </div>
     </>
   );
@@ -148,7 +154,7 @@ export default function LunaSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 max-md:hidden sticky top-0 h-screen overflow-y-auto">
+      <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col pt-0 pb-6 max-md:hidden sticky top-0 h-screen overflow-y-auto">
         <SidebarContent />
       </aside>
 

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
 import { connectShopify, getShopifyStatus, getUserInfo, updateBrandDescription } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -286,12 +287,15 @@ function SettingsContent() {
 
         <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
-          <div className="px-8 max-md:px-4 pt-[1.6rem] pb-0">
-            <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem] lowercase">settings</h2>
-            <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
+            <div>
+              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">settings</h2>
+              <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
+            </div>
+            <LunaTopBarActions />
           </div>
 
-          <div className="px-8 py-6 pb-12 flex flex-col gap-6 max-w-2xl">
+          <div className="px-8 py-6 pb-12 flex flex-col gap-6">
 
             {/* ── INTEGRATIONS ──
                 API: see Shopify/Meta/Bosta above */}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 import { getExchangesRefunds, updateExchangeRefundStatus } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
@@ -222,13 +223,16 @@ export default function ExchangesRefundsPage() {
 
         <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           <div className="px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background2">
-            <div className="mb-[1.1rem]">
-              <h2 className="text-[1.25rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
-                exchanges &amp; refunds
-              </h2>
-              <p className="text-[0.72rem] text-text-secondary">
-                {loading ? 'loading...' : 'manage customer exchange and refund requests'}
-              </p>
+            <div className="flex items-start justify-between gap-3 mb-[1.1rem]">
+              <div>
+                <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
+                  exchanges &amp; refunds
+                </h2>
+                <p className="text-[0.72rem] text-text-secondary">
+                  {loading ? 'loading...' : 'manage customer exchange and refund requests'}
+                </p>
+              </div>
+              <LunaTopBarActions />
             </div>
 
             <div className="flex items-center gap-[5px]">

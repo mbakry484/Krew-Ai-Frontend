@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
+import { getUserInfo } from '@/lib/api';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -58,15 +59,6 @@ const agents = [
   }
 ];
 
-// Notification chips shown at the top of the My Krew page
-// These should come from GET /api/notifications in production
-const notifications = [
-  { agent: 'Luna', message: '3 recurring size questions flagged this week' },
-  { agent: 'Luna', message: '47 DMs handled overnight · 2 escalated' },
-  { agent: 'Ivy',  message: 'Cash flow report ready — Feb 2025' },
-  { agent: 'Ivy',  message: 'Profit margin dipped 2.1% vs last month' },
-  { agent: 'Luna', message: 'Avg response 0.4s — all clear' },
-];
 
 export default function MyKrewDashboard() {
   const router = useRouter();
@@ -79,7 +71,20 @@ export default function MyKrewDashboard() {
     }
     const storedUser = localStorage.getItem('user_info');
     if (storedUser) {
-      setUserInfo(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser);
+      setUserInfo(parsed);
+      // If first_name is missing, fetch from API
+      if (!parsed.first_name) {
+        getUserInfo().then(res => {
+          const user = res?.user ?? res;
+          if (user?.first_name) setUserInfo(user);
+        }).catch(() => {});
+      }
+    } else {
+      getUserInfo().then(res => {
+        const user = res?.user ?? res;
+        if (user?.first_name) setUserInfo(user);
+      }).catch(() => {});
     }
   }, [router]);
 
@@ -103,23 +108,11 @@ export default function MyKrewDashboard() {
         <div className="max-w-[1100px] mx-auto px-10 py-12">
 
           {/* Greeting */}
-          <div className="mb-3">
+          <div className="mb-10">
             <h2 className="text-[1.5rem] font-light tracking-[-0.03em] mb-[0.2rem]">
               {getGreeting()}, {userInfo.first_name || 'there'}.
             </h2>
             <p className="text-[0.72rem] text-text-tertiary">Your agents are running. Here's what's happening.</p>
-          </div>
-
-          {/* Notification chips
-              API: GET /api/notifications → [{ agent, message, time }] */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-[0.2rem] mb-10">
-            {notifications.map((n, i) => (
-              <div key={i} className="shrink-0 flex items-center gap-[6px] bg-background2 border border-border rounded-[20px] px-[11px] py-[5px] text-[0.67rem] text-text-secondary whitespace-nowrap hover:border-border-md transition-colors duration-200 cursor-default">
-                <span className="w-1 h-1 rounded-full bg-text-tertiary" />
-                <span className="text-[0.58rem] uppercase tracking-[0.05em] text-text-tertiary">{n.agent}</span>
-                {n.message}
-              </div>
-            ))}
           </div>
 
           {/* Section label */}

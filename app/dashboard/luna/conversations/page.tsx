@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 import {
   getConversations,
   getConversation,
@@ -393,10 +394,10 @@ function ConversationsContent() {
         <main className="flex-1 flex flex-col overflow-hidden bg-background2 max-md:pt-12">
 
           {/* Top bar */}
-          <div className="flex items-end px-6 pt-5 pb-0 bg-background border-b border-border shrink-0">
+          <div className="flex items-start justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background border-b border-border shrink-0 gap-3">
             <div className="pb-0 flex flex-col">
               <div className="pb-3">
-                <h2 className="text-[1.25rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
+                <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
                   conversations
                 </h2>
                 <p className="text-[0.68rem] text-text-secondary">
@@ -430,6 +431,9 @@ function ConversationsContent() {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="pt-4 pb-3">
+              <LunaTopBarActions />
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -50,13 +51,14 @@ export default function ReportsPage() {
 
         <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0">
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>
-              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem] lowercase">
+              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
                 reports
               </h2>
               <p className="text-[0.72rem] text-text-secondary">performance data and exports</p>
             </div>
+            <LunaTopBarActions />
           </div>
 
           <div className="px-8 py-6 pb-12 flex flex-col gap-6">

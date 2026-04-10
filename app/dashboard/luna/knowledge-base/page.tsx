@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import { getKnowledgeBase, saveKnowledgeBase, deleteKnowledgeFAQ } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 interface KBItem {
   id: string;
@@ -115,15 +116,16 @@ export default function KnowledgeBasePage() {
 
         <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-8 max-md:px-4 pt-6 pb-0">
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>
-              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem]">
-                Knowledge Base
+              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
+                knowledge base
               </h2>
               <p className="text-[0.72rem] text-text-secondary">
-                Teach Luna how to respond to common questions
+                teach Luna how to respond to common questions
               </p>
             </div>
+            <LunaTopBarActions />
           </div>
 
           {/* Content */}

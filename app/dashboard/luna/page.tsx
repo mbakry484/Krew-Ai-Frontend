@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -87,7 +88,7 @@ export default function LunaOverview() {
           {/* Top Bar */}
           <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>
-              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem] lowercase">
+              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
                 daily support summary
               </h2>
               <p className="text-[0.72rem] text-text-secondary">
@@ -127,13 +128,7 @@ export default function LunaOverview() {
                 )}
               </div>
 
-              {/* User chip */}
-              <div className="flex items-center gap-2 text-[0.75rem] text-text-secondary">
-                <div className="w-[26px] h-[26px] rounded-full bg-background4 border border-border-md flex items-center justify-center text-[0.6rem] font-semibold text-text-secondary">
-                  {initials}
-                </div>
-                <span className="hidden sm:inline">{userInfo.first_name?.toLowerCase()}{userInfo.last_name?.toLowerCase()}</span>
-              </div>
+              <LunaTopBarActions />
             </div>
           </div>
 
