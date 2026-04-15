@@ -107,36 +107,45 @@ export default function Navigation() {
                 </svg>
               </button>
 
-              {/* Agents panel — narrow list-style */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 w-[260px] bg-dropdown-bg border border-border-md rounded-[14px] p-[0.4rem] shadow-[0_16px_48px_rgba(0,0,0,0.22)] z-50 ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
-                {/* Luna */}
-                <button
-                  onClick={() => { router.push('/dashboard/luna'); setHoveredMega(null); }}
-                  className="flex items-center gap-[0.85rem] w-full px-[0.9rem] py-[0.75rem] rounded-[8px] hover:bg-background3 transition-colors duration-150 text-left"
-                >
-                  <div className="w-[32px] h-[32px] border border-border rounded-[8px] flex items-center justify-center text-text-tertiary shrink-0">
-                    <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                    </svg>
+              {/* Agents panel — wide 2-column, same style as About */}
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 w-[500px] bg-dropdown-bg border border-border-md rounded-[16px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.26)] z-50 ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
+                <div className="grid grid-cols-2">
+
+                  {/* Luna */}
+                  <button
+                    onClick={() => { router.push('/agents/luna'); setHoveredMega(null); }}
+                    className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150 border-r border-border"
+                  >
+                    <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary group-hover:border-border-md mb-5 transition-colors duration-150">
+                      <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                      </svg>
+                    </div>
+                    <div className="flex items-center gap-2 mb-[0.35rem]">
+                      <div className="text-[0.82rem] font-semibold text-text-primary tracking-[-0.01em]">Luna</div>
+                      <span className="text-[0.5rem] uppercase tracking-[0.07em] px-[5px] py-[2px] rounded border border-[rgba(92,156,110,0.3)] text-[#5c9c6e]">Live</span>
+                    </div>
+                    <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
+                      Customer Operations Agent
+                    </div>
+                  </button>
+
+                  {/* Ivy — coming soon */}
+                  <div className="flex flex-col p-7 opacity-40 cursor-default select-none">
+                    <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary mb-5">
+                      <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                      </svg>
+                    </div>
+                    <div className="flex items-center gap-2 mb-[0.35rem]">
+                      <div className="text-[0.82rem] font-semibold text-text-primary tracking-[-0.01em]">Ivy</div>
+                      <span className="text-[0.5rem] uppercase tracking-[0.07em] px-[5px] py-[2px] rounded border border-border text-text-tertiary">Soon</span>
+                    </div>
+                    <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
+                      Financial Visibility
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[0.78rem] font-medium text-text-primary mb-[2px]">Luna</div>
-                    <div className="text-[0.65rem] text-text-tertiary leading-snug">Customer Operations Agent</div>
-                  </div>
-                  <span className="text-[0.54rem] uppercase tracking-[0.07em] px-[6px] py-[2px] rounded border border-[rgba(92,156,110,0.3)] text-[#5c9c6e] shrink-0">Live</span>
-                </button>
-                {/* Ivy — coming soon */}
-                <div className="flex items-center gap-[0.85rem] w-full px-[0.9rem] py-[0.75rem] rounded-[8px] opacity-40 cursor-default select-none">
-                  <div className="w-[32px] h-[32px] border border-border rounded-[8px] flex items-center justify-center text-text-tertiary shrink-0">
-                    <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[0.78rem] font-medium text-text-primary mb-[2px]">Ivy</div>
-                    <div className="text-[0.65rem] text-text-tertiary leading-snug">Financial Visibility</div>
-                  </div>
-                  <span className="text-[0.54rem] uppercase tracking-[0.07em] px-[6px] py-[2px] rounded border border-border text-text-tertiary shrink-0">Soon</span>
+
                 </div>
               </div>
             </div>
@@ -358,7 +367,7 @@ export default function Navigation() {
           <div className="mb-2">
             <div className="text-[0.57rem] uppercase tracking-[0.1em] text-text-tertiary px-[0.7rem] py-[0.25rem] mb-[0.15rem]">Agents</div>
             <button
-              onClick={() => { router.push('/dashboard/luna'); setMobileOpen(false); }}
+              onClick={() => { router.push('/agents/luna'); setMobileOpen(false); }}
               className="w-full text-left px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
             >
               Luna — Customer Operations

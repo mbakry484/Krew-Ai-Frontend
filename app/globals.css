@@ -330,3 +330,57 @@ select option:checked {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Luna agent page ── */
+@keyframes lunaReveal {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lunaCursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.luna-cursor {
+  animation: lunaCursor 1s step-end infinite;
+}
+.luna-grid-bg {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+.luna-crosshair {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+.luna-crosshair::before,
+.luna-crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--border-md);
+}
+.luna-crosshair::before {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+.luna-crosshair::after {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+.luna-bubble-tail {
+  position: absolute;
+  bottom: -11px;
+  left: 24px;
+  width: 0;
+  height: 0;
+  border-right: 12px solid transparent;
+  border-top: 11px solid #ffffff;
+}
