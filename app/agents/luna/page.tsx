@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, ReactNode, ComponentType } from 'react';
+import Link from 'next/link';
+import { useEffect, useRef, useState, ReactNode, ComponentType } from 'react';
 
 // ─── Scroll-reveal ─────────────────────────────────────────────────────────────
 function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
@@ -215,8 +216,187 @@ function FeatureBlock({ name, description, cta, Graphic }: Feature) {
   );
 }
 
+// ─── iMessage-style bubble primitives ─────────────────────────────────────────
+function usePopIn() {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return {
+    opacity: shown ? 1 : 0,
+    transform: shown ? 'scale(1) translateY(0)' : 'scale(0.86) translateY(14px)',
+    transformOrigin: 'bottom right' as const,
+    transition: 'opacity 0.32s ease-out, transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)',
+  };
+}
+
+function TypingBubble({ compact = false }: { compact?: boolean }) {
+  const pop = usePopIn();
+  const dotSize = compact ? 9 : 9;
+  const dot = (delay: string) => ({
+    width: dotSize,
+    height: dotSize,
+    borderRadius: '50%',
+    background: '#9ca3af',
+    display: 'inline-block',
+    animation: 'typingBounce 1.2s ease-in-out infinite',
+    animationDelay: delay,
+  });
+  return (
+    <div
+      className="bg-white"
+      style={{
+        borderRadius: compact ? 22 : 22,
+        padding: compact ? '1rem 1.35rem' : '1.15rem 1.45rem',
+        boxShadow: compact ? '0 10px 28px rgba(0,0,0,0.22)' : '0 16px 50px rgba(0,0,0,0.32)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: compact ? 7 : 7,
+        ...pop,
+      }}
+    >
+      <span style={dot('0s')} />
+      <span style={dot('0.15s')} />
+      <span style={dot('0.30s')} />
+    </div>
+  );
+}
+
+function MessageBubble({
+  children,
+  withTail = false,
+  compact = false,
+}: {
+  children: ReactNode;
+  withTail?: boolean;
+  compact?: boolean;
+}) {
+  const pop = usePopIn();
+  return (
+    <div
+      className="relative bg-white"
+      style={{
+        borderRadius: compact ? 24 : 26,
+        padding: compact ? '1.15rem 1.45rem' : '2.4rem 3rem',
+        boxShadow: compact ? '0 14px 36px rgba(0,0,0,0.26)' : '0 20px 70px rgba(0,0,0,0.4)',
+        maxWidth: compact ? '92%' : undefined,
+        ...pop,
+      }}
+    >
+      <p style={{
+        fontSize: compact ? '1.4rem' : '2.6rem',
+        fontWeight: compact ? 500 : 300,
+        color: '#111827',
+        letterSpacing: compact ? '-0.02em' : '-0.03em',
+        lineHeight: compact ? 1.3 : 1.25,
+        whiteSpace: compact ? 'normal' : 'nowrap',
+        margin: 0,
+      }}>
+        {children}
+      </p>
+      {withTail && (
+        <div style={{
+          position: 'absolute',
+          bottom: compact ? -10 : -12,
+          right:  compact ? 20  : 28,
+          width: 0, height: 0,
+          borderLeft: compact ? '10px solid transparent' : '12px solid transparent',
+          borderTop:  compact ? '10px solid #ffffff'    : '12px solid #ffffff',
+        }} />
+      )}
+    </div>
+  );
+}
+
+function CtaBubble({ compact = false, withTail = false }: { compact?: boolean; withTail?: boolean }) {
+  const pop = usePopIn();
+  return (
+    <Link
+      href="/auth/signup"
+      className="relative group"
+      style={{
+        background: '#000000',
+        color: '#ffffff',
+        borderRadius: compact ? 22 : 26,
+        padding: compact ? '1.05rem 1.4rem' : '1.6rem 2.1rem',
+        boxShadow: compact ? '0 12px 32px rgba(0,0,0,0.32)' : '0 20px 60px rgba(0,0,0,0.5)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: compact ? 12 : 14,
+        textDecoration: 'none',
+        ...pop,
+      }}
+    >
+      <span style={{
+        fontSize: compact ? '1.4rem' : '1.7rem',
+        fontWeight: compact ? 500 : 400,
+        letterSpacing: '-0.02em',
+        lineHeight: 1.2,
+      }}>
+        Try Luna now
+      </span>
+      <svg
+        width={compact ? 18 : 20}
+        height={compact ? 18 : 20}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+        className="group-hover:translate-x-[3px]"
+      >
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+      {withTail && (
+        <div style={{
+          position: 'absolute',
+          bottom: compact ? -10 : -12,
+          right:  compact ? 20  : 28,
+          width: 0, height: 0,
+          borderLeft: compact ? '10px solid transparent' : '12px solid transparent',
+          borderTop:  compact ? '10px solid #000000'    : '12px solid #000000',
+        }} />
+      )}
+    </Link>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function LunaAgentPage() {
+  // ── Hero blur-in (matches landing page pattern) ──
+  const [heroReady, setHeroReady] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => setHeroReady(true)));
+  }, []);
+
+  // ── iMessage-style sequence for the right-side bubbles ──
+  // Stages: idle → topTyping → topMsg → botTyping → botMsg → ctaTyping → ctaMsg
+  type Stage = 'idle' | 'topTyping' | 'topMsg' | 'botTyping' | 'botMsg' | 'ctaTyping' | 'ctaMsg';
+  const [stage, setStage] = useState<Stage>('idle');
+
+  useEffect(() => {
+    if (!heroReady) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setStage('topTyping'), 600));
+    timers.push(setTimeout(() => setStage('topMsg'),    2100));
+    timers.push(setTimeout(() => setStage('botTyping'), 2900));
+    timers.push(setTimeout(() => setStage('botMsg'),    4700));
+    timers.push(setTimeout(() => setStage('ctaTyping'), 5600));
+    timers.push(setTimeout(() => setStage('ctaMsg'),    6900));
+    return () => timers.forEach(clearTimeout);
+  }, [heroReady]);
+
+  const showTopTyping = stage === 'topTyping';
+  const showTopMsg    = stage === 'topMsg' || stage === 'botTyping' || stage === 'botMsg' || stage === 'ctaTyping' || stage === 'ctaMsg';
+  const showBotTyping = stage === 'botTyping';
+  const showBotMsg    = stage === 'botMsg' || stage === 'ctaTyping' || stage === 'ctaMsg';
+  const showCtaTyping = stage === 'ctaTyping';
+  const showCtaMsg    = stage === 'ctaMsg';
+
   return (
     <>
       {/* ── HERO ── */}
@@ -229,37 +409,32 @@ export default function LunaAgentPage() {
           <div className="luna-crosshair" style={{ bottom: -8, left: -8 }} />
           <div className="luna-crosshair" style={{ bottom: -8, right: -8 }} />
 
-          {/* Bubbles column — bottom right, same level as CTA card */}
-          <div style={{ position: 'absolute', bottom: '8%', right: '5%', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+          {/* Bubbles column — iMessage-style sequence, bottom-anchored so new bubbles push older ones up */}
+          <div style={{ position: 'absolute', bottom: '8%', right: '5%', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
 
-            {/* Top bubble — same style, shorter text */}
-            <div className="relative bg-white" style={{ borderRadius: 26, padding: '2.4rem 3rem', boxShadow: '0 20px 70px rgba(0,0,0,0.4)' }}>
-              <p style={{ fontSize: '2.6rem', fontWeight: 300, color: '#111827', letterSpacing: '-0.03em', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
-                Zero missed messages.
-              </p>
-            </div>
+            {/* Slot 1 — typing dots, then "Zero missed messages." */}
+            {showTopTyping && <TypingBubble key="t-top" />}
+            {showTopMsg    && <MessageBubble key="m-top">Zero missed messages.</MessageBubble>}
 
-            {/* Main bubble — larger, tail bottom-right */}
-            <div className="relative bg-white" style={{ borderRadius: 26, padding: '2.4rem 3rem', boxShadow: '0 20px 70px rgba(0,0,0,0.4)' }}>
-              <p style={{ fontSize: '2.6rem', fontWeight: 300, color: '#111827', letterSpacing: '-0.03em', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+            {/* Slot 2 — typing dots, then the main message */}
+            {showBotTyping && <TypingBubble key="t-bot" />}
+            {showBotMsg    && (
+              <MessageBubble key="m-bot">
                 Orders. Exchanges &amp; Refunds.<br />
-                Replies. All handled.<span className="luna-cursor" style={{ color: '#9ca3af', marginLeft: 3 }}>|</span>
-              </p>
-              {/* Tail bottom-right — message coming from right */}
-              <div style={{
-                position: 'absolute', bottom: -12, right: 28,
-                width: 0, height: 0,
-                borderLeft: '12px solid transparent',
-                borderTop: '12px solid #ffffff',
-              }} />
-            </div>
+                Replies. All handled.
+              </MessageBubble>
+            )}
+
+            {/* Slot 3 — typing dots, then the "Try Luna now" CTA bubble (with tail) */}
+            {showCtaTyping && <TypingBubble key="t-cta" />}
+            {showCtaMsg    && <CtaBubble key="m-cta" withTail />}
 
           </div>
 
           {/* CTA card — bottom left, same level as bubble */}
           <div
-            className="bg-background3 border border-border"
-            style={{ position: 'absolute', bottom: '8%', left: '5%', width: 460, zIndex: 10, borderRadius: 20, padding: '1.8rem 2rem' }}
+            className={`bg-background3 border border-border ${heroReady ? 'hero-blur-in' : ''}`}
+            style={{ position: 'absolute', bottom: '8%', left: '5%', width: 460, zIndex: 10, borderRadius: 20, padding: '1.8rem 2rem', opacity: heroReady ? undefined : 0, animationDelay: '0ms' }}
           >
             <h1 style={{ fontSize: 'clamp(1.7rem,2.8vw,2.6rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '1rem' }}
               className="text-text-primary">
@@ -293,40 +468,30 @@ export default function LunaAgentPage() {
         </div>
 
         {/* ── MOBILE hero — hidden on desktop ── */}
-        <div className="hidden max-md:flex flex-col px-4 pt-20 pb-10">
+        <div className="hidden max-md:flex flex-col px-4 pt-16 pb-8 relative">
           <div className="luna-crosshair" style={{ top: -8, left: -8 }} />
           <div className="luna-crosshair" style={{ top: -8, right: -8 }} />
 
-          {/* CTA card only — no bubble on mobile */}
-          <div className="bg-background3 border border-border" style={{ borderRadius: 18, padding: '1.5rem 1.5rem' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '0.9rem' }}
-              className="text-text-primary">
-              Less inbox.<br />More business.
-            </h1>
-
-            {/* Video placeholder */}
-            <div
-              className="border border-border bg-background2 flex flex-col items-center justify-center gap-2 mb-4"
-              style={{ borderRadius: 10, aspectRatio: '16/9', width: '100%' }}
-            >
-              <div className="w-9 h-9 rounded-full border border-border-md flex items-center justify-center text-text-tertiary">
-                <svg className="w-4 h-4 ml-[2px]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              </div>
-              <span className="text-[0.6rem] text-text-tertiary uppercase tracking-[0.1em]">Demo coming soon</span>
-            </div>
-
-            <p className="text-text-secondary mb-5 leading-[1.6]" style={{ fontSize: '0.8rem' }}>
-              Luna handles your Instagram DMs — replies, orders, exchanges, and refunds — so you can focus on building.
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button className="bg-btn-bg text-btn-text rounded-[8px] font-medium hover:opacity-85 transition-opacity duration-200" style={{ padding: '9px 16px', fontSize: '0.78rem' }}>
-                Join Waitlist
-              </button>
-              <button className="border border-border-md text-text-secondary rounded-[8px] hover:border-border-hover hover:text-text-primary transition-all duration-200" style={{ padding: '9px 16px', fontSize: '0.78rem' }}>
-                Try Live Demo
-              </button>
-            </div>
+          {/* iMessage-style bubble stack — bottom-anchored within a sized container so new bubbles push older ones up */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            justifyContent: 'flex-end',
+            gap: 12,
+            minHeight: 320,
+          }}>
+            {showTopTyping && <TypingBubble key="t-top-m" compact />}
+            {showTopMsg    && <MessageBubble key="m-top-m" compact>Zero missed messages.</MessageBubble>}
+            {showBotTyping && <TypingBubble key="t-bot-m" compact />}
+            {showBotMsg    && (
+              <MessageBubble key="m-bot-m" compact>
+                Orders. Exchanges &amp; Refunds.<br />
+                Replies. All handled.
+              </MessageBubble>
+            )}
+            {showCtaTyping && <TypingBubble key="t-cta-m" compact />}
+            {showCtaMsg    && <CtaBubble key="m-cta-m" compact withTail />}
           </div>
         </div>
 
