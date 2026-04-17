@@ -45,7 +45,7 @@ export default function Navigation() {
   };
 
   const isLandingPage = pathname === '/';
-  const showNavLinks = isLandingPage || pathname.startsWith('/agents') || pathname.startsWith('/about') || pathname === '/faq';
+  const showNavLinks = isLandingPage || pathname.startsWith('/agents') || pathname.startsWith('/about') || pathname === '/faq' || pathname === '/privacy' || pathname === '/terms';
 
   const scrollTo = (id: string) => {
     const el = document.querySelector(id);

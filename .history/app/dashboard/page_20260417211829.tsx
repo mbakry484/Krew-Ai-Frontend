@@ -110,7 +110,7 @@ export default function MyKrewDashboard() {
           {/* Greeting */}
           <div className="mb-10">
             <h2 className="text-[1.5rem] font-light tracking-[-0.03em] mb-[0.2rem]">
-              {getGreeting()}, {userInfo.first_name}.
+              {getGreeting()}, {userInfo.first_name || 'there'}.
             </h2>
             <p className="text-[0.72rem] text-text-tertiary">Your agents are running. Here's what's happening.</p>
           </div>
