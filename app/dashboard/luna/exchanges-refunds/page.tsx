@@ -232,7 +232,7 @@ export default function ExchangesRefundsPage() {
                   {loading ? 'loading...' : 'manage customer exchange and refund requests'}
                 </p>
               </div>
-              <LunaTopBarActions />
+              <div className="max-md:hidden"><LunaTopBarActions /></div>
             </div>
 
             <div className="flex items-center gap-[5px]">

@@ -66,7 +66,7 @@ export default function IssuesPage() {
               </h2>
               <p className="text-[0.72rem] text-text-secondary">recurring and flagged customer problems</p>
             </div>
-            <LunaTopBarActions />
+            <div className="max-md:hidden"><LunaTopBarActions /></div>
           </div>
 
           <div className="px-8 py-6 pb-12 flex flex-col gap-6">

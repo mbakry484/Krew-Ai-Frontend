@@ -125,7 +125,7 @@ export default function KnowledgeBasePage() {
                 teach Luna how to respond to common questions
               </p>
             </div>
-            <LunaTopBarActions />
+            <div className="max-md:hidden"><LunaTopBarActions /></div>
           </div>
 
           {/* Content */}

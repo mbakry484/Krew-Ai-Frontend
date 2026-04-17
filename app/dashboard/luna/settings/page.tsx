@@ -292,7 +292,7 @@ function SettingsContent() {
               <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">settings</h2>
               <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
             </div>
-            <LunaTopBarActions />
+            <div className="max-md:hidden"><LunaTopBarActions /></div>
           </div>
 
           <div className="px-8 py-6 pb-12 flex flex-col gap-6">

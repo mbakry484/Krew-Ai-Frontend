@@ -128,7 +128,7 @@ export default function LunaOverview() {
                 )}
               </div>
 
-              <LunaTopBarActions />
+              <div className="max-md:hidden"><LunaTopBarActions /></div>
             </div>
           </div>
 

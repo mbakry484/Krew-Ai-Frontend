@@ -58,7 +58,7 @@ export default function ReportsPage() {
               </h2>
               <p className="text-[0.72rem] text-text-secondary">performance data and exports</p>
             </div>
-            <LunaTopBarActions />
+            <div className="max-md:hidden"><LunaTopBarActions /></div>
           </div>
 
           <div className="px-8 py-6 pb-12 flex flex-col gap-6">

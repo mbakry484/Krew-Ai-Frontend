@@ -393,8 +393,8 @@ function ConversationsContent() {
 
         <main className="flex-1 flex flex-col overflow-hidden bg-background2 max-md:pt-12">
 
-          {/* Top bar */}
-          <div className="flex items-start justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background border-b border-border shrink-0 gap-3">
+          {/* Top bar — hidden on mobile when viewing a chat */}
+          <div className={`flex items-start justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background border-b border-border shrink-0 gap-3 ${selectedId ? 'max-md:hidden' : ''}`}>
             <div className="pb-0 flex flex-col">
               <div className="pb-3">
                 <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
@@ -432,7 +432,7 @@ function ConversationsContent() {
                 ))}
               </div>
             </div>
-            <div className="pt-4 pb-3">
+            <div className="pt-4 pb-3 max-md:hidden">
               <LunaTopBarActions />
             </div>
           </div>
@@ -440,8 +440,8 @@ function ConversationsContent() {
           {/* Two-panel area */}
           <div className="flex flex-1 overflow-hidden">
 
-            {/* Left: Chat list */}
-            <div className="w-[260px] shrink-0 border-r border-border bg-background overflow-y-auto">
+            {/* Left: Chat list — full-width on mobile, hidden when a chat is open */}
+            <div className={`w-[260px] max-md:w-full shrink-0 border-r border-border bg-background overflow-y-auto ${selectedId ? 'max-md:hidden' : ''}`}>
               {loading ? (
                 <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
                   loading...
@@ -503,20 +503,30 @@ function ConversationsContent() {
               )}
             </div>
 
-            {/* Right: Chat view */}
+            {/* Right: Chat view — hidden on mobile when no chat selected */}
             {selected ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Chat header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-background shrink-0">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between px-5 max-md:px-3 py-3 border-b border-border bg-background shrink-0">
+                  <div className="flex items-center gap-3 max-md:gap-2">
+                    {/* Back button — mobile only */}
+                    <button
+                      onClick={() => setSelectedId(null)}
+                      className="hidden max-md:flex items-center justify-center w-7 h-7 rounded-[6px] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 shrink-0"
+                      aria-label="Back to conversations"
+                    >
+                      <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M15 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
                     <div className="w-[30px] h-[30px] rounded-full bg-background3 border border-border flex items-center justify-center text-[0.6rem] font-medium text-text-secondary">
                       {selected.customer_name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[0.78rem] text-text-primary font-[450]">{selected.customer_name}</span>
-                        <PlatformBadge platform={selected.platform} />
-                        <div className={`text-[0.6rem] flex items-center gap-[4px] px-[6px] py-[2px] rounded-[4px] border ${
+                        <span className="max-md:hidden"><PlatformBadge platform={selected.platform} /></span>
+                        <div className={`max-md:hidden text-[0.6rem] flex items-center gap-[4px] px-[6px] py-[2px] rounded-[4px] border ${
                           selected.status === 'escalated'
                             ? 'text-[#e07070] bg-[#e07070]/10 border-[#e07070]/20'
                             : selected.status === 'pending'
@@ -534,8 +544,8 @@ function ConversationsContent() {
                     </div>
                   </div>
 
-                  {/* Header actions */}
-                  <div className="flex items-center gap-2">
+                  {/* Header actions — compact on mobile */}
+                  <div className="flex items-center gap-2 max-md:gap-1">
                     <div className="flex items-center gap-[6px]">
                       <span className="text-[0.65rem] text-text-tertiary">Luna</span>
                       <LunaToggle
@@ -652,7 +662,7 @@ function ConversationsContent() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center bg-background2">
+              <div className="flex-1 flex items-center justify-center bg-background2 max-md:hidden">
                 <div className="text-center">
                   <svg className="w-[28px] h-[28px] text-text-tertiary mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                     <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>

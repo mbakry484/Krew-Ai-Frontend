@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -172,7 +173,7 @@ export default function LunaSidebar() {
           </svg>
         </button>
         <span className="flex-1 text-center text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">Luna</span>
-        <div className="w-8" />
+        <LunaTopBarActions />
       </div>
 
       {/* Mobile sidebar overlay */}
