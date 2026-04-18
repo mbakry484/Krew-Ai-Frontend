@@ -45,7 +45,7 @@ export default function Navigation() {
   };
 
   const isLandingPage = pathname === '/';
-  const showNavLinks = isLandingPage || pathname.startsWith('/agents') || pathname.startsWith('/about') || pathname === '/faq' || pathname === '/privacy' || pathname === '/terms';
+  const showNavLinks = isLandingPage || pathname.startsWith('/agents') || pathname.startsWith('/about') || pathname === '/faq' || pathname === '/pricing' || pathname === '/privacy' || pathname === '/terms';
 
   const scrollTo = (id: string) => {
     const el = document.querySelector(id);
@@ -226,6 +226,14 @@ export default function Navigation() {
               </div>
             </div>
 
+            {/* ── Pricing ── */}
+            <Link
+              href="/pricing"
+              className="text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150"
+            >
+              Pricing
+            </Link>
+
             {/* ── FAQ ── */}
             <Link
               href="/faq"
@@ -393,6 +401,14 @@ export default function Navigation() {
               How It Works
             </button>
           </div>
+
+          <Link
+            href="/pricing"
+            onClick={() => setMobileOpen(false)}
+            className="block px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+          >
+            Pricing
+          </Link>
 
           <Link
             href="/faq"

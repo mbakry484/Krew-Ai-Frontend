@@ -734,39 +734,45 @@ export default function LandingPage() {
 
         <div className="h-[1px] bg-border" />
 
-        {/* Vision Section */}
-        <div className="py-24 px-8 max-w-[960px] mx-auto" id="vision">
-          <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">The Krew Ecosystem</div>
+        {/* Pricing teaser — links to /pricing for the full experience */}
+        <div className="py-24 px-8 max-w-[960px] mx-auto" id="pricing">
+          <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Pricing</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] max-w-[540px] mb-[0.9rem]">
-            One company.<br />A growing family of agents.
+            Four tiers.<br />Every feature in each.
           </h2>
           <p className="text-[0.8rem] text-text-secondary leading-[1.8] max-w-[460px] font-light mb-10">
-            Luna is the first product under Krew. A full pipeline of named, specialized agents is being built — each one covering a different layer of your brand operations.
+            Usage-based pricing. Only the quotas change as you scale — conversations,
+            products synced, saved answers, active issues.
           </p>
           <div className="border border-border rounded-[10px] overflow-hidden flex flex-col gap-[1px] bg-border">
-            <div className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-primary hover:bg-background3 transition-colors duration-150">
-              <div className="flex items-center gap-[0.7rem]">
-                <span>Luna</span>
-                <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-secondary border border-border-md rounded px-[6px] py-[2px]">Live</span>
-              </div>
-              <div className="flex items-center gap-[0.7rem]">
-                <span className="text-[0.68rem] text-text-tertiary">Customer Operations</span>
-                <div className="w-[5px] h-[5px] rounded-full bg-text-secondary shadow-[0_0_5px_var(--text-secondary)] animate-pulse" />
-              </div>
-            </div>
             {[
-              { name: 'Ivy', role: 'Financial Visibility' },
-              { name: '—', role: 'Performance Reporting' },
-              { name: '—', role: 'Marketing Intelligence' },
+              { name: 'Bronze',   tag: 'Solo operators',   price: '$29',    period: '/ mo' },
+              { name: 'Silver',   tag: 'Growing stores',   price: '$89',    period: '/ mo' },
+              { name: 'Gold',     tag: 'Scale teams',      price: '$249',   period: '/ mo' },
+              { name: 'Obsidian', tag: 'Enterprise',       price: 'Custom', period: '' },
             ].map((item) => (
-              <div key={item.name + item.role} className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-secondary hover:bg-background3 transition-colors duration-150">
+              <div key={item.name} className="bg-background p-[1.1rem] px-6 flex items-center justify-between text-[0.75rem] text-text-primary hover:bg-background3 transition-colors duration-150">
                 <div className="flex items-center gap-[0.7rem]">
                   <span>{item.name}</span>
-                  <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary border border-border rounded px-[6px] py-[2px]">Soon</span>
+                  <span className="text-[0.58rem] uppercase tracking-[0.06em] text-text-tertiary">{item.tag}</span>
                 </div>
-                <span className="text-[0.68rem] text-text-tertiary">{item.role}</span>
+                <span className="text-[0.75rem] text-text-primary tabular-nums">
+                  {item.price}
+                  {item.period && <span className="text-[0.62rem] text-text-tertiary ml-[3px]">{item.period}</span>}
+                </span>
               </div>
             ))}
+          </div>
+          <div className="mt-8">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
+            >
+              See full pricing
+              <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </Link>
           </div>
         </div>
 
