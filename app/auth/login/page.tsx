@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/api';
 
@@ -28,6 +28,8 @@ const AURA = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -44,7 +46,7 @@ export default function LoginPage() {
       } else {
         localStorage.setItem('user_info', JSON.stringify({ email: formData.email, first_name: 'User', last_name: '' }));
       }
-      setTimeout(() => router.push('/dashboard'), 500);
+      setTimeout(() => router.push(redirectTo), 500);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
