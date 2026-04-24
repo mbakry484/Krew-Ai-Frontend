@@ -462,16 +462,16 @@ function SettingsContent() {
                     <circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
                   </svg>
                   <span className="text-[0.68rem] text-text-tertiary leading-[1.6]">
-                    Get your store URL from{' '}
+                    Go to{' '}
                     <a
-                      href="https://admin.shopify.com/store/settings/general"
+                      href="https://admin.shopify.com"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
                     >
-                      Shopify Admin → Settings → General
+                      admin.shopify.com
                     </a>
-                    {' '}— look for the <span className="text-text-primary">.myshopify.com</span> URL and paste it below.
+                    , select your store, then copy the <span className="text-text-primary">.myshopify.com</span> URL from your browser's address bar and paste it below.
                   </span>
                 </div>
                 <div className="mb-3">
