@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
 // ─── Intersection-observer hook ───────────────────────────────────────────────
 function useInView(threshold = 0.12) {
@@ -40,162 +40,126 @@ function Divider() {
   return <div className="h-[0.5px] bg-border" />;
 }
 
-// ─── Brand positioning spectrum (Fix 1 — clean draw animation, no glow) ──────
-const AXES = [
-  { left: 'MANUAL',          right: 'AUTOMATED',   krewX: 0.80, peers: [0.22, 0.44, 0.50] },
-  { left: 'REACTIVE',        right: 'PROACTIVE',   krewX: 0.73, peers: [0.30, 0.55] },
-  { left: 'SLOW',            right: 'INSTANT',     krewX: 0.86, peers: [0.18, 0.40, 0.48] },
-  { left: 'CLOSED',          right: 'TRANSPARENT', krewX: 0.76, peers: [0.35, 0.58] },
-  { left: 'HUMAN-DEPENDENT', right: 'AI-POWERED',  krewX: 0.82, peers: [0.26, 0.46, 0.60] },
+// ─── Hero headline — words stagger in on load ─────────────────────────────────
+const HEADLINE_WORDS: Array<{ text: string; bold?: boolean }> = [
+  { text: 'Built' },
+  { text: 'for' },
+  { text: 'founders', bold: true },
+  { text: "who've" },
+  { text: 'been' },
+  { text: 'running' },
+  { text: 'their' },
+  { text: 'brands' },
+  { text: 'on' },
+  { text: 'group' },
+  { text: 'chats,' },
+  { text: 'late' },
+  { text: 'nights,' },
+  { text: 'and' },
+  { text: 'sheer' },
+  { text: 'will.' },
 ];
 
-function SpectrumGraphic() {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const connectRef = useRef<SVGPathElement>(null);
+function AnimatedHeadline() {
   const [triggered, setTriggered] = useState(false);
-  const [pathLen, setPathLen] = useState(600); // fallback; measured on mount
-
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setTriggered(true); obs.disconnect(); } },
-      { threshold: 0.1 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    setTriggered(true);
   }, []);
-
-  useEffect(() => {
-    if (connectRef.current) setPathLen(connectRef.current.getTotalLength());
-  }, []);
-
-  const W = 400, H = 300;
-  const PAD_L = 130, PAD_R = 24, PAD_T = 28, PAD_B = 28;
-  const trackW = W - PAD_L - PAD_R;
-  const rowH = (H - PAD_T - PAD_B) / (AXES.length - 1);
-
-  const krewPts = AXES.map((ax, i) => ({
-    x: PAD_L + ax.krewX * trackW,
-    y: PAD_T + i * rowH,
-  }));
-
-  // Simple polyline path (no bezier — clean sharp line)
-  const connectPath = krewPts
-    .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`)
-    .join(' ');
-
-  // Timing (ms)
-  const LINE_DUR   = 500;   // each line draws over 500ms
-  const LINE_STAG  = 200;   // stagger between lines
-  const DOT_DELAY  = (i: number) => i * LINE_STAG + LINE_DUR + 50;  // after its line finishes
-  const DOT_DUR    = 200;
-  const CONN_START = (AXES.length - 1) * LINE_STAG + LINE_DUR + DOT_DUR + 100; // after last dot
 
   return (
-    <div ref={wrapRef} style={{ opacity: triggered ? 1 : 0, transition: 'opacity 0.4s ease-out 80ms' }}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        width="100%"
-        style={{ maxWidth: '480px', display: 'block', overflow: 'visible' }}
-        aria-hidden
-      >
-        {AXES.map((ax, i) => {
-          const y = PAD_T + i * rowH;
-          const dotX = PAD_L + ax.krewX * trackW;
-          const lineStart = i * LINE_STAG;
-          const dotStart = DOT_DELAY(i);
+    <h1 className="text-[clamp(2.6rem,4.8vw,5rem)] leading-[1.04] tracking-[-0.04em] text-text-primary mb-9">
+      {HEADLINE_WORDS.map((w, i) => (
+        <Fragment key={i}>
+          <span
+            style={{
+              display: 'inline-block',
+              fontWeight: w.bold ? 700 : 300,
+              opacity: triggered ? 1 : 0,
+              transform: triggered ? 'translateY(0)' : 'translateY(10px)',
+              transition: `opacity 250ms ease-out ${i * 70}ms, transform 250ms ease-out ${i * 70}ms`,
+              willChange: 'opacity, transform',
+            }}
+          >
+            {w.text}
+          </span>
+          {i < HEADLINE_WORDS.length - 1 && ' '}
+        </Fragment>
+      ))}
+    </h1>
+  );
+}
 
-          return (
-            <g key={ax.left}>
-              {/* Axis line — draws left to right */}
-              <line
-                x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
-                stroke="var(--border-md, rgba(120,120,120,0.22))"
-                strokeWidth="1"
-                strokeDasharray={trackW}
-                strokeDashoffset={triggered ? 0 : trackW}
-                style={{ transition: `stroke-dashoffset ${LINE_DUR}ms ease-out ${lineStart}ms` }}
-              />
+// ─── "Krew is for" cycling text ───────────────────────────────────────────────
+const KREW_IS_FOR_PHRASES = [
+  'founders who answer DMs at 1am',
+  "brands that run on one person's will",
+  'operators who refuse to stay reactive',
+  'stores that deserve a real team',
+  'builders who are done doing it all manually',
+];
 
-              {/* Labels — fade in with the line */}
-              <text
-                x={PAD_L - 10} y={y + 4} textAnchor="end"
-                fontSize="8.5" letterSpacing="0.08em"
-                fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif"
-                fill="var(--text-tertiary)"
-                style={{ opacity: triggered ? 1 : 0, transition: `opacity 0.3s ease-out ${lineStart + 200}ms` }}
-              >
-                {ax.left}
-              </text>
-              <text
-                x={W - PAD_R + 10} y={y + 4} textAnchor="start"
-                fontSize="8.5" letterSpacing="0.08em"
-                fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif"
-                fill="var(--text-tertiary)"
-                style={{ opacity: triggered ? 1 : 0, transition: `opacity 0.3s ease-out ${lineStart + 200}ms` }}
-              >
-                {ax.right}
-              </text>
+function KrewIsFor() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [exitingIndex, setExitingIndex] = useState<number | null>(null);
 
-              {/* Industry-average dots — appear with Krew dot, 30% opacity */}
-              {ax.peers.map((px, pi) => (
-                <circle
-                  key={pi}
-                  cx={PAD_L + px * trackW} cy={y} r="2.5"
-                  fill="var(--text-primary)"
+  useEffect(() => {
+    const advanceTimer = window.setTimeout(() => {
+      setExitingIndex(currentIndex);
+      setCurrentIndex((i) => (i + 1) % KREW_IS_FOR_PHRASES.length);
+    }, 2200);
+    return () => window.clearTimeout(advanceTimer);
+  }, [currentIndex]);
+
+  return (
+    <section className="bg-background py-[120px] px-8">
+      <div className="max-w-[1100px] mx-auto">
+        <Reveal>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
+            Krew is for —
+          </p>
+        </Reveal>
+        <Reveal delay={80}>
+          <div style={{ display: 'grid', width: '100%' }}>
+            {KREW_IS_FOR_PHRASES.map((phrase, i) => {
+              const isActive = i === currentIndex && exitingIndex !== i;
+              const isExiting = i === exitingIndex;
+              let opacity = 0;
+              let transform = 'translateY(16px)';
+              let transition = 'none';
+              if (isActive) {
+                opacity = 1;
+                transform = 'translateY(0)';
+                transition = 'opacity 250ms ease-out, transform 250ms ease-out';
+              } else if (isExiting) {
+                opacity = 0;
+                transform = 'translateY(-16px)';
+                transition = 'opacity 200ms ease-out, transform 200ms ease-out';
+              }
+              return (
+                <span
+                  key={i}
                   style={{
-                    opacity: triggered ? 0.3 : 0,
-                    transition: `opacity 0.2s ease-out ${dotStart + pi * 25}ms`,
+                    gridColumn: 1,
+                    gridRow: 1,
+                    fontSize: 'clamp(2.6rem, 4.8vw, 5rem)',
+                    lineHeight: 1.04,
+                    letterSpacing: '-0.04em',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    opacity,
+                    transform,
+                    transition,
+                    willChange: 'opacity, transform',
                   }}
-                />
-              ))}
-
-              {/* Krew dot — scale in after its line finishes */}
-              <g transform={`translate(${dotX.toFixed(1)}, ${y.toFixed(1)})`}>
-                <circle
-                  cx={0} cy={0} r="6.5"
-                  fill="var(--text-primary)"
-                  style={{
-                    transform: triggered ? 'scale(1)' : 'scale(0)',
-                    transformOrigin: '0 0',
-                    transition: `transform ${DOT_DUR}ms ease-out ${dotStart}ms`,
-                  }}
-                />
-              </g>
-            </g>
-          );
-        })}
-
-        {/* Connecting polyline — draws after all dots */}
-        <path
-          ref={connectRef}
-          d={connectPath}
-          fill="none"
-          stroke="var(--text-secondary)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={pathLen}
-          strokeDashoffset={triggered ? 0 : pathLen}
-          style={{ transition: `stroke-dashoffset 0.8s ease-out ${CONN_START}ms` }}
-        />
-
-        {/* Legend */}
-        <g style={{ opacity: triggered ? 1 : 0, transition: `opacity 0.4s ease-out ${CONN_START + 600}ms` }}>
-          <g transform={`translate(${PAD_L}, ${H - 2})`}>
-            <circle cx={0} cy={0} r="4" fill="var(--text-primary)" />
-          </g>
-          <text x={PAD_L + 10} y={H + 1} fontSize="8" letterSpacing="0.06em"
-            fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif"
-            fill="var(--text-tertiary)">KREW</text>
-          <circle cx={PAD_L + 60} cy={H - 2} r="2.5" fill="var(--text-primary)" opacity="0.3" />
-          <text x={PAD_L + 70} y={H + 1} fontSize="8" letterSpacing="0.06em"
-            fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif"
-            fill="var(--text-tertiary)">INDUSTRY AVG</text>
-        </g>
-      </svg>
-    </div>
+                >
+                  {phrase}
+                </span>
+              );
+            })}
+          </div>
+        </Reveal>
+      </div>
+    </section>
   );
 }
 
@@ -307,7 +271,7 @@ function WoveArc({ active, visible }: { active: number; visible: boolean }) {
               fontVariantNumeric: 'tabular-nums',
               flexShrink: 0,
               color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
               transition: 'font-size 0.55s cubic-bezier(0.4,0,0.2,1), color 0.4s ease',
             }}>
               {item.num}
@@ -327,7 +291,7 @@ function WoveArc({ active, visible }: { active: number; visible: boolean }) {
                 lineHeight: 1.3,
                 letterSpacing: '-0.02em',
                 marginBottom: 8,
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
               }}>
                 {item.heading}
               </p>
@@ -337,7 +301,7 @@ function WoveArc({ active, visible }: { active: number; visible: boolean }) {
                 fontWeight: 300,
                 color: 'var(--text-secondary)',
                 lineHeight: 1.7,
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
               }}>
                 {item.sub}
               </p>
@@ -399,31 +363,19 @@ export default function VisionPage() {
     <div className="min-h-screen bg-background">
 
       {/* ── HERO ── */}
-      <section className="pt-36 pb-28 px-8 max-w-[1100px] mx-auto">
-        <div className="grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <Reveal>
-              <p className="text-[0.6rem] uppercase tracking-[0.18em] text-text-tertiary mb-10">
-                Krew — Our Vision
-              </p>
-            </Reveal>
-            <Reveal delay={70}>
-              <h1 className="text-[clamp(2.6rem,4.8vw,5rem)] leading-[1.04] tracking-[-0.04em] text-text-primary mb-9">
-                <span className="font-light block">Your brand runs.</span>
-                <span className="font-bold block">We handle the rest.</span>
-              </h1>
-            </Reveal>
-            <Reveal delay={150}>
-              <p className="text-[0.9rem] text-text-secondary font-light leading-[1.9] max-w-[400px]">
-                Krew builds AI agents that take over the operational work behind running a brand —
-                so founders can focus on what actually matters.
-              </p>
-            </Reveal>
-          </div>
-          <div className="hidden md:flex items-center justify-end pr-4">
-            <SpectrumGraphic />
-          </div>
-        </div>
+      <section className="pt-36 pb-28 px-8 max-w-[1100px] mx-auto text-center">
+        <Reveal>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
+            Krew — Our Vision
+          </p>
+        </Reveal>
+        <AnimatedHeadline />
+        <Reveal delay={150}>
+          <p className="text-[0.9rem] text-text-secondary font-light leading-[1.9] max-w-[400px] mx-auto">
+            Krew builds AI agents that take over the operational work behind running a brand —
+            so founders can focus on what actually matters.
+          </p>
+        </Reveal>
       </section>
 
       <Divider />
@@ -433,7 +385,7 @@ export default function VisionPage() {
         {/* Section label — scrolls normally above the sticky panel */}
         <div className="px-8 max-w-[1100px] mx-auto pt-28 pb-10">
           <Reveal>
-            <p className="text-[0.6rem] uppercase tracking-[0.14em] text-text-tertiary">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
               The problem we solve
             </p>
           </Reveal>
@@ -444,15 +396,13 @@ export default function VisionPage() {
           {/* Sticky panel — 100vh, centered content */}
           <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
             <div
-              className="flex gap-16 items-center h-full px-8 max-w-[1100px] mx-auto max-md:flex-col max-md:justify-center"
+              className="flex items-center h-full px-8 max-w-[1100px] mx-auto max-md:flex-col max-md:justify-center"
             >
               {/* Left — sticky headline (naturally stays put since it's inside the sticky panel) */}
-              <div className="md:w-[40%] shrink-0">
-                <div className="pl-7" style={{ borderLeft: '2px solid var(--text-primary)' }}>
-                  <h2 className="text-[clamp(1.4rem,2.4vw,2.2rem)] font-bold tracking-[-0.03em] leading-[1.2] text-text-primary">
-                    For too long, brand owners have been buried in the work of running their brand.
-                  </h2>
-                </div>
+              <div className="md:w-[45%] shrink-0">
+                <h2 className="text-[clamp(1.4rem,2.4vw,2.2rem)] font-bold tracking-[-0.03em] leading-[1.2] text-text-primary">
+                  For too long, brand owners have been buried in the work of running their brand.
+                </h2>
               </div>
 
               {/* Right — arc navigator, controlled by scroll */}
@@ -466,10 +416,15 @@ export default function VisionPage() {
 
       <Divider />
 
+      {/* ── WHO IS KREW FOR — cycling text ── */}
+      <KrewIsFor />
+
+      <Divider />
+
       {/* ── SECTION 2 — EDITORIAL QUOTE ── */}
       <section className="py-28 px-8 max-w-[1100px] mx-auto">
         <Reveal>
-          <p className="text-[0.6rem] uppercase tracking-[0.14em] text-text-tertiary mb-12">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
             What we believe
           </p>
         </Reveal>
@@ -486,14 +441,14 @@ export default function VisionPage() {
       {/* ── SECTION 3 — MISSION + VISION ── */}
       <section className="py-28 px-8 max-w-[1100px] mx-auto">
         <Reveal>
-          <p className="text-[0.6rem] uppercase tracking-[0.14em] text-text-tertiary mb-16">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
             Mission &amp; Vision
           </p>
         </Reveal>
         <div className="grid md:grid-cols-2 gap-x-20 gap-y-16 items-start">
           <Reveal>
             <div>
-              <p className="text-[0.58rem] uppercase tracking-[0.18em] text-text-tertiary mb-5">Mission</p>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Mission</p>
               <p className="text-[0.87rem] text-text-secondary font-light leading-[1.95]">
                 Krew's mission is to give every MENA brand owner an AI-powered operations team —
                 starting with customer support, and expanding across every repetitive task that slows growth.
@@ -502,7 +457,7 @@ export default function VisionPage() {
           </Reveal>
           <Reveal delay={150}>
             <div>
-              <p className="text-[0.58rem] uppercase tracking-[0.18em] text-text-tertiary mb-5">Vision</p>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Vision</p>
               <p className="text-[0.87rem] text-text-secondary font-light leading-[1.95]">
                 We envision a future where founders spend zero time on operational busywork.
                 Where Luna handles your DMs, Ivy manages your finances, and your Krew runs in
@@ -518,7 +473,7 @@ export default function VisionPage() {
       {/* ── SECTION 4 — KREW AGENTS ROSTER ── */}
       <section className="py-28 px-8 max-w-[1100px] mx-auto">
         <Reveal>
-          <p className="text-[0.6rem] uppercase tracking-[0.14em] text-text-tertiary mb-6">The Krew</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">The Krew</p>
         </Reveal>
         <Reveal delay={60}>
           <h2 className="text-[clamp(1.5rem,3vw,2.8rem)] font-light tracking-[-0.03em] leading-[1.2] text-text-primary mb-3 max-w-[580px]">
@@ -562,7 +517,7 @@ export default function VisionPage() {
       <Divider />
 
       {/* ── FOOTER ── */}
-      <footer className="py-7 px-8 max-w-[960px] mx-auto flex items-center justify-between max-md:flex-col max-md:gap-2 max-md:text-center">
+      <footer className="py-7 px-8 max-w-[1100px] mx-auto flex items-center justify-between max-md:flex-col max-md:gap-2 max-md:text-center">
         <div className="text-[0.75rem] font-medium tracking-[0.07em] uppercase text-text-tertiary">Krew</div>
         <div className="text-[0.68rem] text-text-tertiary">Luna · Customer Operations Agent</div>
         <div className="text-[0.68rem] text-text-tertiary">© 2025 Krew. All rights reserved.</div>
