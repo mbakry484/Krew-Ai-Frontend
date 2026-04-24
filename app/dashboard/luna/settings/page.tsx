@@ -454,9 +454,26 @@ function SettingsContent() {
                   </div>
                   <div className="text-[1rem] font-[400] tracking-[-0.02em]">Connect Shopify</div>
                 </div>
-                <p className="text-[0.7rem] text-text-tertiary mb-5 leading-[1.6]">
-                  Enter your Shopify store URL. Luna will sync your products, inventory, and orders automatically.
+                <p className="text-[0.7rem] text-text-tertiary mb-4 leading-[1.6]">
+                  Paste your Shopify store URL below. Luna will install and sync your products automatically.
                 </p>
+                <div className="mb-4 bg-input-bg border border-border rounded-[10px] px-3 py-3 flex items-start gap-2">
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none" className="mt-[2px] shrink-0 text-text-tertiary" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                  <span className="text-[0.68rem] text-text-tertiary leading-[1.6]">
+                    Get your store URL from{' '}
+                    <a
+                      href="https://admin.shopify.com/store/settings/general"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+                    >
+                      Shopify Admin → Settings → General
+                    </a>
+                    {' '}— look for the <span className="text-text-primary">.myshopify.com</span> URL and paste it below.
+                  </span>
+                </div>
                 <div className="mb-3">
                   <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary mb-[0.3rem]">Store URL</div>
                   <input
@@ -474,9 +491,9 @@ function SettingsContent() {
                   disabled={formLoading}
                   className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50 mt-1"
                 >
-                  {formLoading ? 'Connecting…' : 'Connect Shopify'}
+                  {formLoading ? 'Redirecting to Shopify…' : 'Connect Shopify'}
                 </button>
-                <p className="text-[0.65rem] text-text-tertiary text-center mt-3">Need help? View setup guide →</p>
+                <p className="text-[0.65rem] text-text-tertiary text-center mt-3">You'll be redirected to Shopify to approve the connection, then brought back automatically.</p>
               </>
             )}
 
