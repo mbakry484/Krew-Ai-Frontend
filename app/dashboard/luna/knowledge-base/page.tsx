@@ -89,6 +89,7 @@ export default function KnowledgeBasePage() {
   const [modalImage, setModalImage] = useState<string | null>(null);
 
   const [allProducts, setAllProducts] = useState<string[]>([]);
+  const [productSearch, setProductSearch] = useState<{ [guideId: string]: string }>({});
 
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -498,50 +499,68 @@ export default function KnowledgeBasePage() {
                               key={sg.id}
                               className="border-b border-border transition-colors duration-150 group/row"
                             >
-                              {/* Left: product bubble picker for this row */}
-                              <td className="px-4 py-3 border-r border-border align-top">
-                                {/* Selected products as filled pills */}
-                                <div className="flex flex-wrap gap-[5px] mb-2">
-                                  {sg.productNames.map((name) => (
-                                    <button
-                                      key={name}
-                                      onClick={() => handleToggleProduct(sg.id, name)}
-                                      title="Click to remove"
-                                      className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.67rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
-                                    >
-                                      {name}
-                                      <svg className="w-[8px] h-[8px] opacity-50 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                      </svg>
-                                    </button>
-                                  ))}
+                              {/* Left: split — selected pills top, searchable list bottom */}
+                              <td className="border-r border-border align-top">
+                                {/* Top: selected products */}
+                                <div className="px-3 pt-3 pb-2 min-h-[40px] flex flex-wrap gap-[5px]">
+                                  {sg.productNames.length === 0 ? (
+                                    <span className="text-[0.65rem] text-text-tertiary italic">select products from below</span>
+                                  ) : (
+                                    sg.productNames.map((name) => (
+                                      <button
+                                        key={name}
+                                        onClick={() => handleToggleProduct(sg.id, name)}
+                                        title="Click to remove"
+                                        className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.67rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
+                                      >
+                                        {name}
+                                        <svg className="w-[8px] h-[8px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                          <line x1="18" y1="6" x2="6" y2="18" />
+                                          <line x1="6" y1="6" x2="18" y2="18" />
+                                        </svg>
+                                      </button>
+                                    ))
+                                  )}
                                 </div>
 
-                                {/* Unselected products as ghost pills to add */}
-                                {pickableForRow.filter((n) => !sg.productNames.includes(n)).length > 0 && (
-                                  <div className="flex flex-wrap gap-[5px]">
+                                {/* Divider */}
+                                <div className="border-t border-border" />
+
+                                {/* Bottom: search + scrollable product list */}
+                                <div className="px-3 pt-2 pb-2">
+                                  <input
+                                    type="text"
+                                    value={productSearch[sg.id] || ''}
+                                    onChange={(e) =>
+                                      setProductSearch((prev) => ({ ...prev, [sg.id]: e.target.value }))
+                                    }
+                                    placeholder="Search products…"
+                                    className="w-full bg-background2 border border-border rounded-[6px] px-3 py-[5px] text-[0.68rem] text-text-secondary placeholder:text-text-tertiary outline-none focus:border-border-md transition-colors duration-150 mb-2"
+                                  />
+                                  <div className="flex flex-wrap gap-[5px] max-h-[90px] overflow-y-auto">
                                     {pickableForRow
                                       .filter((n) => !sg.productNames.includes(n))
+                                      .filter((n) =>
+                                        n.toLowerCase().includes((productSearch[sg.id] || '').toLowerCase())
+                                      )
                                       .map((name) => (
                                         <button
                                           key={name}
                                           onClick={() => handleToggleProduct(sg.id, name)}
-                                          className="inline-flex items-center gap-[4px] px-[9px] py-[3px] rounded-full border border-dashed border-border text-[0.67rem] text-text-tertiary hover:text-text-secondary hover:border-border-md transition-all duration-150"
+                                          className="inline-flex items-center gap-[4px] px-[9px] py-[3px] rounded-full border border-dashed border-border text-[0.67rem] text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150"
                                         >
-                                          <svg className="w-[8px] h-[8px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                          <svg className="w-[8px] h-[8px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <line x1="12" y1="5" x2="12" y2="19" />
                                             <line x1="5" y1="12" x2="19" y2="12" />
                                           </svg>
                                           {name}
                                         </button>
                                       ))}
+                                    {pickableForRow.filter((n) => !sg.productNames.includes(n)).length === 0 && (
+                                      <span className="text-[0.63rem] text-text-tertiary italic">all products selected</span>
+                                    )}
                                   </div>
-                                )}
-
-                                {pickableForRow.length === 0 && sg.productNames.length === 0 && (
-                                  <p className="text-[0.65rem] text-text-tertiary italic">All products assigned to other guides.</p>
-                                )}
+                                </div>
                               </td>
 
                               {/* Right: chart image or text */}
