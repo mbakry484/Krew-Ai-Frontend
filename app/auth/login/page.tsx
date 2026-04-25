@@ -224,7 +224,10 @@ function LoginForm() {
 
             <p className="text-center text-[0.7rem] text-text-tertiary mt-4">
               Don't have an account?{' '}
-              <Link href="/auth/signup" className="text-text-secondary hover:text-text-primary font-medium">
+              <Link
+                href={redirectTo !== '/dashboard' ? `/auth/signup?redirect=${encodeURIComponent(redirectTo)}` : '/auth/signup'}
+                className="text-text-secondary hover:text-text-primary font-medium"
+              >
                 Sign up
               </Link>
             </p>

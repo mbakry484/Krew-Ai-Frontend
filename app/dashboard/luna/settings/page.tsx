@@ -110,6 +110,17 @@ function SettingsContent() {
     }
   }, [searchParams, router]);
 
+  // Auto-connect when arriving from Shopify app with ?shop= param
+  useEffect(() => {
+    const shopParam = searchParams.get('shop');
+    if (!shopParam || shopifyConnected) return;
+    // Pre-fill and immediately trigger OAuth — no modal needed
+    const domain = shopParam.endsWith('.myshopify.com') ? shopParam : `${shopParam}.myshopify.com`;
+    connectShopify(domain)
+      .then(res => { if (res.oauth_url) window.location.href = res.oauth_url; })
+      .catch(() => {}); // silently fail — user can connect manually
+  }, [searchParams, shopifyConnected]);
+
   // Handle Instagram OAuth redirect back
   useEffect(() => {
     if (searchParams.get('instagram') === 'connected') {

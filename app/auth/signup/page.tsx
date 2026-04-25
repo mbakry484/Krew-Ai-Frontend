@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signup, saveOnboarding } from '@/lib/api';
 
@@ -86,8 +86,10 @@ const LEFT_STEPS = [
 
 type Phase = 'signup' | 'onboarding';
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   // ── Phase
   const [phase, setPhase] = useState<Phase>('signup');
@@ -157,7 +159,7 @@ export default function SignupPage() {
       setTimeout(() => {
         setObLoading(false);
         setShowWelcomeToast(true);
-        setTimeout(() => router.push('/dashboard'), 1500);
+        setTimeout(() => router.push(redirectTo), 1500);
       }, 2000);
     }
   };
@@ -540,5 +542,13 @@ export default function SignupPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }
