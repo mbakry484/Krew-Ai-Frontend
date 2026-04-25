@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
-import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage } from '@/lib/api';
+import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage, getProducts } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 
@@ -65,9 +65,7 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
           !enabled ? 'group-hover:rotate-90 group-active:rotate-[120deg]' : ''
         }`}
       >
-        {/* horizontal bar — always visible */}
         <span className="absolute w-[11px] h-px bg-current rounded-full" />
-        {/* vertical bar — visible only when collapsed (+ state) */}
         <span
           className={`absolute w-px h-[11px] bg-current rounded-full transition-all duration-[200ms] ${
             enabled ? 'scale-y-0 opacity-0' : 'scale-y-100 opacity-100'
@@ -89,6 +87,9 @@ export default function KnowledgeBasePage() {
   const [sizeGuides, setSizeGuides] = useState<SizeGuideItem[]>([]);
   const [modalImage, setModalImage] = useState<string | null>(null);
 
+  // All product names from the brand's catalog
+  const [allProducts, setAllProducts] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -100,16 +101,25 @@ export default function KnowledgeBasePage() {
       return;
     }
 
-    const fetchKB = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getKnowledgeBase();
+        const [kbData, productsData] = await Promise.all([
+          getKnowledgeBase(),
+          getProducts().catch(() => ({ products: [] as { name: string }[] })),
+        ]);
 
-        if (data.faqs && Array.isArray(data.faqs)) {
+        // Parse product names
+        const productNames: string[] = (productsData?.products || []).map(
+          (p: { name: string }) => p.name
+        );
+        setAllProducts(productNames);
+
+        if (kbData.faqs && Array.isArray(kbData.faqs)) {
           const fixedWithAnswers = FIXED_ITEMS.map((fi) => {
-            const saved = data.faqs.find((f: FAQ) => f.question === fi.question);
-            return saved ? { ...fi, answer: saved.answer } : fi;
+            const savedFaq = kbData.faqs.find((f: FAQ) => f.question === fi.question);
+            return savedFaq ? { ...fi, answer: savedFaq.answer } : fi;
           });
-          const customItems = data.faqs
+          const customItems = kbData.faqs
             .filter((f: FAQ) => !FIXED_ITEMS.some((fi) => fi.question === f.question))
             .map((faq: FAQ, index: number) => ({
               id: `custom-${index}`,
@@ -119,17 +129,17 @@ export default function KnowledgeBasePage() {
           setItems([...fixedWithAnswers, ...customItems]);
         }
 
-        if (data.situations_enabled !== undefined) setSituationsEnabled(data.situations_enabled);
-        if (data.situations && Array.isArray(data.situations)) {
+        if (kbData.situations_enabled !== undefined) setSituationsEnabled(kbData.situations_enabled);
+        if (kbData.situations && Array.isArray(kbData.situations)) {
           setSituations(
-            data.situations.map((s: { text: string }, i: number) => ({ id: `sit-${i}`, text: s.text }))
+            kbData.situations.map((s: { text: string }, i: number) => ({ id: `sit-${i}`, text: s.text }))
           );
         }
 
-        if (data.size_guides_enabled !== undefined) setSizeGuidesEnabled(data.size_guides_enabled);
-        if (data.size_guides && Array.isArray(data.size_guides)) {
+        if (kbData.size_guides_enabled !== undefined) setSizeGuidesEnabled(kbData.size_guides_enabled);
+        if (kbData.size_guides && Array.isArray(kbData.size_guides)) {
           setSizeGuides(
-            data.size_guides.map(
+            kbData.size_guides.map(
               (sg: { product_name: string; content: string; image_url?: string }, i: number) => ({
                 id: `sg-${i}`,
                 productName: sg.product_name || '',
@@ -140,12 +150,34 @@ export default function KnowledgeBasePage() {
           );
         }
       } catch (error) {
-        console.error('Failed to fetch customize data:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
 
-    fetchKB();
+    fetchData();
   }, [router]);
+
+  // Products not yet added to size guides
+  const selectedProductNames = new Set(sizeGuides.map((sg) => sg.productName));
+  const availableProducts = allProducts.filter((name) => !selectedProductNames.has(name));
+
+  // Add a product bubble to the size guides table
+  const handleSelectProduct = (productName: string) => {
+    setSizeGuides((prev) => [
+      ...prev,
+      { id: `sg-${Date.now()}`, productName, content: '' },
+    ]);
+  };
+
+  // Select all remaining products at once
+  const handleSelectAll = () => {
+    const newGuides = availableProducts.map((name) => ({
+      id: `sg-${Date.now()}-${name}`,
+      productName: name,
+      content: '',
+    }));
+    setSizeGuides((prev) => [...prev, ...newGuides]);
+  };
 
   // --- FAQ handlers ---
   const handleAddRow = () => {
@@ -175,16 +207,12 @@ export default function KnowledgeBasePage() {
   };
 
   // --- Size guide handlers ---
-  const handleAddSizeGuide = () => {
-    setSizeGuides([...sizeGuides, { id: Date.now().toString(), productName: '', content: '' }]);
-  };
-
   const handleDeleteSizeGuide = (id: string) => {
     setSizeGuides(sizeGuides.filter((sg) => sg.id !== id));
   };
 
-  const handleUpdateSizeGuide = (id: string, field: 'productName' | 'content', value: string) => {
-    setSizeGuides(sizeGuides.map((sg) => (sg.id === id ? { ...sg, [field]: value } : sg)));
+  const handleUpdateSizeGuideContent = (id: string, value: string) => {
+    setSizeGuides(sizeGuides.map((sg) => (sg.id === id ? { ...sg, content: value } : sg)));
   };
 
   const handleSizeGuideImageUpload = (id: string, file: File) => {
@@ -365,7 +393,6 @@ export default function KnowledgeBasePage() {
 
             {/* ── Situations ── */}
             <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-              {/* Toggle bar */}
               <div className="flex items-center justify-between px-4 py-[0.85rem]">
                 <div>
                   <p className="text-[0.78rem] text-text-primary font-[400] lowercase tracking-[-0.01em]">
@@ -378,7 +405,6 @@ export default function KnowledgeBasePage() {
                 <Toggle enabled={situationsEnabled} onToggle={() => setSituationsEnabled(!situationsEnabled)} />
               </div>
 
-              {/* Expandable content */}
               {situationsEnabled && (
                 <div className="border-t border-border">
                   {situations.length > 0 && (
@@ -437,7 +463,6 @@ export default function KnowledgeBasePage() {
 
             {/* ── Size guides ── */}
             <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-              {/* Toggle bar */}
               <div className="flex items-center justify-between px-4 py-[0.85rem]">
                 <div>
                   <p className="text-[0.78rem] text-text-primary font-[400] lowercase tracking-[-0.01em]">
@@ -450,9 +475,10 @@ export default function KnowledgeBasePage() {
                 <Toggle enabled={sizeGuidesEnabled} onToggle={() => setSizeGuidesEnabled(!sizeGuidesEnabled)} />
               </div>
 
-              {/* Expandable content */}
               {sizeGuidesEnabled && (
                 <div className="border-t border-border">
+
+                  {/* Selected products table */}
                   {sizeGuides.length > 0 && (
                     <table className="w-full border-collapse">
                       <thead>
@@ -472,21 +498,16 @@ export default function KnowledgeBasePage() {
                             key={sg.id}
                             className="border-b border-border transition-colors duration-150 group hover:bg-background3/50"
                           >
-                            {/* Product name */}
-                            <td className="px-4 py-0 border-r border-border align-top">
-                              <textarea
-                                value={sg.productName}
-                                onChange={(e) => handleUpdateSizeGuide(sg.id, 'productName', e.target.value)}
-                                placeholder="Product name…"
-                                rows={2}
-                                className="w-full min-h-[52px] px-4 py-[0.85rem] bg-transparent border-none outline-none resize-none text-[0.75rem] text-text-secondary placeholder:text-text-tertiary font-medium focus:text-text-primary transition-colors duration-200"
-                              />
+                            {/* Product name — read-only pill */}
+                            <td className="px-4 py-[0.85rem] border-r border-border align-top">
+                              <span className="inline-flex items-center gap-[6px] text-[0.73rem] text-text-secondary font-medium leading-[1.4]">
+                                {sg.productName}
+                              </span>
                             </td>
 
-                            {/* Size guide content — image OR text, mutually exclusive */}
+                            {/* Size guide content */}
                             <td className="px-4 py-0 align-top">
                               {sg.imagePreview || sg.imageUrl ? (
-                                /* ── Image mode ── */
                                 <div className="px-4 py-3 flex flex-col gap-2">
                                   <button
                                     onClick={() => setModalImage((sg.imagePreview || sg.imageUrl)!)}
@@ -511,16 +532,14 @@ export default function KnowledgeBasePage() {
                                   </button>
                                 </div>
                               ) : (
-                                /* ── Text mode ── */
                                 <>
                                   <textarea
                                     value={sg.content}
-                                    onChange={(e) => handleUpdateSizeGuide(sg.id, 'content', e.target.value)}
+                                    onChange={(e) => handleUpdateSizeGuideContent(sg.id, e.target.value)}
                                     placeholder="e.g. XS = chest 36cm, S = chest 38cm, M = chest 42cm, L = chest 46cm, XL = chest 50cm"
                                     rows={2}
                                     className="w-full min-h-[52px] px-4 py-[0.85rem] bg-transparent border-none outline-none resize-none text-[0.75rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200"
                                   />
-                                  {/* Only show attach option when no text is entered */}
                                   {!sg.content.trim() && (
                                     <div className="px-4 pb-[0.75rem]">
                                       <button
@@ -549,7 +568,7 @@ export default function KnowledgeBasePage() {
                               />
                             </td>
 
-                            {/* Delete */}
+                            {/* Delete — returns product to picker */}
                             <td className="px-4 py-0 text-center align-top pt-[0.85rem]">
                               <button
                                 onClick={() => handleDeleteSizeGuide(sg.id)}
@@ -567,16 +586,55 @@ export default function KnowledgeBasePage() {
                     </table>
                   )}
 
-                  <button
-                    onClick={handleAddSizeGuide}
-                    className="w-full flex items-center gap-2 border-0 px-4 py-3 text-[0.73rem] text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms] text-left"
-                  >
-                    <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Add product
-                  </button>
+                  {/* Product picker */}
+                  {availableProducts.length > 0 && (
+                    <div className="px-4 py-3 flex flex-wrap gap-[6px] items-center border-t border-border">
+                      {/* Select all */}
+                      <button
+                        onClick={handleSelectAll}
+                        className="inline-flex items-center gap-[4px] px-[10px] py-[4px] rounded-full border border-dashed border-border text-[0.65rem] text-text-tertiary hover:text-text-secondary hover:border-border-md transition-all duration-150"
+                      >
+                        <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="5" x2="12" y2="19" />
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        select all
+                      </button>
+
+                      {/* Individual product bubbles */}
+                      {availableProducts.map((name) => (
+                        <button
+                          key={name}
+                          onClick={() => handleSelectProduct(name)}
+                          className="inline-flex items-center gap-[4px] px-[10px] py-[4px] rounded-full border border-border text-[0.68rem] text-text-secondary hover:text-text-primary hover:border-border-md hover:bg-background3 transition-all duration-150"
+                        >
+                          <svg className="w-[9px] h-[9px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty state when all products are added and no guides yet */}
+                  {allProducts.length === 0 && sizeGuides.length === 0 && (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-[0.7rem] text-text-tertiary">
+                        No products found. Add products to your catalog first.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* All products already selected */}
+                  {availableProducts.length === 0 && allProducts.length > 0 && (
+                    <div className="px-4 py-3 border-t border-border">
+                      <p className="text-[0.68rem] text-text-tertiary">
+                        All products added.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -150,6 +150,11 @@ export const updateBrandDescription = async (brand_description: string) => {
   });
 };
 
+// Products API call — returns the authenticated user's brand products
+export const getProducts = async () => {
+  return apiRequest('/products/mine', { method: 'GET' });
+};
+
 // Customize API calls
 export const getKnowledgeBase = async () => {
   return apiRequest('/knowledge-base', {
