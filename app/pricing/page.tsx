@@ -274,7 +274,7 @@ export default function PricingPage() {
               {[
                 { label: 'Conversations / month', val: displayedTier.quotas.conversations },
                 { label: 'Products synced from Shopify', val: displayedTier.quotas.products },
-                { label: 'Saved answers in knowledge base', val: displayedTier.quotas.savedAnswers },
+                { label: 'Saved answers in Customize', val: displayedTier.quotas.savedAnswers },
                 { label: 'Concurrent active issues', val: displayedTier.quotas.activeIssues },
               ].map((row) => (
                 <li key={row.label} className="flex items-center justify-between text-[0.72rem] font-light">
@@ -355,7 +355,7 @@ export default function PricingPage() {
             {[
               'Instagram DMs',
               'Shopify-native actions',
-              'Knowledge base',
+              'Customize',
               'Tone of voice',
               'Human escalation',
               'Reports & analytics',

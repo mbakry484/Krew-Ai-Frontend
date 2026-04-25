@@ -36,7 +36,7 @@ const FAQ_DATA: Record<Category, FaqItem[]> = {
     },
     {
       q: 'Can I control what Luna says?',
-      a: 'Yes. Through the Knowledge Base, you define the answers to common questions. Luna uses these alongside your product catalog to respond accurately. You can also review and override any conversation at any time.',
+      a: 'Yes. Through Customize, you define the answers to common questions, set active situations, and add size guides. Luna uses all of this alongside your product catalog to respond accurately. You can also review and override any conversation at any time.',
     },
     {
       q: "What happens when Luna can't handle a conversation?",

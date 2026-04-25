@@ -150,21 +150,42 @@ export const updateBrandDescription = async (brand_description: string) => {
   });
 };
 
-// Knowledge Base API calls
+// Customize API calls
 export const getKnowledgeBase = async () => {
   return apiRequest('/knowledge-base', {
     method: 'GET',
   });
 };
 
-export const saveKnowledgeBase = async (faqs: Array<{
-  question: string;
-  answer: string;
-}>) => {
+export const saveKnowledgeBase = async (
+  faqs: Array<{ question: string; answer: string }>,
+  extras?: {
+    situations_enabled?: boolean;
+    situations?: Array<{ text: string }>;
+    size_guides_enabled?: boolean;
+    size_guides?: Array<{ product_name: string; content: string; image_url?: string }>;
+  }
+) => {
   return apiRequest('/knowledge-base', {
     method: 'POST',
-    body: JSON.stringify({ faqs }),
+    body: JSON.stringify({ faqs, ...extras }),
   });
+};
+
+export const uploadSizeGuideImage = async (file: File): Promise<{ url: string }> => {
+  const authHeader = getAuthHeader() as Record<string, string>;
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/knowledge-base/upload-image`,
+    { method: 'POST', headers: authHeader, body: formData }
+  );
+
+  if (!response.ok) {
+    throw new Error('Image upload failed');
+  }
+  return response.json();
 };
 
 export const deleteKnowledgeFAQ = async (index: number) => {
