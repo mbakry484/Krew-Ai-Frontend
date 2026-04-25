@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(find d:/KrewAi/Krew-Ai-Backend -type f \\\\\\(-name *order* -o -name *controller* -o -name *route* \\\\\\))",
+      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f \\\\\\(-name *overview* -o -name *dashboard* -o -name *order* \\\\\\))",
+      "Bash(ls -la d:/KrewAi/Krew-Ai-Backend/*.js)"
     ]
   }
 }

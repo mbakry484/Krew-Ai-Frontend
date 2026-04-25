@@ -268,3 +268,33 @@ export const getIntegrationStatus = async () => {
     method: 'GET',
   });
 };
+
+// Orders API calls
+export const getOrders = async () => {
+  return apiRequest('/orders', { method: 'GET' });
+};
+
+export const getOrderStats = async () => {
+  return apiRequest('/orders/stats', { method: 'GET' });
+};
+
+// Overview stats (aggregated from orders, exchanges, refunds, conversations)
+export const getOverviewStats = async () => {
+  const [orderStats, exchangeRefunds, conversations] = await Promise.all([
+    apiRequest('/orders/stats', { method: 'GET' }),
+    apiRequest('/exchanges-refunds?status=all', { method: 'GET' }),
+    apiRequest('/conversations?status=all', { method: 'GET' }),
+  ]);
+
+  const requests: Array<{ type: string; status: string }> = exchangeRefunds.requests || [];
+  const return_requests = requests.filter((r) => r.type === 'exchange').length;
+  const refund_requests = requests.filter((r) => r.type === 'refund').length;
+  const total_conversations = (conversations.conversations || conversations || []).length;
+
+  return {
+    orders_from_dms: orderStats.total_orders || 0,
+    return_requests,
+    refund_requests,
+    total_conversations,
+  };
+};
