@@ -1,544 +1,1330 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signup, saveOnboarding } from '@/lib/api';
+import {
+  signup,
+  saveOnboarding,
+  connectShopify,
+  getShopifyStatus,
+  getUserInfo,
+} from '@/lib/api';
+import { getToken, isLoggedIn } from '@/lib/auth';
+import './onboarding.css';
 
 // =============================================================================
-// BACKEND API NOTES (for backend team)
+// BACKEND API USAGE — unchanged
 // =============================================================================
-// POST /api/auth/signup
-//   Body: { first_name, last_name, business_name, phone_number, email, password }
-//   Returns: { access_token, user: { id, first_name, last_name, email } }
-//
-// POST /api/onboarding
-//   Called after signup completes (step 2 of the same screen flow)
-//   Body: { business_type, revenue_range, dm_volume, pain_point, brand_description }
-//   Returns: { success: boolean }
+// POST /auth/signup              — create Krew account (email, password, names, business_name)
+// POST /auth/onboarding          — saves business context (brand_description)
+// POST /integrations/shopify/connect → { oauth_url } — Shopify OAuth
+// GET  /integrations/shopify/status
+// GET  /auth/instagram?brand_id=<id>&token=<jwt> — Meta OAuth redirect
+// GET  /auth/me                  — current user + brand_id + instagram_connected
 // =============================================================================
 
-// =============================================================================
-// AURA — animated left panel
-// =============================================================================
-const AURA = {
-  baseBg: '#0a1628',
-  blobs: [
-    { color: 'rgba(30, 80, 220, 0.55)',  size: 420, top: '30%', left: '20%', duration: 8,  delay: 0 },
-    { color: 'rgba(60, 120, 255, 0.35)', size: 320, top: '60%', left: '55%', duration: 11, delay: 2 },
-    { color: 'rgba(100,170,255, 0.20)',  size: 260, top: '10%', left: '60%', duration: 9,  delay: 4 },
-    { color: 'rgba(20,  50, 180, 0.45)', size: 360, top: '70%', left: '5%',  duration: 13, delay: 1 },
-  ],
-  driftX: 60,
-  driftY: 50,
+// -----------------------------------------------------------------------------
+// Icons (ported from handoff — Krew style: 24 viewBox, stroke 1.5, currentColor)
+// -----------------------------------------------------------------------------
+type IcoProps = { size?: number; sw?: number; children?: ReactNode };
+const Ico = ({ children, size = 16, sw = 1.5 }: IcoProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={sw}
+    style={{ flexShrink: 0 }}
+  >
+    {children}
+  </svg>
+);
+const IconCheck = (p: IcoProps) => (
+  <Ico {...p}>
+    <path d="M4 12.5l5 5L20 6" />
+  </Ico>
+);
+const IconArrowRight = (p: IcoProps) => (
+  <Ico {...p} sw={p.sw || 1.6}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Ico>
+);
+const IconArrowLeft = (p: IcoProps) => (
+  <Ico {...p} sw={p.sw || 1.6}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Ico>
+);
+const IconInstagram = (p: IcoProps) => (
+  <Ico {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" stroke="none" />
+  </Ico>
+);
+const IconShopify = (p: IcoProps) => (
+  <Ico {...p}>
+    <path d="M14.5 5.5c-.3-.4-.9-.5-1.3-.4 -.1-.3-.2-.6-.4-.8 -.5-.5-1.2-.3-1.5-.2 -.8.2-1.5.9-1.9 2 -.7.2-1.2.4-1.3.4 -.4.1-.4.1-.5.5 -.1.3-1.6 11.5-1.6 11.5l7.3 1.4 3.2-.8s-2-13.3-2-13.4c0-.1-.1-.2-.2-.2zm-2.6-.5c-.1 0-.2.1-.3.1 0-.4-.1-.8-.2-1.1 .5.1.8.6.5 1z" />
+  </Ico>
+);
+const IconLock = (p: IcoProps) => (
+  <Ico {...p}>
+    <rect x="4" y="10" width="16" height="11" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </Ico>
+);
+
+const LunaMark = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path
+      d="M15.5 3.5a9 9 0 1 0 5 5 7 7 0 0 1-5-5z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      fill="none"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+type LunaState = 'idle' | 'typing' | 'alive' | 'thinking';
+function LunaChip({ line, state = 'idle' }: { line: string; state?: LunaState }) {
+  return (
+    <div className={`luna-line-wrap luna-${state}`}>
+      <span className="luna-mark"><LunaMark size={13} /></span>
+      <span className="luna-line" key={line}>
+        {line}
+        {state === 'typing' && (
+          <span className="luna-typing"><span /><span /><span /></span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Demo catalog — shown in Shopify scan animation (cosmetic only)
+// -----------------------------------------------------------------------------
+const DEMO_CATALOG = [
+  'Ceramic Kohl Liner — matte black',
+  'Linen Kaftan — desert sand',
+  'Brass Hamsa Pendant',
+  'Argan Hair Oil 50ml',
+  'Hand-loomed Cotton Throw',
+  'Olive Wood Serving Board',
+  'Saffron Eau de Parfum 30ml',
+  'Sadu Cushion Cover — ivory',
+  'Damascene Silver Ring',
+  'Rose Water Mist 100ml',
+  'Copper Turkish Coffee Set',
+  'Linen Abaya — charcoal',
+  'Oud Solid Perfume',
+  'Tassel Earrings — gold',
+  'Hand-poured Fig Candle',
+  'Woven Palm Basket — large',
+  'Henna Aftercare Balm',
+  'Ceramic Mezze Plate — olive',
+  'Silk Hair Scarf — terracotta',
+  'Musk Body Lotion 200ml',
+  'Amber Prayer Beads',
+  'Cardamom Kombucha',
+  'Kilim Runner — 80x200',
+  'Pistachio Maamoul Tin',
+  'Peach Blossom Lip Tint',
+  'Shea Butter Soap Bar',
+  'Kohl Mini Travel Set',
+  'Embroidered Tote — indigo',
+  'Zaatar Blend 120g',
+  'Frankincense Resin Jar',
+  'Mother-of-Pearl Comb',
+  'Argan Body Scrub',
+  'Linen Sleep Set — dune',
+  'Handpainted Tile Coaster',
+  'Oud Oil Roll-on 10ml',
+  'Woven Leather Sandals',
+  'Kunafa Butter 250g',
+  'Turquoise Evil Eye Ring',
+  'Silk Tassel Bookmark',
+  'Cedarwood Room Spray',
+  'Brass Incense Holder',
+  'Hibiscus Rose Tea 80g',
+  'Linen Table Runner',
+  'Jasmine Attar 5ml',
+  'Camel Leather Wallet',
+  'Orange Blossom Honey',
+  'Zellige Tile Trivet',
+];
+
+const COUNTRY_CODES = [
+  { c: '+971', f: '🇦🇪', n: 'UAE' },
+  { c: '+966', f: '🇸🇦', n: 'KSA' },
+  { c: '+20', f: '🇪🇬', n: 'Egypt' },
+  { c: '+965', f: '🇰🇼', n: 'Kuwait' },
+  { c: '+974', f: '🇶🇦', n: 'Qatar' },
+  { c: '+973', f: '🇧🇭', n: 'Bahrain' },
+  { c: '+968', f: '🇴🇲', n: 'Oman' },
+  { c: '+962', f: '🇯🇴', n: 'Jordan' },
+  { c: '+961', f: '🇱🇧', n: 'Lebanon' },
+  { c: '+212', f: '🇲🇦', n: 'Morocco' },
+];
+
+const VOICE_OPTIONS = [
+  {
+    key: 'warm',
+    head: 'Friendly & warm',
+    sub: "hey! so glad you asked — we ship to Kuwait flat-rate, 2-4 days ✨",
+    brandDescription: 'Friendly & warm tone — conversational, empathetic, uses light emoji.',
+  },
+  {
+    key: 'pro',
+    head: 'Professional & clear',
+    sub: 'Yes — we ship to Kuwait. Flat rate 35 AED, 2–4 business days.',
+    brandDescription: 'Professional & clear tone — short sentences, precise, no filler.',
+  },
+  {
+    key: 'casual',
+    head: 'Casual & local',
+    sub: 'أيوه بنشحن للكويت — 35 درهم، 2-4 أيام. أجهزلك السلة؟',
+    brandDescription: 'Casual & local tone — Arabic/English mix, warm, close-to-home feel.',
+  },
+];
+
+// -----------------------------------------------------------------------------
+// Hook chat — animated welcome stream (mirrors design)
+// -----------------------------------------------------------------------------
+const HOOK_MESSAGES = [
+  { id: 1, text: "Hey, I'm Luna." },
+  { id: 2, text: "I'll be handling your DMs from here on." },
+  { id: 3, text: 'Customers get answers in seconds — even while you sleep.' },
+  { id: 4, text: "Let's get you set up. Won't take long." },
+];
+
+function HookChat({ onNext }: { onNext: () => void }) {
+  const [visible, setVisible] = useState<number[]>([]);
+  const [typing, setTyping] = useState(false);
+  const [showCta, setShowCta] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const wait = (ms: number) => new Promise<void>(res => {
+      const t = setTimeout(() => res(), ms);
+      timers.push(t);
+    });
+    (async () => {
+      for (let i = 0; i < HOOK_MESSAGES.length; i++) {
+        if (cancelled) return;
+        setTyping(true);
+        await wait(i === 0 ? 800 : 700);
+        if (cancelled) return;
+        setTyping(false);
+        await wait(160);
+        if (cancelled) return;
+        setVisible(v => [...v, HOOK_MESSAGES[i].id]);
+        await wait(900);
+      }
+      if (cancelled) return;
+      await wait(200);
+      setShowCta(true);
+    })();
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [visible, typing, showCta]);
+
+  return (
+    <div className="hook-chat">
+      <div className="hook-grid" aria-hidden="true" />
+      <div className="hook-chat-stream" ref={scrollRef}>
+        <div className="hook-chat-inner">
+          {HOOK_MESSAGES.filter(m => visible.includes(m.id)).map(m => (
+            <div key={m.id} className="hook-bubble hook-bubble-in">{m.text}</div>
+          ))}
+          {typing && (
+            <div className="hook-bubble hook-typing" aria-label="Luna is typing">
+              <span /><span /><span />
+            </div>
+          )}
+          {showCta && (
+            <button className="hook-cta-bubble" onClick={onNext}>
+              Let&apos;s go <span className="hook-cta-arrow">→</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+const cleanShopDomain = (input: string): string => {
+  let s = (input || '').trim();
+  if (!s) return '';
+  const adminMatch = s.match(/admin\.shopify\.com\/store\/([^/]+)/);
+  if (adminMatch) return `${adminMatch[1]}.myshopify.com`;
+  s = s.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  return s.endsWith('.myshopify.com') ? s : `${s}.myshopify.com`;
 };
-// =============================================================================
 
-// Onboarding steps
-type OptionStep   = { type: 'options';  eyebrow: string; question: string; sub: string; key: string; options: string[] };
-type TextareaStep = { type: 'textarea'; eyebrow: string; question: string; sub: string; key: string; placeholder: string; helper: string };
-type OBStep = OptionStep | TextareaStep;
+// -----------------------------------------------------------------------------
+// State
+// -----------------------------------------------------------------------------
+type OBState = {
+  email: string;
+  password: string;
+  ssoProvider: null | 'google' | 'shopify';
+  fullName: string;
+  phone: string;
+  phoneCode: string;
+  brand: string;
+  url: string;
+  connected: boolean;
+  scanning: boolean;
+  catalogCount: number;
+  igConnected: boolean;
+  voice: '' | 'warm' | 'pro' | 'casual';
+  aliveProgress: number;
+  accountCreated: boolean;
+};
 
-const OB_STEPS: OBStep[] = [
-  {
-    type: 'options', eyebrow: 'Step 1 — Business type',
-    question: 'What type of business do you run?',
-    sub: 'This helps Luna adapt her tone and responses to your industry.',
-    key: 'businessType',
-    options: ['Fashion', 'Accessories', 'Fragrances', 'Cosmetics', 'General E-commerce', 'Other'],
+const INITIAL_STATE: OBState = {
+  email: '',
+  password: '',
+  ssoProvider: null,
+  fullName: '',
+  phone: '',
+  phoneCode: '+971',
+  brand: '',
+  url: '',
+  connected: false,
+  scanning: false,
+  catalogCount: 0,
+  igConnected: false,
+  voice: '',
+  aliveProgress: 0,
+  accountCreated: false,
+};
+
+const STATE_KEY = 'krew_ob_state';
+const IDX_KEY = 'krew_ob_idx';
+
+// -----------------------------------------------------------------------------
+// Step shape
+// -----------------------------------------------------------------------------
+type StepCtx = {
+  state: OBState;
+  set: (patch: Partial<OBState>) => void;
+  onNext: () => void;
+  signupError: string;
+  signupLoading: boolean;
+  connecting: boolean;
+  connectError: string;
+  handleConnectShopify: () => void;
+  handleConnectInstagram: () => void;
+};
+
+type StepDef = {
+  id: string;
+  label: string;
+  phase: 'account' | 'luna';
+  progressVisible: boolean;
+  luna: (s: OBState) => { state: LunaState; line: string };
+  valid: (s: OBState) => boolean;
+  hasFooter: boolean;
+  render: (ctx: StepCtx) => ReactNode;
+};
+
+// Step 0 — Signup (email/password + SSO)
+const StepSignup: StepDef = {
+  id: 'signup',
+  label: 'Sign up',
+  phase: 'account',
+  progressVisible: false,
+  luna: () => ({ state: 'idle', line: 'Before we meet — one account.' }),
+  valid: ({ email, password, ssoProvider }) =>
+    !!ssoProvider || (/\S+@\S+\.\S+/.test(email || '') && (password || '').length >= 8),
+  hasFooter: true,
+  render: ({ state, set, signupError }) => (
+    <div className="form-screen signup-screen">
+      <div className="form-head">
+        <h2 className="form-title ds-h1-mixed">
+          <span className="emph">Create</span>{' '}
+          <span className="rest">your Krew account.</span>
+        </h2>
+        <p className="ds-body form-sub">Takes 20 seconds. One login for Luna and every Krew agent.</p>
+      </div>
+      <div className="sso-row">
+        <button
+          type="button"
+          className={`sso-btn ${state.ssoProvider === 'google' ? 'selected' : ''}`}
+          onClick={() => set({ ssoProvider: state.ssoProvider === 'google' ? null : 'google' })}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="sso-icon">
+            <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.3-.9 2.3-2 3v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.3z" fill="currentColor" opacity="0.9" />
+            <path d="M12 22c2.7 0 5-.9 6.7-2.5l-3.2-2.5c-.9.6-2 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22z" fill="currentColor" opacity="0.7" />
+            <path d="M6.2 13.7c-.2-.6-.3-1.2-.3-1.7s.1-1.1.3-1.7V7.7H2.9C2.3 9 2 10.4 2 12s.3 3 .9 4.3l3.3-2.6z" fill="currentColor" opacity="0.5" />
+            <path d="M12 5.8c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 2.9 14.7 2 12 2 8 2 4.6 4.3 2.9 7.7L6.2 10.3c.8-2.5 3.1-4.5 5.8-4.5z" fill="currentColor" opacity="0.85" />
+          </svg>
+          <span>Continue with Google</span>
+          {state.ssoProvider === 'google' && <IconCheck size={12} sw={2.2} />}
+        </button>
+      </div>
+      <div className="or-divider">or</div>
+      <div className="form-fields signup-fields">
+        <label className="field">
+          <span className="field-lbl">Work email</span>
+          <input
+            type="email"
+            className="field-input"
+            placeholder="you@brand.com"
+            value={state.email}
+            onChange={(e) => set({ email: e.target.value, ssoProvider: null })}
+          />
+        </label>
+        <label className="field">
+          <span className="field-lbl">Password</span>
+          <input
+            type="password"
+            className="field-input"
+            placeholder="8+ characters"
+            value={state.password}
+            onChange={(e) => set({ password: e.target.value, ssoProvider: null })}
+          />
+        </label>
+      </div>
+      {signupError && <div className="signup-error">{signupError}</div>}
+      <div className="signup-foot">
+        <span className="ds-caption">
+          By continuing you agree to the{' '}
+          <Link href="/terms" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}>terms</Link>
+          {' '}&amp;{' '}
+          <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}>privacy policy</Link>.
+        </span>
+      </div>
+      <div className="signup-switch">
+        Already have an account?{' '}
+        <Link href="/auth/login">Log in</Link>
+      </div>
+    </div>
+  ),
+};
+
+// Step 1 — Name + Phone
+const StepNamePhone: StepDef = {
+  id: 'name',
+  label: 'About you',
+  phase: 'account',
+  progressVisible: false,
+  luna: ({ fullName }) => {
+    const first = (fullName || '').trim().split(/\s+/)[0];
+    return first
+      ? { state: 'idle', line: `Good to meet you, ${first}.` }
+      : { state: 'idle', line: 'A couple of basics before we go.' };
   },
-  {
-    type: 'options', eyebrow: 'Step 2 — Revenue range',
-    question: 'What is your average monthly revenue?',
-    sub: 'Helps us understand your scale so we can set Luna up correctly.',
-    key: 'revenueRange',
-    options: ['0 – 50,000', '50,000 – 200,000', '200,000 – 500,000', '500,000+'],
+  valid: ({ fullName, phone }) =>
+    (fullName || '').trim().length >= 2 && (phone || '').replace(/\D/g, '').length >= 7,
+  hasFooter: true,
+  render: ({ state, set }) => {
+    const code = state.phoneCode || '+971';
+    return (
+      <div className="form-screen">
+        <div className="form-head">
+          <div className="ds-eyebrow">Account · 02 of 02</div>
+          <h2 className="form-title ds-h1-mixed">
+            <span className="emph">A little</span>{' '}
+            <span className="rest">about you.</span>
+          </h2>
+          <p className="ds-body form-sub">So we can welcome you properly — and keep your account safe.</p>
+        </div>
+        <div className="form-fields">
+          <label className="field">
+            <span className="field-lbl">Full name</span>
+            <input
+              className="field-input"
+              placeholder="Layla Haddad"
+              value={state.fullName}
+              onChange={(e) => set({ fullName: e.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span className="field-lbl">Phone · for account security</span>
+            <div className="field-compound phone-compound">
+              <select
+                className="phone-code"
+                value={code}
+                onChange={(e) => set({ phoneCode: e.target.value })}
+              >
+                {COUNTRY_CODES.map((cc) => (
+                  <option key={cc.c} value={cc.c}>{cc.f} {cc.c}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                className="field-input"
+                placeholder="50 123 4567"
+                value={state.phone}
+                onChange={(e) => set({ phone: e.target.value })}
+              />
+            </div>
+          </label>
+        </div>
+        <div className="signup-foot">
+          <span className="ds-caption">
+            Your number stays private — it&apos;s only used for sign-in security, never shown to customers.
+          </span>
+        </div>
+      </div>
+    );
   },
-  {
-    type: 'options', eyebrow: 'Step 3 — DM volume',
-    question: 'How many customer DMs do you receive per day?',
-    sub: 'This determines how Luna is configured for your inbox load.',
-    key: 'dmVolume',
-    options: ['0 – 20', '20 – 60', '60 – 150', '150+'],
+};
+
+// Step 2 — Hook (intro chat)
+const StepHook: StepDef = {
+  id: 'hook',
+  label: 'Welcome',
+  phase: 'luna',
+  progressVisible: false,
+  luna: () => ({ state: 'idle', line: '' }),
+  valid: () => true,
+  hasFooter: false,
+  render: ({ onNext }) => <HookChat onNext={onNext} />,
+};
+
+// Step 3 — Brand (name + Shopify URL)
+const StepBrand: StepDef = {
+  id: 'brand',
+  label: 'Your brand',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ brand }) =>
+    brand
+      ? { state: 'idle', line: `Nice to meet you, ${brand}.` }
+      : { state: 'idle', line: 'What should I call your store?' },
+  valid: ({ brand, url }) =>
+    (brand || '').trim().length >= 2 && (url || '').trim().length >= 4,
+  hasFooter: true,
+  render: ({ state, set, signupError }) => (
+    <div className="form-screen">
+      <div className="form-head">
+        <div className="ds-eyebrow">Step 01 — Your brand</div>
+        <h2 className="form-title ds-h1-mixed">
+          <span className="emph">First,</span> <span className="rest">who are you?</span>
+        </h2>
+        <p className="ds-body form-sub">Two fields. Same ones Shopify already knows.</p>
+      </div>
+      <div className="form-fields">
+        <label className="field">
+          <span className="field-lbl">Store name</span>
+          <input
+            className="field-input"
+            placeholder="Noor Atelier"
+            value={state.brand}
+            onChange={(e) => set({ brand: e.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span className="field-lbl">Shopify URL</span>
+          <div className="field-compound">
+            <input
+              className="field-input"
+              placeholder="noor-atelier"
+              value={(state.url || '').replace(/\.myshopify\.com$/, '')}
+              onChange={(e) =>
+                set({ url: e.target.value.replace(/\.myshopify\.com$/, '') + '.myshopify.com' })
+              }
+            />
+            <span className="field-suffix">.myshopify.com</span>
+          </div>
+        </label>
+      </div>
+      {signupError && <div className="signup-error">{signupError}</div>}
+    </div>
+  ),
+};
+
+// Step 4 — Connect Shopify (real OAuth)
+const StepConnect: StepDef = {
+  id: 'connect',
+  label: 'Your store',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ connected, scanning }) => {
+    if (scanning) return { state: 'typing', line: 'Reading your catalog…' };
+    if (connected) return { state: 'idle', line: `I know ${DEMO_CATALOG.length} of your products now.` };
+    return { state: 'idle', line: "One click. I'll learn everything from there." };
   },
-  {
-    type: 'options', eyebrow: 'Step 4 — Main challenge',
-    question: 'What is your biggest challenge right now?',
-    sub: 'Luna will prioritize solving this for you first.',
-    key: 'painPoint',
-    options: ['Slow response time', 'Missed orders in DMs', 'Managing team replies', 'Tracking customer issues', 'Scaling customer support'],
+  valid: ({ connected }) => connected,
+  hasFooter: true,
+  render: ({ state, connecting, connectError, handleConnectShopify }) => {
+    return (
+      <div className="form-screen">
+        <div className="form-head">
+          <div className="ds-eyebrow">Step 02 — Connect your store</div>
+          <h2 className="form-title ds-h1-mixed">
+            <span className="emph">Connect</span>{' '}
+            <span className="rest">your store.</span>
+          </h2>
+          <p className="ds-body form-sub">
+            Read-only OAuth. Products, prices, stock. No write access until you grant it.
+          </p>
+        </div>
+        <div className="shopify-card">
+          <div className="shop-head">
+            <div className="shop-logo"><IconShopify size={22} sw={1.8} /></div>
+            <div>
+              <div className="shop-name">{state.brand || 'Your store'}</div>
+              <div className="shop-url">{state.url || 'your-store.myshopify.com'}</div>
+            </div>
+            {state.connected && (
+              <div className="shop-status">
+                <span className="dot" /> Connected
+              </div>
+            )}
+          </div>
+          {!state.connected && !state.scanning && (
+            <>
+              <button
+                type="button"
+                className="ob-btn-primary shop-cta"
+                onClick={handleConnectShopify}
+                disabled={connecting}
+              >
+                <IconShopify size={14} sw={1.8} />
+                {connecting ? 'Opening Shopify…' : 'Connect with Shopify'}
+              </button>
+              {connectError && <div className="shop-error">{connectError}</div>}
+            </>
+          )}
+          {(state.scanning || state.connected) && (
+            <ScanTerminal done={state.connected} />
+          )}
+        </div>
+      </div>
+    );
   },
-  {
-    type: 'textarea', eyebrow: 'Step 5 — Brand description',
-    question: 'Describe your brand.',
-    sub: 'Two sentences is all Luna needs to match your voice.',
-    key: 'brandDescription',
-    placeholder: ' YOUR BRAND is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic.',
-    helper: "Luna will use this to match your brand's tone in every customer reply.",
+};
+
+// Scanning terminal animation (cosmetic; triggered after real OAuth succeeds)
+function ScanTerminal({ done }: { done: boolean }) {
+  const [lines, setLines] = useState<string[]>([]);
+  const [count, setCount] = useState(done ? DEMO_CATALOG.length : 0);
+
+  useEffect(() => {
+    if (done) {
+      setCount(DEMO_CATALOG.length);
+      setLines(DEMO_CATALOG.slice(-10));
+      return;
+    }
+    let i = 0;
+    const iv = setInterval(() => {
+      if (i >= DEMO_CATALOG.length) {
+        clearInterval(iv);
+        return;
+      }
+      setLines((L) => [...L.slice(-10), DEMO_CATALOG[i]]);
+      setCount(i + 1);
+      i++;
+    }, 110);
+    return () => clearInterval(iv);
+  }, [done]);
+
+  return (
+    <div className="terminal">
+      <div className="term-head">
+        <span className="term-dots"><i /><i /><i /></span>
+        <span className="term-title">luna · catalog.sync</span>
+        <span className="term-count">
+          {count.toString().padStart(3, '0')} / {DEMO_CATALOG.length}
+        </span>
+      </div>
+      <div className="term-body">
+        <div className="term-line muted"><span className="term-arrow">→</span> connected · reading /products</div>
+        {lines.map((l, i) => (
+          <div key={i + l} className="term-line fade-in">
+            <span className="term-arrow">+</span> {l}
+          </div>
+        ))}
+        {done && (
+          <div className="term-line ok">
+            <span className="term-arrow">✓</span> sync complete · {DEMO_CATALOG.length} products indexed
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Step 5 — Instagram (real Meta OAuth)
+const StepChannels: StepDef = {
+  id: 'channels',
+  label: 'Instagram',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ igConnected }) =>
+    igConnected
+      ? { state: 'idle', line: "Connected. I'll watch your DMs from here." }
+      : { state: 'idle', line: 'Your Instagram inbox — let me in.' },
+  valid: ({ igConnected }) => !!igConnected,
+  hasFooter: true,
+  render: ({ state, connecting, connectError, handleConnectInstagram }) => {
+    return (
+      <div className="form-screen">
+        <div className="form-head">
+          <div className="ds-eyebrow">Step 03 — Instagram</div>
+          <h2 className="form-title ds-h1-mixed">
+            <span className="emph">Connect</span>{' '}
+            <span className="rest">your Instagram inbox.</span>
+          </h2>
+          <p className="ds-body form-sub">
+            DMs, story replies, comments. One Meta login — you can add WhatsApp later.
+          </p>
+        </div>
+        <div className="ig-card">
+          <div className="ig-head">
+            <div className="chan-icon ig ig-always"><IconInstagram size={20} sw={1.6} /></div>
+            <div>
+              <div className="chan-name">
+                {state.brand ? `@${state.brand.toLowerCase().replace(/\s+/g, '')}` : '@your-handle'}
+              </div>
+              <div className="chan-sub">Instagram Business · DMs + comments</div>
+            </div>
+            {state.igConnected && (
+              <div className="shop-status">
+                <span className="dot" /> Connected
+              </div>
+            )}
+          </div>
+          {!state.igConnected && (
+            <>
+              <button
+                type="button"
+                className="ob-btn-primary shop-cta"
+                onClick={handleConnectInstagram}
+                disabled={connecting}
+              >
+                <IconInstagram size={14} sw={1.8} />
+                {connecting ? 'Opening Meta…' : 'Connect with Meta'}
+              </button>
+              {connectError && <div className="shop-error">{connectError}</div>}
+            </>
+          )}
+        </div>
+        {state.igConnected && (
+          <div className="chan-preview">
+            <div className="chan-preview-head">
+              <div className="ds-eyebrow">Preview · how I&apos;ll reply</div>
+            </div>
+            <div className="dm-preview">
+              <div className="dm-head">
+                <div className="dm-av ig-ring">
+                  <div className="dm-av-inner">{(state.brand || 'N')[0].toUpperCase()}</div>
+                </div>
+                <div className="dm-head-text">
+                  <div className="dm-name">{state.brand || 'Your store'}</div>
+                  <div className="dm-sub">Instagram · active now</div>
+                </div>
+              </div>
+              <div className="dm-body">
+                <div className="bubble b-in">hey! do you ship to Kuwait?</div>
+                <div className="bubble b-out">
+                  yes — flat 35 AED to Kuwait, 2-4 business days 📦 want me to hold a cart for you?
+                </div>
+                <div className="bubble b-in">yes please, the kohl liner</div>
+                <div className="bubble b-out">done. cart link coming to your inbox ✨</div>
+                <div className="dm-meta">replied in ~0s · by Luna</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   },
+};
+
+// Step 6 — Voice
+const StepVoice: StepDef = {
+  id: 'voice',
+  label: 'Voice',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ voice }) => {
+    if (!voice) return { state: 'idle', line: 'How should I sound with your customers?' };
+    return {
+      state: 'idle',
+      line: {
+        warm: "Warm it is. I'll lead with care.",
+        pro: 'Professional. Short sentences, no filler.',
+        casual: "عامية · I'll keep it close to home.",
+      }[voice],
+    };
+  },
+  valid: ({ voice }) => !!voice,
+  hasFooter: true,
+  render: ({ state, set }) => (
+    <div className="form-screen">
+      <div className="form-head">
+        <div className="ds-eyebrow">Step 04 — Voice</div>
+        <h2 className="form-title ds-h1-mixed">
+          <span className="emph">Brief me.</span>{' '}
+          <span className="rest">How should I sound?</span>
+        </h2>
+        <p className="ds-body form-sub">You&apos;re not configuring a tool — you&apos;re briefing a teammate.</p>
+      </div>
+      <div className="voice-list">
+        {VOICE_OPTIONS.map((o) => (
+          <button
+            type="button"
+            key={o.key}
+            className={`voice-row ${state.voice === o.key ? 'selected' : ''}`}
+            onClick={() => set({ voice: o.key as OBState['voice'] })}
+          >
+            <div className="voice-radio"><span /></div>
+            <div className="voice-text">
+              <div className="voice-head">{o.head}</div>
+              <div className="voice-sample" dir={o.key === 'casual' ? 'rtl' : 'ltr'}>
+                &quot;{o.sub}&quot;
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+// Step 7 — Alive (final)
+const StepAlive: StepDef = {
+  id: 'alive',
+  label: 'Ready',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ aliveProgress }) => {
+    if (aliveProgress < 1) return { state: 'thinking', line: 'Almost there…' };
+    return { state: 'alive', line: "I'm ready." };
+  },
+  valid: ({ aliveProgress }) => aliveProgress >= 1,
+  hasFooter: true,
+  render: ({ state, set }) => {
+    return <AliveScreen state={state} set={set} />;
+  },
+};
+
+function AliveScreen({ state, set }: { state: OBState; set: (patch: Partial<OBState>) => void }) {
+  const [prog, setProg] = useState(state.aliveProgress || 0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const sequence = [
+    { t: 'reading catalog', detail: `${DEMO_CATALOG.length} products` },
+    { t: 'connecting channels', detail: state.igConnected ? 'Instagram' : 'ready' },
+    {
+      t: 'tuning voice',
+      detail:
+        state.voice === 'warm' ? 'friendly & warm' :
+        state.voice === 'pro' ? 'professional' :
+        state.voice === 'casual' ? 'casual · عامية' : 'ready',
+    },
+    { t: 'warming up', detail: 'ready to reply' },
+  ];
+
+  useEffect(() => {
+    if (prog >= 1) return;
+    const start = performance.now();
+    const duration = 3200;
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setProg(p);
+      setStepIdx(Math.min(sequence.length - 1, Math.floor(p * sequence.length)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else set({ aliveProgress: 1 });
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="alive-screen">
+      <div className={`alive-orb ${prog >= 1 ? 'alive' : ''}`}>
+        <div className="alive-ring r1" />
+        <div className="alive-ring r2" />
+        <div className="alive-ring r3" />
+        <div className="alive-core">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M15.5 3.5a9 9 0 1 0 5 5 7 7 0 0 1-5-5z" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div className="alive-title ds-h1-mixed">
+        {prog >= 1 ? (
+          <>
+            <span className="emph">I&apos;m ready.</span><br />
+            <span className="rest">Let&apos;s get to work.</span>
+          </>
+        ) : (
+          <span className="rest">Bringing Luna online…</span>
+        )}
+      </div>
+      <div className="alive-progress">
+        <div className="alive-bar">
+          <div className="alive-bar-fill" style={{ width: `${prog * 100}%` }} />
+        </div>
+        <div className="alive-steps">
+          {sequence.map((s, i) => (
+            <div
+              key={s.t}
+              className={`alive-step ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'pending'}`}
+            >
+              <span className="alive-step-dot">
+                {i < stepIdx ? <IconCheck size={10} sw={2.4} /> : i === stepIdx ? <span className="pulse-dot" /> : null}
+              </span>
+              <span className="alive-step-t">{s.t}</span>
+              <span className="alive-step-d">· {s.detail}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {prog >= 1 && (
+        <div className="alive-summary">
+          <div className="sum-stat">
+            <div className="sum-val">{DEMO_CATALOG.length}</div>
+            <div className="sum-lbl">products learned</div>
+          </div>
+          <div className="sum-div" />
+          <div className="sum-stat">
+            <div className="sum-val">{state.igConnected ? '1' : '0'}</div>
+            <div className="sum-lbl">channel live</div>
+          </div>
+          <div className="sum-div" />
+          <div className="sum-stat">
+            <div className="sum-val">~0s</div>
+            <div className="sum-lbl">response time</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ALL_STEPS: StepDef[] = [
+  StepSignup,
+  StepNamePhone,
+  StepHook,
+  StepBrand,
+  StepConnect,
+  StepChannels,
+  StepVoice,
+  StepAlive,
 ];
 
-const LEFT_STEPS = [
-  { n: '1', label: 'Sign up your account' },
-  { n: '2', label: 'Set up your workspace' },
-  { n: '3', label: 'Set up your profile' },
-];
-
-type Phase = 'signup' | 'onboarding';
-
+// -----------------------------------------------------------------------------
+// Page component
+// -----------------------------------------------------------------------------
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="luna-onboard-root"><div className="luna-onboard-bg" /></div>}>
+      <SignupFlow />
+    </Suspense>
+  );
+}
+
+function SignupFlow() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // ── Phase
-  const [phase, setPhase] = useState<Phase>('signup');
+  const [idx, setIdx] = useState(0);
+  const [state, setState] = useState<OBState>(INITIAL_STATE);
 
-  // ── Signup form
-  const [formData, setFormData] = useState({
-    first_name: '', last_name: '', business_name: '',
-    phone_number: '', email: '', password: '',
-  });
-  const [showPassword, setShowPassword] = useState(false);
   const [signupError, setSignupError] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
 
-  // ── Onboarding
-  const [obStep, setObStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [selected, setSelected] = useState<string | null>(null);
-  const [textValue, setTextValue] = useState('');
-  const [obLoading, setObLoading] = useState(false);
-  const [showWelcomeToast, setShowWelcomeToast] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
 
-  // Which left bullet is active
-  // 0 = signup, 1 = ob steps 0-3, 2 = ob step 4 (brand description)
-  const activeLeft = phase === 'signup' ? 0 : obStep < 4 ? 1 : 2;
+  const [finalLoading, setFinalLoading] = useState(false);
 
-  // ── Signup submit
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Restore persisted state on mount; auto-skip account steps if already signed in
+  useEffect(() => {
+    let restoredState = INITIAL_STATE;
+    let restoredIdx = 0;
+    try {
+      const rawState = localStorage.getItem(STATE_KEY);
+      const rawIdx = localStorage.getItem(IDX_KEY);
+      if (rawState) restoredState = { ...INITIAL_STATE, ...JSON.parse(rawState) };
+      if (rawIdx) {
+        const n = parseInt(rawIdx, 10);
+        if (Number.isFinite(n) && n >= 0 && n < ALL_STEPS.length) restoredIdx = n;
+      }
+    } catch { /* ignore */ }
+
+    // If a token is already present, the Krew account exists — skip account steps.
+    if (isLoggedIn()) {
+      restoredState = { ...restoredState, accountCreated: true };
+      // Hydrate brand/email from user_info if missing
+      try {
+        const ui = localStorage.getItem('user_info');
+        if (ui) {
+          const parsed = JSON.parse(ui);
+          if (!restoredState.brand && parsed.business_name) restoredState.brand = parsed.business_name;
+          if (!restoredState.email && parsed.email) restoredState.email = parsed.email;
+          if (!restoredState.fullName && (parsed.first_name || parsed.last_name)) {
+            restoredState.fullName = `${parsed.first_name || ''} ${parsed.last_name || ''}`.trim();
+          }
+        }
+      } catch { /* ignore */ }
+      // Jump past Signup, NamePhone, Hook to Brand at minimum
+      const brandIdx = ALL_STEPS.findIndex(s => s.id === 'brand');
+      if (restoredIdx < brandIdx) restoredIdx = brandIdx;
+    }
+
+    setState(restoredState);
+    setIdx(restoredIdx);
+  }, []);
+
+  // Persist on change
+  useEffect(() => {
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+  }, [state]);
+  useEffect(() => {
+    try { localStorage.setItem(IDX_KEY, String(idx)); } catch { /* ignore */ }
+  }, [idx]);
+
+  // Handle OAuth callbacks (in case backend redirects back with ?shopify=connected etc.)
+  useEffect(() => {
+    const shopifyParam = searchParams.get('shopify');
+    const instagramParam = searchParams.get('instagram');
+    if (shopifyParam === 'connected') {
+      setState(s => ({ ...s, connected: true, scanning: false, catalogCount: DEMO_CATALOG.length }));
+      router.replace(window.location.pathname, { scroll: false });
+    }
+    if (instagramParam === 'connected') {
+      setState(s => ({ ...s, igConnected: true }));
+      router.replace(window.location.pathname, { scroll: false });
+    }
+  }, [searchParams, router]);
+
+  const set = (patch: Partial<OBState>) => setState(s => ({ ...s, ...patch }));
+
+  const step = ALL_STEPS[idx];
+  const luna = step.luna(state);
+  const visibleSteps = ALL_STEPS.filter(s => s.progressVisible);
+  const progressIdx = visibleSteps.findIndex(s => s.id === step.id);
+  const progressTotal = visibleSteps.length;
+
+  // Split name into first/last for backend
+  const splitName = (fullName: string) => {
+    const parts = (fullName || '').trim().split(/\s+/);
+    return {
+      first_name: parts[0] || '',
+      last_name: parts.slice(1).join(' ') || parts[0] || '',
+    };
+  };
+
+  // Signup API — called after Brand step
+  const submitSignup = async (): Promise<boolean> => {
+    if (state.accountCreated) return true;
     setSignupError('');
     setSignupLoading(true);
     try {
-      await signup(formData);
+      const { first_name, last_name } = splitName(state.fullName);
+      await signup({
+        email: state.email,
+        password: state.password,
+        first_name,
+        last_name,
+        business_name: state.brand,
+      });
       localStorage.setItem('user_info', JSON.stringify({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        business_name: formData.business_name,
-        phone_number: formData.phone_number,
-        email: formData.email,
+        first_name,
+        last_name,
+        business_name: state.brand,
+        phone_number: `${state.phoneCode} ${state.phone}`.trim(),
+        email: state.email,
       }));
-      setPhase('onboarding');
+      setState(s => ({ ...s, accountCreated: true }));
+      return true;
     } catch (err: any) {
-      setSignupError(err.message || 'An unexpected error occurred. Please try again.');
+      setSignupError(err?.message || 'Unable to create account. Please try again.');
+      return false;
     } finally {
       setSignupLoading(false);
     }
   };
 
-  // ── Onboarding navigation
-  const step = OB_STEPS[obStep];
-  const obTotal = OB_STEPS.length;
-  const canContinue = step?.type === 'textarea' ? textValue.trim().length > 0 : selected !== null;
-
-  const handleObNext = async () => {
-    if (!canContinue) return;
-    const value = step.type === 'textarea' ? textValue.trim() : selected!;
-    const updatedAnswers = { ...answers, [step.key]: value };
-    setAnswers(updatedAnswers);
-
-    if (obStep < obTotal - 1) {
-      const next = OB_STEPS[obStep + 1];
-      setObStep(obStep + 1);
-      if (next.type === 'options') { setSelected(updatedAnswers[next.key] ?? null); setTextValue(''); }
-      else { setSelected(null); setTextValue(updatedAnswers[next.key] ?? ''); }
-    } else {
-      setObLoading(true);
-      try { await saveOnboarding(updatedAnswers); } catch { /* silent fail */ }
-      setTimeout(() => {
-        setObLoading(false);
-        setShowWelcomeToast(true);
-        setTimeout(() => router.push('/dashboard'), 1500);
-      }, 2000);
+  // Save onboarding at end (brand_description derived from voice)
+  const submitOnboarding = async (): Promise<void> => {
+    const selected = VOICE_OPTIONS.find(v => v.key === state.voice);
+    const brandDescription = selected
+      ? `${state.brand ? state.brand + ' — ' : ''}${selected.brandDescription}`
+      : state.brand || '';
+    try {
+      await saveOnboarding({ brandDescription });
+    } catch {
+      /* best-effort */
     }
   };
 
-  const handleObBack = () => {
-    if (obStep === 0) { setPhase('signup'); return; }
-    const prev = OB_STEPS[obStep - 1];
-    setObStep(obStep - 1);
-    if (prev.type === 'options') { setSelected(answers[prev.key] ?? null); setTextValue(''); }
-    else { setSelected(null); setTextValue(answers[prev.key] ?? ''); }
+  // Shopify OAuth — popup + poll for connection
+  const handleConnectShopify = async () => {
+    setConnectError('');
+    const domain = cleanShopDomain(state.url);
+    if (!domain) { setConnectError('Please enter your Shopify store URL first.'); return; }
+    setConnecting(true);
+    try {
+      const res = await connectShopify(domain);
+      if (!res?.oauth_url) throw new Error('Shopify OAuth URL missing from server response.');
+      const w = 620, h = 740;
+      const y = window.top ? (window.top.outerHeight / 2 + (window.top.screenY ?? 0) - h / 2) : 100;
+      const x = window.top ? (window.top.outerWidth / 2 + (window.top.screenX ?? 0) - w / 2) : 100;
+      const popup = window.open(
+        res.oauth_url,
+        'shopify-oauth',
+        `width=${w},height=${h},left=${x},top=${y}`
+      );
+      if (!popup) {
+        // Fallback: full redirect if popup was blocked
+        window.location.href = res.oauth_url;
+        return;
+      }
+      // Start cosmetic scan as soon as popup is open (user sees immediate feedback on return)
+      // Poll both: popup close + shopify status
+      let resolved = false;
+      const stop = () => { resolved = true; clearInterval(statusIv); clearInterval(closeIv); setConnecting(false); };
+      const statusIv = setInterval(async () => {
+        if (resolved) return;
+        try {
+          const st = await getShopifyStatus();
+          if (st?.linked) {
+            try { popup.close(); } catch { /* ignore */ }
+            setState(s => ({ ...s, connected: false, scanning: true }));
+            setTimeout(() => {
+              setState(s => ({ ...s, connected: true, scanning: false, catalogCount: DEMO_CATALOG.length }));
+            }, DEMO_CATALOG.length * 110 + 200);
+            stop();
+          }
+        } catch { /* ignore */ }
+      }, 1800);
+      const closeIv = setInterval(async () => {
+        if (resolved) return;
+        if (popup.closed) {
+          // One last status check after close
+          try {
+            const st = await getShopifyStatus();
+            if (st?.linked) {
+              setState(s => ({ ...s, connected: false, scanning: true }));
+              setTimeout(() => {
+                setState(s => ({ ...s, connected: true, scanning: false, catalogCount: DEMO_CATALOG.length }));
+              }, DEMO_CATALOG.length * 110 + 200);
+            } else {
+              setConnectError('Shopify connection was not completed. Please try again.');
+            }
+          } catch {
+            setConnectError('Could not verify Shopify connection. Please try again.');
+          }
+          stop();
+        }
+      }, 500);
+    } catch (err: any) {
+      setConnectError(err?.message || 'Failed to start Shopify connection.');
+      setConnecting(false);
+    }
   };
 
-  // ── Loading overlay
-  if (obLoading) {
+  // Meta OAuth — popup + poll for connection
+  const handleConnectInstagram = async () => {
+    setConnectError('');
+    setConnecting(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error('You need to finish signing up first.');
+      const userInfo = await getUserInfo();
+      const brandId = userInfo?.user?.brand_id || userInfo?.brand_id;
+      if (!brandId) throw new Error('Brand account missing. Please restart onboarding.');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
+      const authUrl = `${apiUrl}/auth/instagram?brand_id=${brandId}&token=${token}`;
+      const w = 620, h = 740;
+      const y = window.top ? (window.top.outerHeight / 2 + (window.top.screenY ?? 0) - h / 2) : 100;
+      const x = window.top ? (window.top.outerWidth / 2 + (window.top.screenX ?? 0) - w / 2) : 100;
+      const popup = window.open(authUrl, 'ig-oauth', `width=${w},height=${h},left=${x},top=${y}`);
+      if (!popup) {
+        window.location.href = authUrl;
+        return;
+      }
+      let resolved = false;
+      const stop = () => { resolved = true; clearInterval(statusIv); clearInterval(closeIv); setConnecting(false); };
+      const statusIv = setInterval(async () => {
+        if (resolved) return;
+        try {
+          const ui = await getUserInfo();
+          if (ui?.user?.instagram_connected) {
+            try { popup.close(); } catch { /* ignore */ }
+            setState(s => ({ ...s, igConnected: true }));
+            stop();
+          }
+        } catch { /* ignore */ }
+      }, 1800);
+      const closeIv = setInterval(async () => {
+        if (resolved) return;
+        if (popup.closed) {
+          try {
+            const ui = await getUserInfo();
+            if (ui?.user?.instagram_connected) {
+              setState(s => ({ ...s, igConnected: true }));
+            } else {
+              setConnectError('Instagram connection was not completed. Please try again.');
+            }
+          } catch {
+            setConnectError('Could not verify Instagram connection. Please try again.');
+          }
+          stop();
+        }
+      }, 500);
+    } catch (err: any) {
+      setConnectError(err?.message || 'Failed to start Instagram connection.');
+      setConnecting(false);
+    }
+  };
+
+  // Navigation
+  const goNext = async () => {
+    setConnectError('');
+    const current = ALL_STEPS[idx];
+    if (!current.valid(state)) return;
+
+    // After Brand step — create the Krew account
+    if (current.id === 'brand' && !state.accountCreated) {
+      const ok = await submitSignup();
+      if (!ok) return;
+    }
+
+    if (idx < ALL_STEPS.length - 1) {
+      setIdx(i => i + 1);
+      return;
+    }
+    // Final step — save onboarding + go to dashboard
+    setFinalLoading(true);
+    await submitOnboarding();
+    // Clear the onboarding scratch state
+    try {
+      localStorage.removeItem(STATE_KEY);
+      localStorage.removeItem(IDX_KEY);
+    } catch { /* ignore */ }
+    setTimeout(() => router.push('/dashboard'), 700);
+  };
+
+  const goBack = () => {
+    setConnectError('');
+    if (idx === 0) return;
+    setIdx(i => Math.max(0, i - 1));
+  };
+
+  const ctx: StepCtx = {
+    state,
+    set,
+    onNext: goNext,
+    signupError,
+    signupLoading,
+    connecting,
+    connectError,
+    handleConnectShopify,
+    handleConnectInstagram,
+  };
+
+  if (finalLoading) {
     return (
-      <div className="fixed inset-0 z-[500] bg-background flex flex-col items-center justify-center gap-6">
-        <div className="w-7 h-7 border-[1.5px] border-border border-t-text-secondary rounded-full animate-spin" />
-        <div className="text-center">
-          <div className="text-base font-light tracking-[-0.02em] text-text-primary">Building your Krew…</div>
-          <div className="text-[0.72rem] text-text-tertiary mt-[0.3rem]">Optimizing Luna for your business</div>
+      <div className="ob-loading-overlay">
+        <div className="ob-loading-spin" />
+        <div>
+          <div className="ob-loading-title">Building your Krew…</div>
+          <div className="ob-loading-sub">Optimizing Luna for your business</div>
         </div>
       </div>
     );
   }
 
+  const continueDisabled = !step.valid(state) || signupLoading || connecting;
+  const isLastStep = idx === ALL_STEPS.length - 1;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background3">
+    <div className="luna-onboard-root">
+      <div className="luna-onboard-bg">
+        <div className="luna-onboard-glow glow-1" />
+        <div className="luna-onboard-glow glow-2" />
+      </div>
 
-      {/* ── Centered card ── */}
-      <div className="flex w-full max-w-[900px] rounded-[22px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.55)]">
-
-        {/* ── LEFT PANEL — animated aura + step bullets ── */}
-        <div
-          className="hidden lg:flex flex-col justify-between w-[40%] shrink-0 p-9 relative overflow-hidden"
-          style={{ background: AURA.baseBg, minHeight: '620px' }}
-        >
-          {/* Animated blobs */}
-          {AURA.blobs.map((b, i) => (
-            <div
-              key={i}
-              className="blob absolute rounded-full pointer-events-none"
-              style={{
-                width: b.size, height: b.size,
-                top: b.top, left: b.left,
-                transform: 'translate(-50%, -50%)',
-                background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`,
-                animationDuration: `${b.duration}s`,
-                animationDelay: `${b.delay}s`,
-              }}
-            />
-          ))}
-
-          {/* Noise overlay */}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
-          />
-
-          {/* Logo / back */}
-          <div className="relative z-10">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-[0.4rem] text-white/70 hover:text-white transition-colors duration-200 text-[0.85rem] font-medium tracking-[-0.01em] group"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:-translate-x-[3px]">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-              </svg>
-              Krew
-            </Link>
-          </div>
-
-          {/* Headline + step bullets */}
-          <div className="relative z-10">
-            <h2 className="text-white text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] mb-2">
-              Get Started<br />with Us
-            </h2>
-            <p className="text-blue-300/70 text-[0.75rem] leading-[1.65] max-w-[200px] mb-7">
-              Complete these easy steps to register your account.
-            </p>
-
-            <div className="flex gap-[0.55rem]">
-              {LEFT_STEPS.map((ls, i) => {
-                const isActive = i === activeLeft;
-                const isDone = i < activeLeft;
-                return (
+      <div className="luna-onboard-stage-outer">
+        <div className="luna-onboard-card">
+          <div className="ob-shell" data-phase={step.phase}>
+            {step.progressVisible && (
+              <div className="ob-progress-bar">
+                <div className="ob-progress-track">
                   <div
-                    key={ls.n}
-                    className="flex-1 rounded-[10px] px-[0.65rem] py-[0.7rem] transition-all duration-500"
-                    style={{
-                      background: isActive ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
-                      border: isActive ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(255,255,255,0.08)',
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    <span
-                      className="flex items-center justify-center w-[18px] h-[18px] rounded-full text-[0.58rem] font-bold mb-[0.45rem] transition-all duration-300"
-                      style={{
-                        background: isActive ? 'white' : isDone ? 'rgba(100,200,120,0.7)' : 'rgba(255,255,255,0.12)',
-                        color: isActive ? '#1042a0' : isDone ? '#fff' : 'rgba(255,255,255,0.35)',
-                      }}
-                    >
-                      {isDone ? '✓' : ls.n}
+                    className="ob-progress-fill"
+                    style={{ width: `${((progressIdx + 1) / progressTotal) * 100}%` }}
+                  />
+                </div>
+                <div className="ob-progress-meta">
+                  <span className="ob-brand">
+                    <span className="ob-brand-mark">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M15.5 3.5a9 9 0 1 0 5 5 7 7 0 0 1-5-5z" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
+                      </svg>
                     </span>
-                    <p
-                      className="text-[0.63rem] leading-[1.4] font-medium transition-all duration-300"
-                      style={{ color: isActive ? 'rgba(255,255,255,0.9)' : isDone ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)' }}
-                    >
-                      {ls.label}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT PANEL ── */}
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 bg-background overflow-y-auto" style={{ maxHeight: '90vh' }}>
-          <div className="w-full max-w-[360px] mx-auto">
-
-            {/* Mobile back link */}
-            <div className="lg:hidden mb-6">
-              <Link href="/" className="inline-flex items-center gap-[0.4rem] text-text-secondary hover:text-text-primary transition-colors duration-200 text-[0.85rem] font-medium tracking-[-0.01em] group">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:-translate-x-[3px]">
-                  <path d="M19 12H5M12 5l-7 7 7 7"/>
-                </svg>
-                Krew
-              </Link>
-            </div>
-
-            {/* ── SIGNUP FORM ── */}
-            {phase === 'signup' && (
-              <>
-                <h1 className="text-[1.3rem] font-semibold tracking-[-0.03em] text-text-primary mb-[0.2rem]">
-                  Sign Up Account
-                </h1>
-                <p className="text-[0.72rem] text-text-tertiary mb-6">
-                  Enter your personal data to create your account.
-                </p>
-
-                <form onSubmit={handleSignupSubmit} className="space-y-[0.7rem]">
-                  {/* First + Last */}
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">First Name</label>
-                      <input
-                        type="text" required value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                        placeholder="eg. John"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Last Name</label>
-                      <input
-                        type="text" required value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                        placeholder="eg. Francisco"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Brand Name</label>
-                    <input
-                      type="text" required value={formData.business_name}
-                      onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                      className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                      placeholder="YOUR BRAND"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Phone Number</label>
-                    <input
-                      type="tel" value={formData.phone_number}
-                      onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                      className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                      placeholder="+20 100 000 0000"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Email</label>
-                    <input
-                      type="email" required value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                      placeholder="eg. johnfrans@gmail.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'} required value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] pr-9 text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                        placeholder="Enter your password"
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors">
-                        {showPassword ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                            <line x1="1" y1="1" x2="23" y2="23"/>
-                          </svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                    <p className="text-[0.6rem] text-text-tertiary mt-[0.3rem]">Must be at least 8 characters.</p>
-                  </div>
-
-                  {signupError && <div className="text-red-400 text-[0.7rem]">{signupError}</div>}
-
-                  <button
-                    type="submit" disabled={signupLoading}
-                    className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity disabled:opacity-50 !mt-3"
-                  >
-                    {signupLoading ? 'Creating account…' : 'Sign Up'}
-                  </button>
-                </form>
-
-                <p className="text-center text-[0.7rem] text-text-tertiary mt-4">
-                  Already have an account?{' '}
-                  <Link href="/auth/login" className="text-text-secondary hover:text-text-primary font-medium">
-                    Log in
-                  </Link>
-                </p>
-              </>
-            )}
-
-            {/* ── ONBOARDING STEPS ── */}
-            {phase === 'onboarding' && (
-              <div className="ob-step-content" key={obStep}>
-                {/* Mini progress bar */}
-                <div className="mb-6">
-                  <div className="flex justify-between text-[0.58rem] text-text-tertiary tracking-[0.08em] uppercase mb-[0.5rem]">
-                    <span>Step {obStep + 1} of {obTotal}</span>
-                    <span>{Math.round(((obStep + 1) / obTotal) * 100)}%</span>
-                  </div>
-                  <div className="h-[2px] bg-border rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-text-secondary rounded-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                      style={{ width: `${Math.round(((obStep + 1) / obTotal) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Eyebrow */}
-                <div className="text-[0.58rem] uppercase tracking-[0.1em] text-text-tertiary mb-[0.7rem]">
-                  {step.eyebrow}
-                </div>
-
-                {/* Question */}
-                <h1 className="text-[1.15rem] font-semibold tracking-[-0.025em] leading-[1.25] text-text-primary mb-1">
-                  {step.question}
-                </h1>
-                <p className="text-[0.7rem] text-text-tertiary mb-5 leading-[1.6]">
-                  {step.sub}
-                </p>
-
-                {/* Options */}
-                {step.type === 'options' && (
-                  <div className="flex flex-col gap-[0.45rem]">
-                    {step.options.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => setSelected(option)}
-                        className={`flex items-center justify-between px-4 py-[0.75rem] border rounded-[8px] transition-all duration-[150ms] text-[0.75rem] text-left w-full ${
-                          selected === option
-                            ? 'border-border-hover text-text-primary bg-background3'
-                            : 'bg-background2 border-border text-text-secondary hover:border-border-md hover:text-text-primary hover:bg-background3'
-                        }`}
-                      >
-                        <span>{option}</span>
-                        <span className={`w-[14px] h-[14px] border rounded-full flex items-center justify-center shrink-0 transition-all duration-150 ${
-                          selected === option
-                            ? 'border-text-secondary bg-text-secondary after:content-[""] after:w-[4px] after:h-[4px] after:rounded-full after:bg-background'
-                            : 'border-border'
-                        }`} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Textarea */}
-                {step.type === 'textarea' && (
-                  <div>
-                    <textarea
-                      value={textValue}
-                      onChange={(e) => setTextValue(e.target.value)}
-                      placeholder={step.placeholder}
-                      rows={5}
-                      className="w-full bg-background2 border border-border rounded-[8px] px-4 py-3 text-[0.75rem] text-text-primary leading-[1.7] outline-none focus:border-border-md transition-colors duration-200 resize-none placeholder:text-text-tertiary"
-                    />
-                    <p className="text-[0.63rem] text-text-tertiary mt-[0.5rem] leading-[1.6]">
-                      {step.helper}
-                    </p>
-                  </div>
-                )}
-
-                {/* Navigation */}
-                <div className="flex items-center justify-between mt-6">
-                  <button
-                    onClick={handleObBack}
-                    className="text-[0.72rem] text-text-tertiary hover:text-text-secondary transition-colors duration-200"
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    onClick={handleObNext}
-                    disabled={!canContinue}
-                    className={`bg-btn-bg text-btn-text px-5 py-[8px] rounded-[8px] text-[0.75rem] font-medium transition-opacity duration-200 ${
-                      canContinue ? 'opacity-100 hover:opacity-85' : 'opacity-30 pointer-events-none'
-                    }`}
-                  >
-                    {obStep === obTotal - 1 ? 'Finish' : 'Continue'}
-                  </button>
+                    Luna setup
+                  </span>
+                  <span className="ob-counter">
+                    {String(progressIdx + 1).padStart(2, '0')} <span className="sep">/</span>{' '}
+                    {String(progressTotal).padStart(2, '0')}
+                  </span>
                 </div>
               </div>
             )}
 
+            <div className={`ob-stage ${step.id === 'hook' ? 'ob-stage-hook' : ''}`} key={step.id}>
+              <div className="ob-stage-inner">
+                {step.id !== 'hook' && <LunaChip line={luna.line} state={luna.state} />}
+                {step.render(ctx)}
+              </div>
+            </div>
+
+            {step.hasFooter && (
+              <div className="ob-footer">
+                <div className="ob-foot-nav">
+                  <button
+                    type="button"
+                    className="ob-btn-ghost"
+                    onClick={goBack}
+                    disabled={idx === 0}
+                  >
+                    <IconArrowLeft size={12} sw={1.8} /> Back
+                  </button>
+                  <button
+                    type="button"
+                    className="ob-btn-primary"
+                    onClick={goNext}
+                    disabled={continueDisabled}
+                  >
+                    {signupLoading && step.id === 'brand' ? (
+                      <>Creating account…</>
+                    ) : isLastStep ? (
+                      <>Enter dashboard <IconArrowRight size={12} sw={1.8} /></>
+                    ) : (
+                      <>Continue <IconArrowRight size={12} sw={1.8} /></>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Welcome toast */}
-      {showWelcomeToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background2 border border-border-md rounded-[10px] px-6 py-[0.9rem] flex items-center gap-[0.7rem] text-[0.75rem] text-text-secondary shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-[400] whitespace-nowrap animate-toastIn">
-          <span className="w-[6px] h-[6px] rounded-full bg-text-secondary animate-pulse flex-shrink-0" />
-          Luna is now optimized for your brand.
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes drift0 {
-          0%   { transform: translate(-50%,-50%) translate(0,0); }
-          33%  { transform: translate(-50%,-50%) translate(${AURA.driftX}px,-${AURA.driftY}px); }
-          66%  { transform: translate(-50%,-50%) translate(-${AURA.driftX * 0.6}px,${AURA.driftY}px); }
-          100% { transform: translate(-50%,-50%) translate(0,0); }
-        }
-        @keyframes drift1 {
-          0%   { transform: translate(-50%,-50%) translate(0,0); }
-          40%  { transform: translate(-50%,-50%) translate(-${AURA.driftX}px,${AURA.driftY * 0.7}px); }
-          70%  { transform: translate(-50%,-50%) translate(${AURA.driftX * 0.5}px,-${AURA.driftY * 0.8}px); }
-          100% { transform: translate(-50%,-50%) translate(0,0); }
-        }
-        @keyframes drift2 {
-          0%   { transform: translate(-50%,-50%) translate(0,0); }
-          50%  { transform: translate(-50%,-50%) translate(${AURA.driftX * 0.8}px,${AURA.driftY}px); }
-          100% { transform: translate(-50%,-50%) translate(0,0); }
-        }
-        @keyframes drift3 {
-          0%   { transform: translate(-50%,-50%) translate(0,0); }
-          30%  { transform: translate(-50%,-50%) translate(${AURA.driftX * 0.4}px,-${AURA.driftY * 0.6}px); }
-          60%  { transform: translate(-50%,-50%) translate(-${AURA.driftX * 0.7}px,${AURA.driftY * 0.4}px); }
-          100% { transform: translate(-50%,-50%) translate(0,0); }
-        }
-        .blob:nth-child(1) { animation: drift0 8s  ease-in-out infinite; }
-        .blob:nth-child(2) { animation: drift1 11s ease-in-out infinite; }
-        .blob:nth-child(3) { animation: drift2 9s  ease-in-out infinite; }
-        .blob:nth-child(4) { animation: drift3 13s ease-in-out infinite; }
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        .animate-toastIn { animation: toastIn 0.4s 0.3s ease both; }
-        .ob-step-content { animation: fadeUp 0.35s ease both; }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }

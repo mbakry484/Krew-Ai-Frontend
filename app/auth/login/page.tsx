@@ -1,30 +1,32 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/api';
+import '../signup/onboarding.css';
 
-// =============================================================================
-// AURA CUSTOMIZATION — edit the values below to change the animated left panel
-// =============================================================================
-const AURA = {
-  // Base background of the left panel
-  baseBg: '#0a1628',
+// ── LunaMark icon ──
+const LunaMark = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path
+      d="M15.5 3.5a9 9 0 1 0 5 5 7 7 0 0 1-5-5z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      fill="none"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
-  // Each blob: color (as rgba), size (px), start position (%), animation duration (s)
-  blobs: [
-    { color: 'rgba(30, 80, 220, 0.55)',  size: 420, top: '30%', left: '20%', duration: 8,  delay: 0   },
-    { color: 'rgba(60, 120, 255, 0.35)', size: 320, top: '60%', left: '55%', duration: 11, delay: 2   },
-    { color: 'rgba(100,170,255, 0.20)',  size: 260, top: '10%', left: '60%', duration: 9,  delay: 4   },
-    { color: 'rgba(20,  50, 180, 0.45)', size: 360, top: '70%', left: '5%',  duration: 13, delay: 1   },
-  ],
-
-  // How far each blob drifts in px — increase for more movement
-  driftX: 60,
-  driftY: 50,
-};
-// =============================================================================
+function LunaChip({ line }: { line: string }) {
+  return (
+    <div className="luna-line-wrap">
+      <span className="luna-mark"><LunaMark size={13} /></span>
+      <span className="luna-line">{line}</span>
+    </div>
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -35,8 +37,9 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (loading) return;
     setError('');
     setLoading(true);
     try {
@@ -55,217 +58,148 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background3">
+    <div className="luna-onboard-root">
+      <div className="luna-onboard-bg">
+        <div className="luna-onboard-glow glow-1" />
+        <div className="luna-onboard-glow glow-2" />
+      </div>
 
-      {/* ── Centered card ── */}
-      <div className="flex w-full max-w-[860px] rounded-[22px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.55)]">
+      <div className="luna-onboard-stage-outer">
+        <div className="luna-onboard-card">
+          <div className="ob-shell">
 
-        {/* ── LEFT PANEL — animated aura ── */}
-        <div
-          className="hidden lg:flex flex-col justify-between w-[42%] shrink-0 p-9 relative overflow-hidden"
-          style={{ background: AURA.baseBg, minHeight: '580px' }}
-        >
-          {/* Animated blobs */}
-          {AURA.blobs.map((b, i) => (
-            <div
-              key={i}
-              className="blob absolute rounded-full pointer-events-none"
-              style={{
-                width: b.size,
-                height: b.size,
-                top: b.top,
-                left: b.left,
-                transform: 'translate(-50%, -50%)',
-                background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`,
-                animationDuration: `${b.duration}s`,
-                animationDelay: `${b.delay}s`,
-              }}
-            />
-          ))}
-
-          {/* Noise overlay */}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}
-          />
-
-          {/* Logo / back link */}
-          <div className="relative z-10">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-[0.4rem] text-white/70 hover:text-white transition-colors duration-200 text-[0.85rem] font-medium tracking-[-0.01em] group"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:-translate-x-[3px]">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-              </svg>
-              Krew
-            </Link>
-          </div>
-
-          {/* Headline + steps */}
-          <div className="relative z-10">
-            <h2 className="text-white text-[1.85rem] font-bold leading-[1.2] tracking-[-0.03em] mb-2">
-              Welcome<br />Back
-            </h2>
-            <p className="text-blue-300/70 text-[0.75rem] leading-[1.65] max-w-[200px] mb-7">
-              Log in to pick up right where you left off.
-            </p>
-
-            {/* Step cards */}
-            <div className="flex gap-[0.55rem]">
-              {[
-                { n: '1', label: 'Sign up your account' },
-                { n: '2', label: 'Set up your workspace' },
-                { n: '3', label: 'Set up your profile' },
-              ].map((step, i) => (
-                <div
-                  key={step.n}
-                  className="flex-1 rounded-[10px] px-[0.65rem] py-[0.7rem]"
-                  style={{
-                    background: i === 0 ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
-                    border: i === 0 ? '1px solid rgba(255,255,255,0.25)' : '1px solid rgba(255,255,255,0.08)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <span
-                    className="flex items-center justify-center w-[18px] h-[18px] rounded-full text-[0.58rem] font-bold mb-[0.45rem]"
-                    style={{
-                      background: i === 0 ? 'white' : 'rgba(255,255,255,0.12)',
-                      color: i === 0 ? '#1042a0' : 'rgba(255,255,255,0.35)',
-                    }}
-                  >
-                    {step.n}
+            {/* Top bar */}
+            <div className="ob-progress-bar">
+              <div className="ob-progress-meta">
+                <Link href="/" className="ob-brand" style={{ textDecoration: 'none' }}>
+                  <span className="ob-brand-mark">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M15.5 3.5a9 9 0 1 0 5 5 7 7 0 0 1-5-5z" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
+                    </svg>
                   </span>
-                  <p
-                    className="text-[0.63rem] leading-[1.4] font-medium"
-                    style={{ color: i === 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)' }}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.5, marginRight: 2 }}>
+                    <path d="M19 12H5M11 6l-6 6 6 6" />
+                  </svg>
+                  Krew
+                </Link>
+              </div>
+            </div>
+
+            {/* Main content */}
+            <div className="ob-stage">
+              <div className="ob-stage-inner">
+                <LunaChip line="Welcome back — pick up right where you left off." />
+
+                <div className="form-screen" style={{ gap: 20 }}>
+                  <div className="form-head">
+                    <h2 className="form-title ds-h1-mixed">
+                      <span className="emph">Log in</span>{' '}
+                      <span className="rest">to your account.</span>
+                    </h2>
+                    <p className="ds-body form-sub">
+                      Don&apos;t have an account?{' '}
+                      <Link href="/auth/signup" style={{ color: 'var(--text-primary)', fontWeight: 500, textDecoration: 'none' }}>
+                        Sign up free
+                      </Link>
+                    </p>
+                  </div>
+
+                  <form
+                    id="login-form"
+                    onSubmit={handleLogin}
+                    className="form-fields"
                   >
-                    {step.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                    <div className="field">
+                      <label className="field-lbl">Work email</label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        className="field-input"
+                        placeholder="you@company.com"
+                        autoComplete="email"
+                      />
+                    </div>
 
-        {/* ── RIGHT PANEL — form ── */}
-        <div className="flex-1 flex items-center justify-center px-8 py-10 bg-background">
-          <div className="w-full max-w-[340px]">
+                    <div className="field">
+                      <label className="field-lbl">Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={formData.password}
+                          onChange={e => setFormData({ ...formData, password: e.target.value })}
+                          className="field-input"
+                          placeholder="Your password"
+                          style={{ paddingRight: '42px' }}
+                          autoComplete="current-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(v => !v)}
+                          style={{
+                            position: 'absolute',
+                            right: '13px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-tertiary)',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
 
-            {/* Mobile logo / back link */}
-            <div className="lg:hidden mb-6">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-[0.4rem] text-text-secondary hover:text-text-primary transition-colors duration-200 text-[0.85rem] font-medium tracking-[-0.01em] group"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:-translate-x-[3px]">
-                  <path d="M19 12H5M12 5l-7 7 7 7"/>
-                </svg>
-                Krew
-              </Link>
-            </div>
-
-            <h1 className="text-[1.3rem] font-semibold tracking-[-0.03em] text-text-primary mb-[0.2rem]">
-              Log In Account
-            </h1>
-            <p className="text-[0.72rem] text-text-tertiary mb-6">
-              Enter your credentials to access your dashboard.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-[0.7rem]">
-              {/* Email */}
-              <div>
-                <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Email</label>
-                <input
-                  type="email" required value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                  placeholder="eg. johnfrans@gmail.com"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="text-[0.62rem] text-text-tertiary mb-[0.3rem] block">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'} required value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-background2 border border-border rounded-[8px] px-3 py-[8px] pr-9 text-[0.76rem] text-text-primary outline-none focus:border-border-md transition-colors placeholder:text-text-tertiary"
-                    placeholder="Enter your password"
-                  />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary transition-colors">
-                    {showPassword ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                        <line x1="1" y1="1" x2="23" y2="23"/>
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                      </svg>
+                    {error && (
+                      <p style={{ color: '#f87171', fontSize: '0.72rem', margin: 0, textAlign: 'left' }}>
+                        {error}
+                      </p>
                     )}
-                  </button>
+                  </form>
                 </div>
-                <p className="text-[0.6rem] text-text-tertiary mt-[0.3rem]">Must be at least 8 characters.</p>
               </div>
+            </div>
 
-              {error && <div className="text-red-400 text-[0.7rem]">{error}</div>}
-
+            {/* Footer */}
+            <div className="ob-footer">
+              <span />
               <button
-                type="submit" disabled={loading}
-                className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity disabled:opacity-50 !mt-3"
+                type="submit"
+                form="login-form"
+                className="ob-btn-primary"
+                disabled={loading}
               >
-                {loading ? 'Logging in…' : 'Log In'}
+                {loading ? 'Logging in…' : 'Log in'}
+                {!loading && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                )}
               </button>
-            </form>
+            </div>
 
-            <p className="text-center text-[0.7rem] text-text-tertiary mt-4">
-              Don't have an account?{' '}
-              <Link href="/auth/signup" className="text-text-secondary hover:text-text-primary font-medium">
-                Sign up
-              </Link>
-            </p>
           </div>
         </div>
       </div>
-
-      {/* Blob keyframe animations */}
-      <style jsx>{`
-        /* ─────────────────────────────────────────────────────────────────────
-           AURA ANIMATION — to adjust movement, change translateX/Y values.
-           driftX=${AURA.driftX}px  driftY=${AURA.driftY}px (set in AURA const above)
-           ───────────────────────────────────────────────────────────────────── */
-        @keyframes drift0 {
-          0%   { transform: translate(-50%, -50%) translate(0px, 0px); }
-          33%  { transform: translate(-50%, -50%) translate(${AURA.driftX}px, -${AURA.driftY}px); }
-          66%  { transform: translate(-50%, -50%) translate(-${AURA.driftX * 0.6}px, ${AURA.driftY}px); }
-          100% { transform: translate(-50%, -50%) translate(0px, 0px); }
-        }
-        @keyframes drift1 {
-          0%   { transform: translate(-50%, -50%) translate(0px, 0px); }
-          40%  { transform: translate(-50%, -50%) translate(-${AURA.driftX}px, ${AURA.driftY * 0.7}px); }
-          70%  { transform: translate(-50%, -50%) translate(${AURA.driftX * 0.5}px, -${AURA.driftY * 0.8}px); }
-          100% { transform: translate(-50%, -50%) translate(0px, 0px); }
-        }
-        @keyframes drift2 {
-          0%   { transform: translate(-50%, -50%) translate(0px, 0px); }
-          50%  { transform: translate(-50%, -50%) translate(${AURA.driftX * 0.8}px, ${AURA.driftY}px); }
-          100% { transform: translate(-50%, -50%) translate(0px, 0px); }
-        }
-        @keyframes drift3 {
-          0%   { transform: translate(-50%, -50%) translate(0px, 0px); }
-          30%  { transform: translate(-50%, -50%) translate(${AURA.driftX * 0.4}px, -${AURA.driftY * 0.6}px); }
-          60%  { transform: translate(-50%, -50%) translate(-${AURA.driftX * 0.7}px, ${AURA.driftY * 0.4}px); }
-          100% { transform: translate(-50%, -50%) translate(0px, 0px); }
-        }
-        .blob:nth-child(1) { animation: drift0 var(--d, 8s) ease-in-out infinite; }
-        .blob:nth-child(2) { animation: drift1 var(--d, 11s) ease-in-out infinite; }
-        .blob:nth-child(3) { animation: drift2 var(--d, 9s) ease-in-out infinite; }
-        .blob:nth-child(4) { animation: drift3 var(--d, 13s) ease-in-out infinite; }
-      `}</style>
     </div>
   );
 }
