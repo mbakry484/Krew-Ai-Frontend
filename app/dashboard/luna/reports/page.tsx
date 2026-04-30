@@ -45,11 +45,11 @@ export default function ReportsPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-1 gap-3 p-3">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
           <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>

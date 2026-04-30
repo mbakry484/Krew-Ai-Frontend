@@ -7,6 +7,7 @@ import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 import { getExchangesRefunds, updateExchangeRefundStatus } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import Skeleton from '@/components/Skeleton';
 
 type RequestType = 'exchange' | 'refund';
 type RequestStatus = 'pending' | 'done' | 'dismissed';
@@ -217,12 +218,12 @@ export default function ExchangesRefundsPage() {
   const refundCount = requests.filter((r) => r.type === 'refund').length;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-1 gap-3 p-3">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
-          <div className="px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background2">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2 max-md:pt-12">
+          <div className="px-8 max-md:px-4 pt-6 pb-0">
             <div className="flex items-start justify-between gap-3 mb-[1.1rem]">
               <div>
                 <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
@@ -263,8 +264,31 @@ export default function ExchangesRefundsPage() {
 
           <div className="px-8 py-6 pb-12">
             {loading ? (
-              <div className="flex items-center justify-center h-40 text-[0.7rem] text-text-tertiary">
-                loading...
+              <div className="grid grid-cols-2 gap-5 items-start">
+                {[0, 1].map((col) => (
+                  <div key={col}>
+                    <Skeleton className="w-20 h-[0.6rem] mb-4" />
+                    <div className="flex flex-col gap-[10px]">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="bg-background border border-border rounded-[12px] px-5 py-4">
+                          <Skeleton className="w-14 h-[1.1rem] rounded-full mb-3" />
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 flex flex-col gap-[6px]">
+                              <Skeleton className="w-24 h-[0.7rem]" />
+                              <Skeleton className="w-16 h-[0.55rem]" />
+                              <Skeleton className="w-full h-[0.55rem] mt-1" />
+                              <Skeleton className="w-3/4 h-[0.55rem]" />
+                            </div>
+                            <div className="flex flex-col gap-[6px] shrink-0">
+                              <Skeleton className="w-[28px] h-[28px] rounded-[7px]" />
+                              <Skeleton className="w-[28px] h-[28px] rounded-[7px]" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-5 items-start">

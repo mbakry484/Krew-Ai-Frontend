@@ -6,6 +6,7 @@ import { isLoggedIn } from '@/lib/auth';
 import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage, getProducts } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
+import Skeleton from '@/components/Skeleton';
 
 interface KBItem {
   id: string;
@@ -18,6 +19,11 @@ interface KBItem {
 interface FAQ {
   question: string;
   answer: string;
+}
+
+interface Product {
+  name: string;
+  image?: string;
 }
 
 interface SituationItem {
@@ -88,9 +94,14 @@ export default function KnowledgeBasePage() {
   const [sizeGuides, setSizeGuides] = useState<SizeGuideItem[]>([]);
   const [modalImage, setModalImage] = useState<string | null>(null);
 
-  const [allProducts, setAllProducts] = useState<string[]>([]);
-  const [productSearch, setProductSearch] = useState<{ [guideId: string]: string }>({});
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
+  // Product picker modal state
+  const [productPickerOpen, setProductPickerOpen] = useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerTemp, setPickerTemp] = useState<string[]>([]);
+
+  const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -109,10 +120,13 @@ export default function KnowledgeBasePage() {
           getProducts().catch(() => ({ products: [] as { name: string }[] })),
         ]);
 
-        const productNames: string[] = (productsData?.products || []).map(
-          (p: { name: string }) => p.name
+        const products: Product[] = (productsData?.products || []).map(
+          (p: { name: string; image?: string; images?: Array<{ src: string }> }) => ({
+            name: p.name,
+            image: p.image || p.images?.[0]?.src,
+          })
         );
-        setAllProducts(productNames);
+        setAllProducts(products);
 
         if (kbData.faqs && Array.isArray(kbData.faqs)) {
           const fixedWithAnswers = FIXED_ITEMS.map((fi) => {
@@ -152,17 +166,16 @@ export default function KnowledgeBasePage() {
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
+      } finally {
+        setPageLoading(false);
       }
     };
 
     fetchData();
   }, [router]);
 
-  // All products claimed by any size guide row
+  // All product names claimed by any size guide row
   const claimedProducts = new Set(sizeGuides.flatMap((sg) => sg.productNames));
-
-  // Products not yet assigned to any row
-  const unassignedProducts = allProducts.filter((name) => !claimedProducts.has(name));
 
   // Toggle a product in/out of a specific size guide row
   const handleToggleProduct = (guideId: string, productName: string) => {
@@ -178,6 +191,35 @@ export default function KnowledgeBasePage() {
         };
       })
     );
+  };
+
+  // Product picker modal helpers
+  const openProductPicker = (guideId: string, current: string[]) => {
+    setProductPickerOpen(guideId);
+    setPickerTemp([...current]);
+    setPickerSearch('');
+  };
+
+  const closeProductPicker = () => {
+    setProductPickerOpen(null);
+    setPickerTemp([]);
+    setPickerSearch('');
+  };
+
+  const togglePickerProduct = (name: string) => {
+    setPickerTemp((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
+
+  const confirmProductPicker = () => {
+    if (!productPickerOpen) return;
+    setSizeGuides((prev) =>
+      prev.map((sg) =>
+        sg.id === productPickerOpen ? { ...sg, productNames: pickerTemp } : sg
+      )
+    );
+    closeProductPicker();
   };
 
   // Add a new empty size guide row
@@ -293,11 +335,11 @@ export default function KnowledgeBasePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-1 gap-3 p-3">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2 max-md:pt-12">
           {/* Top Bar */}
           <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>
@@ -315,6 +357,51 @@ export default function KnowledgeBasePage() {
 
           {/* Content */}
           <div className="px-8 max-md:px-4 py-6 pb-12 flex flex-col gap-3">
+
+            {pageLoading && (
+              <>
+                {/* FAQ table skeleton */}
+                <div className="bg-background border border-border rounded-[12px] overflow-hidden">
+                  <div className="flex gap-0 border-b border-border px-4 py-[0.7rem]">
+                    <Skeleton className="w-24 h-[0.5rem]" />
+                  </div>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex border-b border-border">
+                      <div className="w-[38%] px-4 py-[0.85rem] border-r border-border">
+                        <Skeleton className="w-3/4 h-[0.65rem]" />
+                      </div>
+                      <div className="flex-1 px-4 py-[0.85rem]">
+                        <Skeleton className="w-full h-[0.65rem] mb-2" />
+                        <Skeleton className="w-2/3 h-[0.55rem]" />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="px-4 py-3">
+                    <Skeleton className="w-28 h-[0.6rem]" />
+                  </div>
+                </div>
+
+                {/* Situations skeleton */}
+                <div className="bg-background border border-border rounded-[12px] px-4 py-[0.85rem] flex items-center justify-between">
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="w-20 h-[0.65rem]" />
+                    <Skeleton className="w-40 h-[0.5rem]" />
+                  </div>
+                  <Skeleton className="w-5 h-5 rounded-[3px]" />
+                </div>
+
+                {/* Size guides skeleton */}
+                <div className="bg-background border border-border rounded-[12px] px-4 py-[0.85rem] flex items-center justify-between">
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="w-24 h-[0.65rem]" />
+                    <Skeleton className="w-52 h-[0.5rem]" />
+                  </div>
+                  <Skeleton className="w-5 h-5 rounded-[3px]" />
+                </div>
+              </>
+            )}
+
+            {!pageLoading && (<>
 
             {/* ── FAQ table ── */}
             <div className="bg-background border border-border rounded-[12px] overflow-hidden">
@@ -489,77 +576,41 @@ export default function KnowledgeBasePage() {
                       </thead>
                       <tbody>
                         {sizeGuides.map((sg) => {
-                          // Products available to be added to THIS row = unassigned + already on this row
-                          const pickableForRow = allProducts.filter(
-                            (name) => !claimedProducts.has(name) || sg.productNames.includes(name)
-                          );
-
                           return (
                             <tr
                               key={sg.id}
                               className="border-b border-border transition-colors duration-150 group/row"
                             >
-                              {/* Left: split — selected pills top, searchable list bottom */}
+                              {/* Left: selected pills + add button */}
                               <td className="border-r border-border align-top">
-                                {/* Top: selected products */}
-                                <div className="px-3 pt-3 pb-2 min-h-[40px] flex flex-wrap gap-[5px]">
-                                  {sg.productNames.length === 0 ? (
-                                    <span className="text-[0.65rem] text-text-tertiary italic">select products from below</span>
-                                  ) : (
-                                    sg.productNames.map((name) => (
-                                      <button
-                                        key={name}
-                                        onClick={() => handleToggleProduct(sg.id, name)}
-                                        title="Click to remove"
-                                        className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.67rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
-                                      >
-                                        {name}
-                                        <svg className="w-[8px] h-[8px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                          <line x1="18" y1="6" x2="6" y2="18" />
-                                          <line x1="6" y1="6" x2="18" y2="18" />
-                                        </svg>
-                                      </button>
-                                    ))
+                                <div className="px-3 pt-3 pb-3 min-h-[52px] flex flex-wrap gap-[5px] items-center">
+                                  {sg.productNames.map((name) => (
+                                    <button
+                                      key={name}
+                                      onClick={() => handleToggleProduct(sg.id, name)}
+                                      title="Click to remove"
+                                      className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.67rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
+                                    >
+                                      {name}
+                                      <svg className="w-[8px] h-[8px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                      </svg>
+                                    </button>
+                                  ))}
+                                  <button
+                                    onClick={() => openProductPicker(sg.id, sg.productNames)}
+                                    title="Add products"
+                                    className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-full border border-dashed border-border text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150 shrink-0"
+                                  >
+                                    <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <line x1="12" y1="5" x2="12" y2="19" />
+                                      <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                  </button>
+                                  {sg.productNames.length === 0 && (
+                                    <span className="text-[0.63rem] text-text-tertiary italic">click + to select products</span>
                                   )}
-                                </div>
-
-                                {/* Divider */}
-                                <div className="border-t border-border" />
-
-                                {/* Bottom: search + scrollable product list */}
-                                <div className="px-3 pt-2 pb-2">
-                                  <input
-                                    type="text"
-                                    value={productSearch[sg.id] || ''}
-                                    onChange={(e) =>
-                                      setProductSearch((prev) => ({ ...prev, [sg.id]: e.target.value }))
-                                    }
-                                    placeholder="Search products…"
-                                    className="w-full bg-background2 border border-border rounded-[6px] px-3 py-[5px] text-[0.68rem] text-text-secondary placeholder:text-text-tertiary outline-none focus:border-border-md transition-colors duration-150 mb-2"
-                                  />
-                                  <div className="flex flex-wrap gap-[5px] max-h-[90px] overflow-y-auto">
-                                    {pickableForRow
-                                      .filter((n) => !sg.productNames.includes(n))
-                                      .filter((n) =>
-                                        n.toLowerCase().includes((productSearch[sg.id] || '').toLowerCase())
-                                      )
-                                      .map((name) => (
-                                        <button
-                                          key={name}
-                                          onClick={() => handleToggleProduct(sg.id, name)}
-                                          className="inline-flex items-center gap-[4px] px-[9px] py-[3px] rounded-full border border-dashed border-border text-[0.67rem] text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150"
-                                        >
-                                          <svg className="w-[8px] h-[8px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                            <line x1="12" y1="5" x2="12" y2="19" />
-                                            <line x1="5" y1="12" x2="19" y2="12" />
-                                          </svg>
-                                          {name}
-                                        </button>
-                                      ))}
-                                    {pickableForRow.filter((n) => !sg.productNames.includes(n)).length === 0 && (
-                                      <span className="text-[0.63rem] text-text-tertiary italic">all products selected</span>
-                                    )}
-                                  </div>
                                 </div>
                               </td>
 
@@ -677,9 +728,144 @@ export default function KnowledgeBasePage() {
                 {loading ? 'Saving...' : 'Save changes'}
               </button>
             </div>
+
+            </>)}
           </div>
         </main>
       </div>
+
+      {/* Product picker modal */}
+      {productPickerOpen !== null && (() => {
+        const activeGuide = sizeGuides.find((sg) => sg.id === productPickerOpen);
+        const pickable = allProducts.filter(
+          (p) => !claimedProducts.has(p.name) || (activeGuide?.productNames ?? []).includes(p.name)
+        );
+        const filtered = pickable.filter((p) =>
+          p.name.toLowerCase().includes(pickerSearch.toLowerCase())
+        );
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-6"
+            onClick={closeProductPicker}
+          >
+            <div
+              className="bg-background border border-border rounded-[14px] shadow-2xl w-full max-w-[560px] flex flex-col overflow-hidden"
+              style={{ maxHeight: '80vh' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <h3 className="text-[0.83rem] font-medium text-text-primary tracking-[-0.01em]">Select products</h3>
+                <button
+                  onClick={closeProductPicker}
+                  className="w-6 h-6 flex items-center justify-center rounded-[6px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
+                >
+                  <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="px-5 py-3 border-b border-border">
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-text-tertiary pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    placeholder="Search products…"
+                    autoFocus
+                    className="w-full bg-background2 border border-border rounded-[8px] pl-8 pr-3 py-[7px] text-[0.73rem] text-text-secondary placeholder:text-text-tertiary outline-none focus:border-border-md transition-colors duration-150"
+                  />
+                </div>
+              </div>
+
+              {/* Product grid */}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                {filtered.length === 0 ? (
+                  <p className="text-center text-[0.68rem] text-text-tertiary py-10">No products found</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {filtered.map((product) => {
+                      const checked = pickerTemp.includes(product.name);
+                      return (
+                        <button
+                          key={product.name}
+                          onClick={() => togglePickerProduct(product.name)}
+                          className="flex flex-col items-center gap-[6px] text-center group/card"
+                        >
+                          {/* Image tile */}
+                          <div className={`relative w-full aspect-square rounded-[8px] overflow-hidden border transition-all duration-150 ${
+                            checked ? 'border-text-primary ring-2 ring-text-primary/20' : 'border-border hover:border-border-md'
+                          } bg-background3`}>
+                            {product.image ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-text-tertiary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                            {/* Checkbox top-left */}
+                            <div className={`absolute top-[6px] left-[6px] w-[16px] h-[16px] rounded-[4px] border flex items-center justify-center transition-all duration-150 ${
+                              checked
+                                ? 'bg-text-primary border-text-primary'
+                                : 'border-white/60 bg-black/20 group-hover/card:bg-black/30'
+                            }`}>
+                              {checked && (
+                                <svg className="w-[9px] h-[9px] text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                          {/* Product name */}
+                          <span className="text-[0.62rem] text-text-secondary leading-tight w-full truncate px-[2px]">
+                            {product.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+                <span className="text-[0.65rem] text-text-tertiary">
+                  {pickerTemp.length} selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={closeProductPicker}
+                    className="px-4 py-[6px] rounded-[8px] text-[0.72rem] text-text-secondary border border-border hover:bg-background3 transition-all duration-150"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmProductPicker}
+                    className="px-4 py-[6px] rounded-[8px] text-[0.72rem] bg-btn-bg text-btn-text hover:opacity-85 transition-opacity duration-200 font-medium"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Image preview modal */}
       {modalImage && (

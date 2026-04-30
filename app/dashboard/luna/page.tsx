@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
+import Skeleton from '@/components/Skeleton';
 import { getOverviewStats, getOrders, getIntegrationStatus } from '@/lib/api';
 
 // =============================================================================
@@ -150,16 +151,16 @@ export default function LunaOverview() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-1 gap-3 p-3">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border bg-background2 flex flex-col overflow-hidden max-md:pt-12">
 
           {/* Top Bar */}
-          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-6 pb-5 flex-wrap gap-3 border-b border-border shrink-0">
             <div>
-              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
+              <h2 className="text-2xl font-bold tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
                 daily support summary
               </h2>
               <p className="text-[0.72rem] text-text-secondary">
@@ -199,41 +200,52 @@ export default function LunaOverview() {
             </div>
           </div>
 
-          <div className="px-8 py-6 pb-12 flex flex-col gap-6">
+          <div className="overflow-y-auto flex-1 px-8 py-6 pb-12 flex flex-col gap-6 scrollbar-hide">
 
             {/* Stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {statCards.map((s) => (
-                <div
-                  key={s.label}
-                  onClick={s.clickable ? s.onClick : undefined}
-                  className={`bg-background border border-border rounded-[12px] p-[1.2rem] transition-colors duration-200 ${
-                    s.clickable
-                      ? 'hover:border-border-md cursor-pointer hover:bg-background2'
-                      : 'hover:border-border-md'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-[0.9rem]">
-                    <div className="text-text-tertiary">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{s.icon}</svg>
+              {statsLoading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-background3 border border-border rounded-2xl p-[1.2rem]">
+                      <div className="flex items-start justify-between mb-[0.9rem]">
+                        <Skeleton className="w-4 h-4" />
+                      </div>
+                      <Skeleton className="w-20 h-[0.55rem] mb-[0.55rem]" />
+                      <Skeleton className="w-14 h-8 rounded-[4px]" />
                     </div>
-                    {s.clickable && (
-                      <svg className="w-[10px] h-[10px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M7 17L17 7M17 7H7M17 7v10"/>
-                      </svg>
-                    )}
-                  </div>
-                  <div className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary mb-[0.3rem]">{s.label}</div>
-                  <div className={`text-[1.9rem] font-light tracking-[-0.04em] text-text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
-                    {s.value}
-                  </div>
-                </div>
-              ))}
+                  ))
+                : statCards.map((s) => (
+                    <div
+                      key={s.label}
+                      onClick={s.clickable ? s.onClick : undefined}
+                      className={`bg-background3 border border-border rounded-2xl p-[1.2rem] transition-colors duration-200 ${
+                        s.clickable
+                          ? 'hover:border-border-md cursor-pointer hover:bg-background4'
+                          : 'hover:border-border-md'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-[0.9rem]">
+                        <div className="text-text-tertiary">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{s.icon}</svg>
+                        </div>
+                        {s.clickable && (
+                          <svg className="w-[10px] h-[10px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M7 17L17 7M17 7H7M17 7v10"/>
+                          </svg>
+                        )}
+                      </div>
+                      <div className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary mb-[0.3rem]">{s.label}</div>
+                      <div className="text-[1.9rem] font-light tracking-[-0.04em] text-text-primary">
+                        {s.value}
+                      </div>
+                    </div>
+                  ))
+              }
             </div>
 
             {/* Bar charts row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
+              <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Daily Breakdown</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Conversation volume by hour</p>
                 <div className="flex items-end gap-[3px] h-[52px]">
@@ -246,7 +258,7 @@ export default function LunaOverview() {
                 </div>
               </div>
 
-              <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
+              <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Monthly Trends</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Conversations over time</p>
                 <div className="flex items-end gap-[3px] h-[52px]">
@@ -261,7 +273,7 @@ export default function LunaOverview() {
             </div>
 
             {/* Top Issues */}
-            <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
+            <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
               <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Top Issues</div>
               <p className="text-[0.68rem] text-text-secondary mb-4">Most common customer concerns</p>
               <div className="flex flex-col gap-[0.6rem]">
@@ -271,13 +283,13 @@ export default function LunaOverview() {
                   { num: 5,  name: 'Color mismatch', sub: 'mentions today', delta: '+15%', up: true },
                   { num: 4,  name: 'Product quality', sub: 'mentions today', delta: '-5%', up: false },
                 ].map((issue) => (
-                  <div key={issue.name} className="flex items-center gap-4 bg-background2 border border-border rounded-[8px] p-4 hover:border-border-md transition-colors duration-150">
+                  <div key={issue.name} className="flex items-center gap-4 bg-background4 border border-border rounded-xl p-4 hover:border-border-md transition-colors duration-150">
                     <div className="text-[1.1rem] font-light text-text-primary tracking-[-0.03em] min-w-[22px]">{issue.num}</div>
                     <div className="flex-1">
                       <div className="text-[0.75rem] text-text-primary mb-[1px]">{issue.name}</div>
                       <div className="text-[0.63rem] text-text-tertiary">{issue.sub}</div>
                     </div>
-                    <div className={`text-[0.68rem] flex items-center gap-[3px] whitespace-nowrap ${issue.up ? 'text-[#e07070]' : 'text-text-tertiary'}`}>
+                    <div className="text-[0.68rem] flex items-center gap-[3px] whitespace-nowrap text-text-tertiary">
                       {issue.up ? (
                         <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
                       ) : (
@@ -292,14 +304,14 @@ export default function LunaOverview() {
 
             {/* Sentiment + Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
+              <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Sentiment Analysis</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Customer mood overview</p>
                 <div className="flex flex-col gap-4">
                   {[
-                    { label: 'Angry', pct: 15, color: '#c45c5c' },
+                    { label: 'Angry', pct: 15, color: 'var(--border-md)' },
                     { label: 'Neutral', pct: 45, color: 'var(--text-tertiary)' },
-                    { label: 'Positive', pct: 40, color: '#5c9c6e' },
+                    { label: 'Positive', pct: 40, color: 'var(--text-secondary)' },
                   ].map((s) => (
                     <div key={s.label}>
                       <div className="flex justify-between text-[0.72rem] mb-[5px]">
@@ -314,7 +326,7 @@ export default function LunaOverview() {
                 </div>
               </div>
 
-              <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
+              <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Quick Actions</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Export and share reports</p>
                 <div className="flex flex-col gap-2">
@@ -340,7 +352,7 @@ export default function LunaOverview() {
                     <button
                       key={action.label}
                       onClick={action.onClick}
-                      className="flex items-center gap-3 bg-none border border-border rounded-[8px] px-4 py-[0.8rem] text-[0.75rem] text-text-secondary hover:border-border-md hover:text-text-primary hover:bg-background2 transition-all duration-150 text-left w-full"
+                      className="flex items-center gap-3 bg-transparent border border-border rounded-xl px-4 py-[0.8rem] text-[0.75rem] text-text-secondary hover:border-border-md hover:text-text-primary hover:bg-background4 transition-all duration-150 text-left w-full"
                     >
                       <svg className="w-[14px] h-[14px] shrink-0 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         {action.icon}

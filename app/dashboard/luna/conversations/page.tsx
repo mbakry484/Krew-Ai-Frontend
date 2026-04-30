@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
+import Skeleton from '@/components/Skeleton';
 import {
   getConversations,
   getConversation,
@@ -388,13 +389,13 @@ function ConversationsContent() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-3 p-3">
         <LunaSidebar />
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-background2 max-md:pt-12">
+        <main className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-background2 max-md:pt-12">
 
           {/* Top bar — hidden on mobile when viewing a chat */}
-          <div className={`flex items-start justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 bg-background border-b border-border shrink-0 gap-3 ${selectedId ? 'max-md:hidden' : ''}`}>
+          <div className={`flex items-start justify-between px-8 max-md:px-4 pt-6 pb-0 border-b border-border shrink-0 gap-3 ${selectedId ? 'max-md:hidden' : ''}`}>
             <div className="pb-0 flex flex-col">
               <div className="pb-3">
                 <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">
@@ -443,8 +444,17 @@ function ConversationsContent() {
             {/* Left: Chat list — full-width on mobile, hidden when a chat is open */}
             <div className={`w-[260px] max-md:w-full shrink-0 border-r border-border bg-background overflow-y-auto ${selectedId ? 'max-md:hidden' : ''}`}>
               {loading ? (
-                <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
-                  loading...
+                <div className="flex flex-col">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="px-4 py-[0.85rem] border-b border-border">
+                      <div className="flex items-center gap-[0.6rem]">
+                        <Skeleton className="w-[28px] h-[28px] rounded-full shrink-0" />
+                        <Skeleton className="flex-1 h-[0.6rem]" />
+                        <Skeleton className="w-7 h-[0.5rem] shrink-0" />
+                      </div>
+                      <Skeleton className="h-[0.55rem] mt-[6px] ml-[34px] w-3/4" />
+                    </div>
+                  ))}
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center justify-center h-32 gap-2 px-4">
@@ -570,8 +580,14 @@ function ConversationsContent() {
                 {/* Messages area */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-[0.6rem]">
                   {messagesLoading ? (
-                    <div className="flex items-center justify-center flex-1 text-[0.7rem] text-text-tertiary">
-                      loading messages...
+                    <div className="flex flex-col gap-[0.6rem] flex-1 pt-2">
+                      {[false, true, false, false, true, false].map((isRight, i) => (
+                        <div key={i} className={`flex ${isRight ? 'justify-end' : 'justify-start'}`}>
+                          <Skeleton
+                            className={`h-[2.2rem] rounded-[10px] ${isRight ? 'w-[52%]' : 'w-[42%]'}`}
+                          />
+                        </div>
+                      ))}
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="flex items-center justify-center flex-1 text-[0.7rem] text-text-tertiary">

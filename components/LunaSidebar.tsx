@@ -115,9 +115,9 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
             key={item.href}
             href={item.href}
             onClick={onLinkClick}
-            className={`flex items-center gap-[0.7rem] px-[0.8rem] py-[0.65rem] rounded-[8px] text-[0.75rem] transition-all duration-150 ${
+            className={`flex items-center gap-[0.7rem] px-3 py-2 rounded-xl text-[0.75rem] transition-all duration-150 ${
               isActive(item.href)
-                ? 'bg-background3 text-text-primary'
+                ? 'bg-background4 text-text-primary'
                 : 'text-text-tertiary hover:bg-background3 hover:text-text-secondary'
             }`}
           >
@@ -132,9 +132,9 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
         <Link
           href="/dashboard/luna/settings"
           onClick={onLinkClick}
-          className={`flex items-center gap-[0.7rem] px-[0.8rem] py-[0.65rem] rounded-[8px] text-[0.75rem] transition-all duration-150 w-full ${
+          className={`flex items-center gap-[0.7rem] px-3 py-2 rounded-xl text-[0.75rem] transition-all duration-150 w-full ${
             pathname === '/dashboard/luna/settings'
-              ? 'bg-background3 text-text-primary'
+              ? 'bg-background4 text-text-primary'
               : 'text-text-tertiary hover:bg-background3 hover:text-text-secondary'
           }`}
         >
@@ -155,7 +155,7 @@ export default function LunaSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col pt-0 pb-6 max-md:hidden sticky top-0 h-screen overflow-y-auto">
+      <aside className="w-[200px] shrink-0 rounded-2xl border border-border bg-background2 flex flex-col pt-0 pb-4 max-md:hidden overflow-y-auto">
         <SidebarContent />
       </aside>
 
@@ -183,7 +183,7 @@ export default function LunaSidebar() {
             className="fixed inset-0 z-[140] bg-black/30"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed top-0 left-0 bottom-0 z-[150] w-[200px] flex flex-col py-6 border-r border-border bg-background">
+          <aside className="fixed top-3 left-3 bottom-3 z-[150] w-[200px] flex flex-col py-4 rounded-2xl border border-border bg-background2">
             <SidebarContent onLinkClick={() => setMobileOpen(false)} />
           </aside>
         </>
