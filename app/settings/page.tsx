@@ -477,26 +477,60 @@ function DangerSection({ showToast }: { showToast: (msg: string, type?: ToastTyp
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'account',       label: 'Account' },
-  { id: 'integrations',  label: 'Integrations' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'billing',       label: 'Billing & Usage' },
-  { id: 'danger',        label: 'Danger zone' },
+const TABS: { id: Tab; label: string; desc: string; icon: React.ReactNode }[] = [
+  {
+    id: 'account', label: 'Account', desc: 'Name, email & password',
+    icon: (
+      <svg className="w-[16px] h-[16px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'integrations', label: 'Integrations', desc: 'Instagram, Facebook, Shopify',
+    icon: (
+      <svg className="w-[16px] h-[16px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'notifications', label: 'Notifications', desc: 'Alerts and summaries',
+    icon: (
+      <svg className="w-[16px] h-[16px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'billing', label: 'Billing & Usage', desc: 'Plan, invoices and usage',
+    icon: (
+      <svg className="w-[16px] h-[16px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'danger', label: 'Danger zone', desc: 'Delete account or disconnect',
+    icon: (
+      <svg className="w-[16px] h-[16px] text-red-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('account');
-  const [userInfo, setUserInfo] = useState({ first_name: '', last_name: '', email: '' });
-  const [toast, setToast] = useState<{ msg: string; type: ToastType } | null>(null);
+  const [activeTab, setActiveTab]   = useState<Tab>('account');
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
+  const [userInfo, setUserInfo]     = useState({ first_name: '', last_name: '', email: '' });
+  const [toast, setToast]           = useState<{ msg: string; type: ToastType } | null>(null);
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/auth/login'); return; }
-    // Load cached info immediately
     const stored = localStorage.getItem('user_info');
     if (stored) setUserInfo(JSON.parse(stored));
-    // Fetch fresh data from API
     getUserInfo().then(res => {
       if (res.user) {
         setUserInfo({
@@ -512,20 +546,33 @@ export default function SettingsPage() {
     setToast({ msg, type });
   }, []);
 
-  return (
-    <div className="min-h-screen">
-      {/* Full-bleed layout below fixed navbar (h-12 = 3rem) */}
-      <div className="flex pt-12 min-h-screen">
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setMobileView('detail');
+  };
 
-        {/* Left settings panel — flush to viewport left edge, mirrors Luna sidebar */}
-        <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
-          {/* Title + subtitle */}
+  const sectionContent = (
+    <>
+      {activeTab === 'account'       && <AccountSection       userInfo={userInfo} showToast={showToast} />}
+      {activeTab === 'integrations'  && <IntegrationsSection  showToast={showToast} />}
+      {activeTab === 'notifications' && <NotificationsSection showToast={showToast} />}
+      {activeTab === 'billing'       && <BillingSection       showToast={showToast} />}
+      {activeTab === 'danger'        && <DangerSection        showToast={showToast} />}
+    </>
+  );
+
+  const activeTabMeta = TABS.find(t => t.id === activeTab);
+
+  return (
+    <div className="min-h-screen bg-background">
+
+      {/* ── Desktop layout (md+) ──────────────────────────────────────────── */}
+      <div className="hidden md:flex pt-[76px] min-h-screen">
+        <aside className="w-[200px] shrink-0 border-r border-border bg-background flex flex-col py-6 sticky top-[76px] h-[calc(100vh-76px)] overflow-y-auto">
           <div className="px-[1.2rem] pb-[1.5rem] border-b border-border mb-4">
             <h1 className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary lowercase">settings</h1>
             <p className="text-[0.62rem] text-text-tertiary mt-[3px] leading-[1.5]">manage your account and preferences</p>
           </div>
-
-          {/* Section tabs */}
           <nav className="flex flex-col gap-[2px] px-[0.6rem]">
             {TABS.map(tab => (
               <button
@@ -544,17 +591,79 @@ export default function SettingsPage() {
             ))}
           </nav>
         </aside>
-
-        {/* Right content area */}
         <main className="flex-1 bg-background2 overflow-y-auto">
-          <div className="px-8 py-10 pb-16">
-            {activeTab === 'account'       && <AccountSection       userInfo={userInfo} showToast={showToast} />}
-            {activeTab === 'integrations'  && <IntegrationsSection  showToast={showToast} />}
-            {activeTab === 'notifications' && <NotificationsSection showToast={showToast} />}
-            {activeTab === 'billing'       && <BillingSection       showToast={showToast} />}
-            {activeTab === 'danger'        && <DangerSection        showToast={showToast} />}
-          </div>
+          <div className="px-8 py-10 pb-16">{sectionContent}</div>
         </main>
+      </div>
+
+      {/* ── Mobile layout ─────────────────────────────────────────────────── */}
+      <div className="md:hidden">
+
+        {/* Category list */}
+        {mobileView === 'list' && (
+          <div className="pt-[76px] min-h-screen">
+            <div className="px-5 pt-5 pb-4">
+              <h1 className="text-[1.6rem] font-semibold tracking-[-0.025em] text-text-primary">Settings</h1>
+              <p className="text-[0.75rem] text-text-tertiary mt-[3px]">Manage your account and preferences</p>
+            </div>
+
+            <div className="mt-2 border-t border-border">
+              {TABS.map((tab, i) => (
+                <button
+                  key={tab.id}
+                  onClick={() => selectTab(tab.id)}
+                  className={`w-full flex items-center justify-between px-5 py-[13px] border-b border-border hover:bg-background3 active:bg-background3 transition-colors duration-100 ${
+                    tab.id === 'danger' ? 'mt-4 border-t border-border' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-[14px]">
+                    <div className={`w-[36px] h-[36px] rounded-[10px] flex items-center justify-center shrink-0 ${
+                      tab.id === 'danger'
+                        ? 'bg-red-500/10 border border-red-500/20'
+                        : 'bg-background3 border border-border'
+                    }`}>
+                      {tab.icon}
+                    </div>
+                    <div className="text-left">
+                      <div className={`text-[0.88rem] font-medium leading-snug ${
+                        tab.id === 'danger' ? 'text-red-400/80' : 'text-text-primary'
+                      }`}>
+                        {tab.label}
+                      </div>
+                      <div className="text-[0.72rem] text-text-tertiary mt-[2px]">{tab.desc}</div>
+                    </div>
+                  </div>
+                  <svg className="w-[13px] h-[13px] text-text-tertiary shrink-0 ml-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detail view */}
+        {mobileView === 'detail' && (
+          <div className="pt-[76px] min-h-screen flex flex-col">
+            {/* Sticky sub-header */}
+            <div className="sticky top-[76px] z-10 bg-background border-b border-border flex items-center px-4 py-[11px] gap-2">
+              <button
+                onClick={() => setMobileView('list')}
+                className="flex items-center gap-[3px] text-[0.82rem] text-text-secondary hover:text-text-primary transition-colors duration-150 shrink-0"
+              >
+                <svg className="w-[16px] h-[16px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+                Settings
+              </button>
+              <span className="flex-1 text-center text-[0.88rem] font-medium text-text-primary pr-[60px]">
+                {activeTabMeta?.label}
+              </span>
+            </div>
+            {/* Content */}
+            <div className="flex-1 px-4 py-5 pb-16">{sectionContent}</div>
+          </div>
+        )}
       </div>
 
       {toast && (

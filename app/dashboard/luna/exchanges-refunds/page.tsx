@@ -219,10 +219,10 @@ export default function ExchangesRefundsPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <div className="flex flex-1 gap-3 p-3">
+      <div className="flex flex-1 gap-3 p-3 max-md:pt-[60px]">
         <LunaSidebar />
 
-        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2">
           <div className="px-8 max-md:px-4 pt-6 pb-0">
             <div className="flex items-start justify-between gap-3 mb-[1.1rem]">
               <div>

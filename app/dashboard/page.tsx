@@ -104,8 +104,8 @@ export default function MyKrewDashboard() {
 
   return (
     <>
-      <div className="min-h-screen pt-12">
-        <div className="max-w-[1100px] mx-auto px-10 py-12">
+      <div className="min-h-screen pt-12 overflow-x-hidden">
+        <div className="w-[calc(100%-2rem)] max-w-5xl mx-auto px-8 py-12">
 
           {/* Greeting */}
           <div className="mb-10">

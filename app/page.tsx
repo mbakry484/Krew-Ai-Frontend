@@ -166,7 +166,7 @@ export default function LandingPage() {
 
   return (
     <>
-      <div id="landing" className="min-h-screen pt-12">
+      <div id="landing" className="min-h-screen pt-20">
 
         {/* ── HERO – SPLIT LAYOUT ── */}
         <div className="min-h-screen flex flex-col">

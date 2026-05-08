@@ -336,10 +336,10 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <div className="flex flex-1 gap-3 p-3">
+      <div className="flex flex-1 gap-3 p-3 max-md:pt-[60px]">
         <LunaSidebar />
 
-        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2">
           {/* Top Bar */}
           <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
             <div>

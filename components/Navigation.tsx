@@ -8,8 +8,8 @@ import { isLoggedIn, logout } from '@/lib/auth';
 
 // ─── Shared panel animation classes ──────────────────────────────────────────
 const panelVisible  = 'opacity-100 pointer-events-auto translate-y-0';
-const panelHidden   = 'opacity-0 pointer-events-none -translate-y-[6px]';
-const panelAnim     = 'transition-all duration-[150ms] ease-out';
+const panelHidden   = 'opacity-0 pointer-events-none translate-y-1';
+const panelAnim     = 'transition-all duration-200 ease-out';
 
 export default function Navigation() {
   const router   = useRouter();
@@ -21,6 +21,7 @@ export default function Navigation() {
   const [scrolled,        setScrolled]        = useState(false);
   const [mobileOpen,      setMobileOpen]      = useState(false);
   const [hoveredMega,     setHoveredMega]     = useState<'agents' | 'about' | null>(null);
+  const [navPhase, setNavPhase] = useState<'hidden' | 'stretching' | 'content'>('hidden');
 
   useEffect(() => {
     setIsAuthenticated(isLoggedIn());
@@ -37,10 +38,20 @@ export default function Navigation() {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
+  // Entrance animation — void → stretch → content reveal
+  useEffect(() => {
+    const raf = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setNavPhase('stretching'))
+    );
+    const t = setTimeout(() => setNavPhase('content'), 500);
+    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+  }, []);
+
   const handleLogout = () => {
     logout();
     setIsAuthenticated(false);
     setDropdownOpen(false);
+    setMobileOpen(false);
     router.push('/');
   };
 
@@ -54,16 +65,39 @@ export default function Navigation() {
     setHoveredMega(null);
   };
 
+  const mobileUserInitials = (
+    userInfo.first_name && userInfo.last_name
+      ? (userInfo.first_name[0] + userInfo.last_name[0])
+      : userInfo.first_name
+        ? userInfo.first_name.slice(0, 2)
+        : userInfo.email
+          ? userInfo.email.slice(0, 2)
+          : '?'
+  ).toUpperCase();
+
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-[200] h-12 flex items-center justify-between px-8 border-b transition-all duration-300 ${
-        scrolled || !isLandingPage
-          ? 'bg-background border-border backdrop-blur-[20px]'
-          : 'bg-transparent border-transparent'
-      }`}>
+      <nav
+        style={
+          navPhase === 'hidden'
+            ? { width: 0, opacity: 0, filter: 'blur(12px)', overflow: 'hidden', transformOrigin: 'center', transition: 'none' }
+            : navPhase === 'stretching'
+            ? { overflow: 'hidden', transformOrigin: 'center', opacity: 1, filter: 'blur(0px)', transition: 'width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease, filter 0.5s ease' }
+            : { transformOrigin: 'center' }
+        }
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-8 px-8 py-3 rounded-2xl w-[calc(100%-2rem)] max-w-5xl bg-black/[0.04] backdrop-blur-xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      >
 
         {/* Logo */}
-        <Link href="/" className="text-text-primary cursor-pointer shrink-0 hover:opacity-75 transition-opacity duration-200">
+        <Link
+          href="/"
+          style={{
+            opacity: navPhase === 'content' ? 1 : 0,
+            filter: navPhase === 'content' ? 'blur(0px)' : 'blur(8px)',
+            transition: navPhase === 'content' ? 'opacity 0.35s ease, filter 0.35s ease' : 'none',
+          }}
+          className="text-text-primary cursor-pointer shrink-0 hover:opacity-75 transition-opacity duration-200"
+        >
           <svg
             viewBox="665 1125 735 145"
             className="h-[15px] w-auto"
@@ -82,16 +116,18 @@ export default function Navigation() {
           </svg>
         </Link>
 
-        {/* Center mega links — landing + agents/about/faq pages, desktop */}
+        {/* Center mega links — landing + agents/about/faq pages, desktop only */}
         {showNavLinks && (
-          <div className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+          <div
+            className="hidden lg:flex items-center gap-2"
+            style={{
+              opacity: navPhase === 'content' ? 1 : 0,
+              filter: navPhase === 'content' ? 'blur(0px)' : 'blur(8px)',
+              transition: navPhase === 'content' ? 'opacity 0.35s ease, filter 0.35s ease' : 'none',
+            }}
+          >
 
             {/* ── Agents ── */}
-            {/*
-              Hover-bug fix: panels use top-full (no gap between button and panel).
-              The panel is a DOM child of the trigger div, so moving the mouse from
-              the button into the panel never fires onMouseLeave on the parent.
-            */}
             <div
               className="relative"
               onMouseEnter={() => setHoveredMega('agents')}
@@ -99,19 +135,11 @@ export default function Navigation() {
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 Agents
-                <svg
-                  className={`w-[10px] h-[10px] opacity-50 transition-transform duration-200 ${hoveredMega === 'agents' ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
+                <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
               </button>
 
-              {/* Agents panel — wide 2-column, same style as About */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 w-[500px] bg-dropdown-bg border border-border-md rounded-[16px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.26)] z-50 ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-2xl overflow-hidden shadow-xl dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
                 <div className="grid grid-cols-2">
-
-                  {/* Luna */}
                   <button
                     onClick={() => { router.push('/agents/luna'); setHoveredMega(null); }}
                     className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150 border-r border-border"
@@ -130,7 +158,6 @@ export default function Navigation() {
                     </div>
                   </button>
 
-                  {/* Ivy — coming soon */}
                   <div className="flex flex-col p-7 opacity-40 cursor-default select-none">
                     <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary mb-5">
                       <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -145,12 +172,11 @@ export default function Navigation() {
                       Financial Visibility
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
 
-            {/* ── About — Vise-style mega panel ── */}
+            {/* ── About ── */}
             <div
               className="relative"
               onMouseEnter={() => setHoveredMega('about')}
@@ -158,43 +184,29 @@ export default function Navigation() {
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 About
-                <svg
-                  className={`w-[10px] h-[10px] opacity-50 transition-transform duration-200 ${hoveredMega === 'about' ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
+                <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
               </button>
 
-              {/* About mega panel — wide 2-column Vise-style */}
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 w-[500px] bg-dropdown-bg border border-border-md rounded-[16px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.26)] z-50 ${panelAnim} ${hoveredMega === 'about' ? panelVisible : panelHidden}`}>
-
-                {/* Two columns */}
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-2xl overflow-hidden shadow-xl dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'about' ? panelVisible : panelHidden}`}>
                 <div className="grid grid-cols-2">
-
-                  {/* Col 1 — Our Vision */}
                   <button
                     onClick={() => { router.push('/about/vision'); setHoveredMega(null); }}
                     className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150 border-r border-border"
                   >
-                    {/* Icon */}
                     <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary group-hover:border-border-md mb-5 transition-colors duration-150">
                       <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                       </svg>
                     </div>
-                    {/* Label */}
                     <div className="text-[0.82rem] font-semibold text-text-primary mb-[0.35rem] tracking-[-0.01em]">
                       Our Vision
                     </div>
-                    {/* Description */}
                     <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
                       The Krew ecosystem and where we're headed
                     </div>
                   </button>
 
-                  {/* Col 2 — How It Works */}
                   <button
                     onClick={() => {
                       setHoveredMega(null);
@@ -206,22 +218,18 @@ export default function Navigation() {
                     }}
                     className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150"
                   >
-                    {/* Icon */}
                     <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary group-hover:border-border-md mb-5 transition-colors duration-150">
                       <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                       </svg>
                     </div>
-                    {/* Label */}
                     <div className="text-[0.82rem] font-semibold text-text-primary mb-[0.35rem] tracking-[-0.01em]">
                       How It Works
                     </div>
-                    {/* Description */}
                     <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
                       How Luna operates inside your business
                     </div>
                   </button>
-
                 </div>
               </div>
             </div>
@@ -245,7 +253,14 @@ export default function Navigation() {
         )}
 
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3"
+          style={{
+            opacity: navPhase === 'content' ? 1 : 0,
+            filter: navPhase === 'content' ? 'blur(0px)' : 'blur(8px)',
+            transition: navPhase === 'content' ? 'opacity 0.35s ease, filter 0.35s ease' : 'none',
+          }}
+        >
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -293,16 +308,9 @@ export default function Navigation() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="w-[30px] h-[30px] rounded-full bg-background3 border border-border-md flex items-center justify-center text-[0.87rem] font-medium text-text-primary hover:border-border-hover transition-colors duration-200"
               >
-                {(userInfo.first_name && userInfo.last_name
-                  ? (userInfo.first_name[0] + userInfo.last_name[0])
-                  : userInfo.first_name
-                    ? userInfo.first_name.slice(0, 2)
-                    : userInfo.email
-                      ? userInfo.email.slice(0, 2)
-                      : '?'
-                ).toUpperCase()}
+                {mobileUserInitials}
               </button>
-              <div className={`absolute top-[calc(100%+10px)] right-0 w-[200px] bg-dropdown-bg border border-border-md rounded-[10px] overflow-hidden ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.2)] ${dropdownOpen ? panelVisible : panelHidden}`}>
+              <div className={`absolute top-[calc(100%+10px)] right-0 w-[200px] bg-white/90 backdrop-blur-xl border border-black/[0.08] rounded-[10px] overflow-hidden ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:bg-white/[0.08] dark:backdrop-blur-xl dark:border dark:border-white/[0.12] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${dropdownOpen ? panelVisible : panelHidden}`}>
                 <div className="px-4 py-[0.9rem] border-b border-border">
                   <div className="text-[0.78rem] font-medium text-text-primary mb-[1px]">{userInfo.first_name} {userInfo.last_name}</div>
                   <div className="text-[0.68rem] text-text-tertiary">{userInfo.email}</div>
@@ -340,63 +348,88 @@ export default function Navigation() {
             </div>
           )}
 
+          {/* Mobile: My Krew button when authenticated — sits beside hamburger */}
+          {isAuthenticated && (
+            <button
+              onClick={() => { router.push('/dashboard'); }}
+              className="lg:hidden text-[0.72rem] px-[10px] py-[5px] rounded-[7px] text-text-secondary border border-border hover:border-border-md hover:text-text-primary transition-all duration-200"
+            >
+              My Krew
+            </button>
+          )}
+
           {/* Hamburger — mobile/tablet */}
           <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden flex flex-col justify-center gap-[4.5px] p-[6px] cursor-pointer"
-            aria-label="Open menu"
+            onClick={() => setMobileOpen(prev => !prev)}
+            className="lg:hidden flex items-center justify-center w-[30px] h-[30px] cursor-pointer rounded-[6px] hover:bg-background3 transition-colors duration-150"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           >
-            <span className="block w-[17px] h-[1.5px] bg-text-secondary rounded-[1px]" />
-            <span className="block w-[17px] h-[1.5px] bg-text-secondary rounded-[1px]" />
-            <span className="block w-[17px] h-[1.5px] bg-text-secondary rounded-[1px]" />
+            {mobileOpen ? (
+              <svg className="w-[15px] h-[15px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            ) : (
+              <svg className="w-[15px] h-[15px] text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            )}
           </button>
         </div>
       </nav>
 
-      {/* Mobile overlay */}
+      {/* Click-outside backdrop — mobile dropdown only */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-[44] lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile dropdown panel — replaces the side drawer */}
       <div
-        className={`fixed inset-0 z-[250] bg-overlay-bg backdrop-blur-[4px] transition-opacity duration-300 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={() => setMobileOpen(false)}
-      />
+        className={`fixed top-[78px] inset-x-4 z-[45] lg:hidden rounded-2xl overflow-hidden
+          bg-background2 border border-border-md
+          shadow-[0_8px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.45)]
+          transition-all duration-200 ease-out
+          ${mobileOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'}`}
+      >
+        <div className="p-2">
 
-      {/* Mobile drawer */}
-      <div className={`fixed top-0 right-0 bottom-0 z-[260] w-[275px] bg-background2 border-l border-border-md flex flex-col gap-[0.15rem] overflow-y-auto transition-transform duration-[280ms] ease-in-out ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex justify-end p-4 pb-2">
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="text-text-tertiary text-[1.3rem] leading-none p-1 hover:text-text-primary transition-colors"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="px-3 pb-4 flex flex-col gap-[0.15rem]">
-          {/* Agents */}
-          <div className="mb-2">
-            <div className="text-[0.57rem] uppercase tracking-[0.1em] text-text-tertiary px-[0.7rem] py-[0.25rem] mb-[0.15rem]">Agents</div>
+          {/* Nav sections */}
+          <div className="mb-[2px]">
+            <div className="text-[0.57rem] uppercase tracking-[0.12em] text-text-tertiary px-3 pt-2 pb-1">Agents</div>
             <button
               onClick={() => { router.push('/agents/luna'); setMobileOpen(false); }}
-              className="w-full text-left px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+              className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
             >
               Luna — Customer Operations
             </button>
-            <div className="w-full text-left px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary opacity-35 cursor-default">
+            <div className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary opacity-30 cursor-default select-none">
               Ivy — Financial Visibility
             </div>
           </div>
 
-          {/* About */}
-          <div className="mb-2">
-            <div className="text-[0.57rem] uppercase tracking-[0.1em] text-text-tertiary px-[0.7rem] py-[0.25rem] mb-[0.15rem]">About</div>
+          <div className="mb-[2px]">
+            <div className="text-[0.57rem] uppercase tracking-[0.12em] text-text-tertiary px-3 pt-2 pb-1">About</div>
             <button
               onClick={() => { router.push('/about/vision'); setMobileOpen(false); }}
-              className="w-full text-left px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+              className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
             >
               Our Vision
             </button>
             <button
-              onClick={() => scrollTo('#products')}
-              className="w-full text-left px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+              onClick={() => {
+                if (isLandingPage) {
+                  scrollTo('#products');
+                } else {
+                  router.push('/#products');
+                  setMobileOpen(false);
+                }
+              }}
+              className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
             >
               How It Works
             </button>
@@ -405,35 +438,78 @@ export default function Navigation() {
           <Link
             href="/pricing"
             onClick={() => setMobileOpen(false)}
-            className="block px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+            className="block px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
           >
             Pricing
           </Link>
-
           <Link
             href="/faq"
             onClick={() => setMobileOpen(false)}
-            className="block px-[0.8rem] py-[0.6rem] rounded-[7px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+            className="block px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
           >
             FAQ
           </Link>
 
-          <div className="h-[1px] bg-border my-3" />
+          <div className="h-[1px] bg-border mx-1 my-2" />
 
-          <Link
-            href="/auth/login"
-            onClick={() => setMobileOpen(false)}
-            className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] text-text-secondary border border-border hover:border-border-md hover:text-text-primary transition-all duration-200 mb-2"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/auth/signup"
-            onClick={() => setMobileOpen(false)}
-            className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
-          >
-            Get early access
-          </Link>
+          {/* Auth section — conditional on login state */}
+          {isAuthenticated ? (
+            <>
+              <div className="px-3 py-[6px] mb-[2px]">
+                <div className="text-[0.78rem] font-medium text-text-primary leading-snug">
+                  {userInfo.first_name} {userInfo.last_name}
+                </div>
+                {userInfo.email && (
+                  <div className="text-[0.67rem] text-text-tertiary mt-[1px]">{userInfo.email}</div>
+                )}
+              </div>
+              <button
+                onClick={() => { router.push('/dashboard'); setMobileOpen(false); }}
+                className="w-full flex items-center gap-[7px] px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 text-left"
+              >
+                <svg className="w-[13px] h-[13px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                My Krew
+              </button>
+              <button
+                onClick={() => { router.push('/settings'); setMobileOpen(false); }}
+                className="w-full flex items-center gap-[7px] px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 text-left"
+              >
+                <svg className="w-[13px] h-[13px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-[7px] px-3 py-[7px] rounded-[8px] text-[0.78rem] text-red-400/60 hover:bg-red-500/5 hover:text-red-400/90 transition-all duration-150 text-left mb-1"
+              >
+                <svg className="w-[13px] h-[13px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Log out
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 px-1 pb-1">
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileOpen(false)}
+                className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] text-text-secondary border border-border hover:border-border-md hover:text-text-primary transition-all duration-200"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={() => setMobileOpen(false)}
+                className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
+              >
+                Get early access
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </>

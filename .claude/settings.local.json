@@ -17,7 +17,8 @@
       "Bash(grep:*)",
       "Bash(find /d/KrewAi/krew-ai-backend -maxdepth 3 -type f \\\\\\(-name *.py -o -name *.js -o -name *.ts \\\\\\) -not -path */node_modules/*)",
       "Bash(npm install:*)",
-      "Bash(find /d/KrewAi/Krew-Ai-Frontend/components -name *RequestCard* -o -name *Exchange* -o -name *Refund*)"
+      "Bash(find /d/KrewAi/Krew-Ai-Frontend/components -name *RequestCard* -o -name *Exchange* -o -name *Refund*)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/tailwindcss/package.json'\\); console.log\\(pkg.version\\)\")"
     ],
     "deny": [],
     "ask": []

@@ -106,6 +106,8 @@ function formatStopLabel(value: number): string {
 }
 
 export default function PricingPage() {
+  const [activeAgent] = useState<'luna' | 'ivy'>('luna');
+
   // Index into STOPS, not raw value — gives stepped/snapped UX
   const [stopIdx, setStopIdx] = useState(3); // default at 500
   const conversations = STOPS[stopIdx];
@@ -131,16 +133,34 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background text-text-primary pt-12">
       {/* ── HERO ── */}
-      <section className="max-w-[960px] mx-auto px-8 pt-10 md:pt-14 pb-6 md:pb-8 text-center">
-        <div className="text-[0.65rem] uppercase tracking-[0.14em] text-text-tertiary mb-[0.9rem]">
-          Luna — your customer support agent
+      <section className="max-w-[960px] mx-auto px-8 pt-10 md:pt-14 pb-10 md:pb-14 text-center">
+        {/* Agent toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-[3px] rounded-full p-1 bg-black/[0.04] border border-black/[0.06] dark:bg-white/[0.06] dark:border-white/[0.08]">
+            <button
+              className={`flex items-center gap-[6px] px-[14px] py-[5px] rounded-full text-[0.72rem] font-medium transition-all duration-200 ${
+                activeAgent === 'luna'
+                  ? 'bg-[#111827] text-white dark:bg-white dark:text-black'
+                  : 'text-text-tertiary'
+              }`}
+            >
+              Luna
+            </button>
+            <button
+              disabled
+              className="flex items-center gap-[5px] px-[14px] py-[5px] rounded-full text-[0.72rem] text-text-tertiary opacity-50 cursor-not-allowed select-none"
+            >
+              Ivy
+              <span className="text-[0.52rem] uppercase tracking-[0.07em]">Soon</span>
+            </button>
+          </div>
         </div>
+
         <h1 className="text-[clamp(1.6rem,3.8vw,2.4rem)] font-light tracking-[-0.028em] leading-[1.1] mb-[0.75rem]">
           Pricing that grows<br />with your store.
         </h1>
         <p className="text-[0.78rem] text-text-secondary leading-[1.75] max-w-[420px] mx-auto font-light">
-          One Luna membership. Four quotas. Every feature in every tier — only the
-          limits change as you scale.
+          Every feature in every tier — only the limits change as you scale.
         </p>
       </section>
 
@@ -214,14 +234,6 @@ export default function PricingPage() {
               </div>
               <div className="text-[0.7rem] text-text-tertiary">conversations / mo</div>
             </div>
-            <div className="text-[0.65rem] text-text-tertiary mb-5">
-              Matches{' '}
-              <span className="text-text-primary">{activeTier.name}</span>
-              {' · '}
-              <span className="tabular-nums">{activeTier.priceLabel}</span>
-              {activeTier.period && <span className="text-text-tertiary">{activeTier.period}</span>}
-            </div>
-
             {/* Stepped slider — thumb snaps to discrete stops */}
             <div className="pricing-slider-wrap">
               <div className="pricing-slider-track-layer">
@@ -264,26 +276,24 @@ export default function PricingPage() {
               ))}
             </div>
 
-            <div className="h-[1px] bg-border my-5" />
+            <div className="h-[1px] bg-border my-8" />
 
             {/* What's included */}
             <div className="text-[0.72rem] text-text-primary font-medium mb-[0.75rem]">
               What&apos;s included in {displayedTier.name}
             </div>
-            <ul className="flex flex-col gap-[0.55rem]">
+            <ul className="flex flex-col">
               {[
                 { label: 'Conversations / month', val: displayedTier.quotas.conversations },
                 { label: 'Products synced from Shopify', val: displayedTier.quotas.products },
                 { label: 'Saved answers in Customize', val: displayedTier.quotas.savedAnswers },
                 { label: 'Concurrent active issues', val: displayedTier.quotas.activeIssues },
-              ].map((row) => (
-                <li key={row.label} className="flex items-center justify-between text-[0.72rem] font-light">
-                  <span className="flex items-center gap-[0.55rem] text-text-secondary">
-                    <svg className="w-[12px] h-[12px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {row.label}
-                  </span>
+              ].map((row, i, arr) => (
+                <li
+                  key={row.label}
+                  className={`flex items-center justify-between py-4 text-[0.72rem] font-light ${i < arr.length - 1 ? 'border-b border-border' : ''}`}
+                >
+                  <span className="text-text-secondary">{row.label}</span>
                   <span className="text-text-primary tabular-nums">{row.val}</span>
                 </li>
               ))}

@@ -109,7 +109,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
       </div>
 
       {/* Nav items */}
-      <nav className="flex flex-col gap-[2px] px-[0.6rem] flex-1">
+      <nav className="flex flex-col gap-[2px] px-[0.6rem] md:flex-1">
         {menuItems.map((item) => (
           <Link
             key={item.href}
@@ -183,7 +183,7 @@ export default function LunaSidebar() {
             className="fixed inset-0 z-[140] bg-black/30"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed top-3 left-3 bottom-3 z-[150] w-[200px] flex flex-col py-4 rounded-2xl border border-border bg-background2">
+          <aside className="fixed top-[52px] left-3 z-[150] w-[200px] flex flex-col py-4 rounded-2xl border border-border bg-background2 max-h-[calc(100vh-64px)] overflow-y-auto">
             <SidebarContent onLinkClick={() => setMobileOpen(false)} />
           </aside>
         </>

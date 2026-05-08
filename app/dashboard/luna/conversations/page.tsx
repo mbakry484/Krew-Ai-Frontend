@@ -389,10 +389,10 @@ function ConversationsContent() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <div className="flex flex-1 overflow-hidden gap-3 p-3">
+      <div className="flex flex-1 overflow-hidden gap-3 p-3 max-md:pt-[60px]">
         <LunaSidebar />
 
-        <main className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-background2 max-md:pt-12">
+        <main className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-background2">
 
           {/* Top bar — hidden on mobile when viewing a chat */}
           <div className={`flex items-start justify-between px-8 max-md:px-4 pt-6 pb-0 border-b border-border shrink-0 gap-3 ${selectedId ? 'max-md:hidden' : ''}`}>
