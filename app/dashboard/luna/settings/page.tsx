@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
-import { connectShopify, getShopifyStatus, getUserInfo, updateBrandDescription, disconnectIntegration } from '@/lib/api';
+import { connectShopify, getIntegrationStatus, getUserInfo, updateBrandDescription, disconnectIntegration } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 
@@ -70,7 +70,9 @@ function SettingsContent() {
   // Integration states
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyStoreDomain, setShopifyStoreDomain] = useState('');
+  const [shopifyShopName, setShopifyShopName] = useState('');
   const [metaConnected, setMetaConnected] = useState(false);
+  const [instagramUsername, setInstagramUsername] = useState('');
   const [bostaConnected, setBostaConnected] = useState(false);
 
   // Modal + form state
@@ -88,15 +90,9 @@ function SettingsContent() {
     if (!isLoggedIn()) { router.push('/auth/login'); return; }
     checkIntegrationStatus();
     getUserInfo().then(res => {
-      if (res.user) {
-        if (res.user.brand_description) {
-          setBrandDescription(res.user.brand_description);
-          setSavedBrandDescription(res.user.brand_description);
-        }
-        // Meta connection status from brands table
-        if (res.user.instagram_connected) {
-          setMetaConnected(true);
-        }
+      if (res.user?.brand_description) {
+        setBrandDescription(res.user.brand_description);
+        setSavedBrandDescription(res.user.brand_description);
       }
     }).catch(() => {});
   }, [router]);
@@ -135,14 +131,17 @@ function SettingsContent() {
   // Fetch integration statuses from DB
   const checkIntegrationStatus = async () => {
     try {
-      const shopifyRes = await getShopifyStatus();
-      setShopifyConnected(!!shopifyRes.linked);
-      setShopifyStoreDomain(shopifyRes.shop_domain || '');
+      const status = await getIntegrationStatus();
+      setShopifyConnected(!!status.shopify?.linked);
+      setShopifyStoreDomain(status.shopify?.shop_domain || '');
+      setShopifyShopName(status.shopify?.shop_name || '');
+      setMetaConnected(!!status.meta?.linked);
+      setInstagramUsername(status.meta?.instagram_username || '');
     } catch {
       setShopifyConnected(false);
       setShopifyStoreDomain('');
+      setShopifyShopName('');
     }
-    // Meta status is set from getUserInfo() in the useEffect above
   };
 
   const cleanShopDomain = (input: string): string => {
@@ -233,9 +232,11 @@ function SettingsContent() {
       if (platform === 'shopify' || platform === 'all') {
         setShopifyConnected(false);
         setShopifyStoreDomain('');
+        setShopifyShopName('');
       }
       if (platform === 'instagram' || platform === 'all') {
         setMetaConnected(false);
+        setInstagramUsername('');
       }
       if (platform === 'all') {
         setBostaConnected(false);
@@ -250,7 +251,7 @@ function SettingsContent() {
     {
       id: 'shopify' as const,
       name: 'Shopify',
-      desc: shopifyConnected ? shopifyStoreDomain : 'Sync your product catalog, inventory, and orders.',
+      desc: shopifyConnected ? (shopifyShopName || shopifyStoreDomain || 'Connected') : 'Sync your product catalog, inventory, and orders.',
       connected: shopifyConnected,
       onDisconnect: () => handleDisconnect('shopify'),
       logo: (
@@ -264,7 +265,7 @@ function SettingsContent() {
     {
       id: 'meta' as const,
       name: 'Meta Business',
-      desc: 'Connect Instagram DMs and WhatsApp Business. Luna reads and replies in real time.',
+      desc: metaConnected ? (instagramUsername ? `@${instagramUsername}` : 'Connected') : 'Connect Instagram DMs and WhatsApp Business. Luna reads and replies in real time.',
       connected: metaConnected,
       onDisconnect: () => handleDisconnect('instagram'),
       logo: (
@@ -351,17 +352,19 @@ function SettingsContent() {
                       {intg.connected && (
                         <div className="w-[6px] h-[6px] rounded-full bg-green-400 shadow-[0_0_6px_rgba(92,207,143,0.5)]" />
                       )}
-                      <button
-                        onClick={() => intg.connected ? intg.onDisconnect() : (intg.id === 'meta' ? handleInstagramConnect() : setModal({ name: intg.id as 'shopify' | 'bosta' }))}
-                        disabled={intg.id === 'meta' && formLoading}
-                        className={`rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium transition-all duration-[180ms] whitespace-nowrap ${
-                          intg.connected
-                            ? 'text-text-tertiary border border-border hover:border-red-400/50 hover:text-red-400/80'
-                            : 'bg-btn-bg text-btn-text hover:opacity-85'
-                        } disabled:opacity-50`}
-                      >
-                        {intg.connected ? 'Connected' : (intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect')}
-                      </button>
+                      {intg.connected ? (
+                        <span className="rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium text-text-tertiary border border-border whitespace-nowrap cursor-default select-none">
+                          Connected
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => intg.id === 'meta' ? handleInstagramConnect() : setModal({ name: intg.id as 'shopify' | 'bosta' })}
+                          disabled={intg.id === 'meta' && formLoading}
+                          className="rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium bg-btn-bg text-btn-text hover:opacity-85 transition-all duration-[180ms] whitespace-nowrap disabled:opacity-50"
+                        >
+                          {intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
