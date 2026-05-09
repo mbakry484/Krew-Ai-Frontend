@@ -627,7 +627,7 @@ function ConversationsContent() {
                                 className="max-w-[180px] rounded-[6px] mb-[6px]"
                               />
                             )}
-                            {msg.text}
+                            {!['[Image]', '[Image/Audio]', '[Voice Note]', '[Story Reply]'].includes(msg.text) && msg.text}
                           </div>
                           <div className="flex items-center gap-[4px] mt-[3px]">
                             {msg.from !== 'customer' && (
