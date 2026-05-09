@@ -163,7 +163,7 @@ function ConversationsContent() {
       const data = await getConversation(id);
       const msgs: Message[] = (data.messages || []).map((m: Message) => ({
         ...m,
-        from: m.from === 'agent' && m.text.startsWith('[') && m.text.endsWith(']') ? 'system' : m.from,
+        from: m.from === 'agent' && m.text?.startsWith('[') && m.text?.endsWith(']') ? 'system' : m.from,
       }));
       setMessages(msgs);
       // Update the conversation in list with latest data
@@ -221,7 +221,7 @@ function ConversationsContent() {
             image_url?: string | null;
             created_at: string;
           };
-          const isSystemMsg = raw.content.startsWith('[') && raw.content.endsWith(']');
+          const isSystemMsg = raw.content?.startsWith('[') && raw.content?.endsWith(']');
           const fromMap: Record<string, MessageFrom> = {
             customer: 'customer',
             ai: 'luna',
