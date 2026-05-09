@@ -31,10 +31,9 @@ interface SituationItem {
   text: string;
 }
 
-// One size guide row can cover multiple products
 interface SizeGuideItem {
   id: string;
-  productNames: string[];   // one or more products sharing this chart
+  productNames: string[];
   content: string;
   imageUrl?: string;
   imageFile?: File;
@@ -83,6 +82,60 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   );
 }
 
+type DrawerType = 'knowledge' | 'situations' | 'sizing' | 'voice';
+
+const DRAWER_TITLES: Record<DrawerType, string> = {
+  knowledge: 'What Luna knows',
+  situations: 'How Luna acts',
+  sizing: 'Products & Sizing',
+  voice: "Luna's Voice",
+};
+
+function BrainIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
+    </svg>
+  );
+}
+
+function ZapIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+    </svg>
+  );
+}
+
+function TagIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+function MicIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
+function DrawerIcon({ type }: { type: DrawerType }) {
+  const cls = 'w-[15px] h-[15px]';
+  if (type === 'knowledge') return <BrainIcon className={cls} />;
+  if (type === 'situations') return <ZapIcon className={cls} />;
+  if (type === 'sizing') return <TagIcon className={cls} />;
+  return <MicIcon className={cls} />;
+}
+
 export default function KnowledgeBasePage() {
   const router = useRouter();
   const [items, setItems] = useState<KBItem[]>(FIXED_ITEMS);
@@ -96,7 +149,6 @@ export default function KnowledgeBasePage() {
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
-  // Product picker modal state
   const [productPickerOpen, setProductPickerOpen] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerTemp, setPickerTemp] = useState<string[]>([]);
@@ -104,6 +156,12 @@ export default function KnowledgeBasePage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const [activeDrawer, setActiveDrawer] = useState<DrawerType | null>(null);
+
+  const [voiceFile, setVoiceFile] = useState<File | null>(null);
+  const [voiceDragOver, setVoiceDragOver] = useState(false);
+  const voiceFileRef = useRef<HTMLInputElement>(null);
 
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
@@ -156,7 +214,6 @@ export default function KnowledgeBasePage() {
             kbData.size_guides.map(
               (sg: { product_names?: string[]; product_name?: string; content: string; image_url?: string }, i: number) => ({
                 id: `sg-${i}`,
-                // support both old single and new multi format
                 productNames: sg.product_names || (sg.product_name ? [sg.product_name] : []),
                 content: sg.content || '',
                 imageUrl: sg.image_url,
@@ -174,10 +231,8 @@ export default function KnowledgeBasePage() {
     fetchData();
   }, [router]);
 
-  // All product names claimed by any size guide row
   const claimedProducts = new Set(sizeGuides.flatMap((sg) => sg.productNames));
 
-  // Toggle a product in/out of a specific size guide row
   const handleToggleProduct = (guideId: string, productName: string) => {
     setSizeGuides((prev) =>
       prev.map((sg) => {
@@ -193,7 +248,6 @@ export default function KnowledgeBasePage() {
     );
   };
 
-  // Product picker modal helpers
   const openProductPicker = (guideId: string, current: string[]) => {
     setProductPickerOpen(guideId);
     setPickerTemp([...current]);
@@ -222,7 +276,6 @@ export default function KnowledgeBasePage() {
     closeProductPicker();
   };
 
-  // Add a new empty size guide row
   const handleAddSizeGuide = () => {
     setSizeGuides((prev) => [...prev, { id: `sg-${Date.now()}`, productNames: [], content: '' }]);
   };
@@ -257,7 +310,6 @@ export default function KnowledgeBasePage() {
     );
   };
 
-  // --- FAQ handlers ---
   const handleAddRow = () => {
     setItems((prev) => [...prev, { id: Date.now().toString(), question: '', answer: '' }]);
   };
@@ -271,7 +323,6 @@ export default function KnowledgeBasePage() {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   };
 
-  // --- Situation handlers ---
   const handleAddSituation = () => {
     setSituations((prev) => [...prev, { id: Date.now().toString(), text: '' }]);
   };
@@ -284,7 +335,6 @@ export default function KnowledgeBasePage() {
     setSituations((prev) => prev.map((s) => (s.id === id ? { ...s, text } : s)));
   };
 
-  // --- Save ---
   const handleSave = async () => {
     const missingRequired = items.filter((i) => i.fixed && !i.answer.trim());
     if (missingRequired.length > 0) {
@@ -309,7 +359,6 @@ export default function KnowledgeBasePage() {
           }
           return {
             product_names: sg.productNames,
-            // keep legacy product_name as first for backwards compat with backend prompt
             product_name: sg.productNames[0] || '',
             content: sg.content,
             image_url: imageUrl,
@@ -336,6 +385,19 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes kbSlideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes kbFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .kb-drawer-slide { animation: kbSlideInRight 0.27s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+        .kb-drawer-fade { animation: kbFadeIn 0.2s ease forwards; }
+      ` }} />
+
       <div className="flex flex-1 gap-3 p-3 max-md:pt-[60px]">
         <LunaSidebar />
 
@@ -347,7 +409,7 @@ export default function KnowledgeBasePage() {
                 customize
               </h2>
               <p className="text-[0.72rem] text-text-secondary">
-                fine-tune how Luna thinks, responds, and behaves
+                teach Luna how to be yours
               </p>
             </div>
             <div className="max-md:hidden">
@@ -356,385 +418,603 @@ export default function KnowledgeBasePage() {
           </div>
 
           {/* Content */}
-          <div className="px-8 max-md:px-4 py-6 pb-12 flex flex-col gap-3">
+          <div className="px-8 max-md:px-4 py-8">
 
+            {/* Loading — 2×2 card skeletons */}
             {pageLoading && (
-              <>
-                {/* FAQ table skeleton */}
-                <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-                  <div className="flex gap-0 border-b border-border px-4 py-[0.7rem]">
-                    <Skeleton className="w-24 h-[0.5rem]" />
-                  </div>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex border-b border-border">
-                      <div className="w-[38%] px-4 py-[0.85rem] border-r border-border">
-                        <Skeleton className="w-3/4 h-[0.65rem]" />
-                      </div>
-                      <div className="flex-1 px-4 py-[0.85rem]">
-                        <Skeleton className="w-full h-[0.65rem] mb-2" />
-                        <Skeleton className="w-2/3 h-[0.55rem]" />
-                      </div>
+              <div className="grid grid-cols-2 max-md:grid-cols-1 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-background border border-border rounded-2xl p-6 min-h-[190px] flex flex-col justify-between">
+                    <div className="flex items-start justify-between">
+                      <Skeleton className="w-9 h-9 rounded-xl" />
+                      <Skeleton className="w-14 h-[0.5rem]" />
                     </div>
-                  ))}
-                  <div className="px-4 py-3">
-                    <Skeleton className="w-28 h-[0.6rem]" />
+                    <div className="flex flex-col gap-[6px]">
+                      <Skeleton className="w-36 h-[0.68rem]" />
+                      <Skeleton className="w-52 h-[0.5rem]" />
+                    </div>
                   </div>
-                </div>
-
-                {/* Situations skeleton */}
-                <div className="bg-background border border-border rounded-[12px] px-4 py-[0.85rem] flex items-center justify-between">
-                  <div className="flex flex-col gap-2">
-                    <Skeleton className="w-20 h-[0.65rem]" />
-                    <Skeleton className="w-40 h-[0.5rem]" />
-                  </div>
-                  <Skeleton className="w-5 h-5 rounded-[3px]" />
-                </div>
-
-                {/* Size guides skeleton */}
-                <div className="bg-background border border-border rounded-[12px] px-4 py-[0.85rem] flex items-center justify-between">
-                  <div className="flex flex-col gap-2">
-                    <Skeleton className="w-24 h-[0.65rem]" />
-                    <Skeleton className="w-52 h-[0.5rem]" />
-                  </div>
-                  <Skeleton className="w-5 h-5 rounded-[3px]" />
-                </div>
-              </>
+                ))}
+              </div>
             )}
 
-            {!pageLoading && (<>
+            {/* 2×2 Card Grid */}
+            {!pageLoading && (
+              <div className="grid grid-cols-2 max-md:grid-cols-1 gap-4">
 
-            {/* ── FAQ table ── */}
-            <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.7rem] border-b border-border font-normal w-[38%]">
-                      Question
-                    </th>
-                    <th className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.7rem] border-b border-border font-normal">
-                      Answer
-                    </th>
-                    <th className="text-[0.6rem] border-b border-border font-normal w-[40px]">&nbsp;</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr
-                      key={item.id}
-                      className={`border-b border-border transition-colors duration-150 group ${
-                        item.fixed ? '' : 'hover:bg-background3/50'
-                      }`}
-                    >
-                      <td className="px-4 py-0 border-r border-border relative">
-                        {item.fixed ? (
-                          <div className="flex items-start justify-between gap-2 px-4 py-[0.85rem]">
-                            <span className="text-[0.75rem] text-text-secondary font-medium leading-[1.5]">
-                              {item.question}
-                            </span>
-                            <span className="shrink-0 text-[0.56rem] uppercase tracking-[0.07em] text-text-tertiary border border-border rounded-[4px] px-[5px] py-[2px] mt-[1px]">
-                              required
-                            </span>
-                          </div>
-                        ) : (
-                          <textarea
-                            value={item.question}
-                            onChange={(e) => handleUpdate(item.id, 'question', e.target.value)}
-                            placeholder="Type your question…"
-                            rows={2}
-                            className="w-full min-h-[52px] px-4 py-[0.85rem] bg-transparent border-none outline-none resize-none text-[0.75rem] text-text-secondary placeholder:text-text-tertiary font-medium focus:text-text-primary transition-colors duration-200"
-                          />
-                        )}
-                      </td>
-                      <td className="px-4 py-0">
-                        <textarea
-                          value={item.answer}
-                          onChange={(e) => handleUpdate(item.id, 'answer', e.target.value)}
-                          placeholder={item.placeholder ?? 'Type the answer Luna should give…'}
-                          rows={2}
-                          className={`w-full min-h-[52px] px-4 py-[0.85rem] bg-transparent border-none outline-none resize-none text-[0.75rem] placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 ${
-                            item.fixed && !item.answer ? 'text-text-tertiary' : 'text-text-secondary'
-                          }`}
-                        />
-                      </td>
-                      <td className="px-4 py-0 text-center">
-                        {!item.fixed && (
-                          <button
-                            onClick={() => handleDeleteRow(item.id)}
-                            className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary"
-                            title="Remove"
-                          >
-                            <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <button
-                onClick={handleAddRow}
-                className="w-full flex items-center gap-2 mt-4 mx-4 mb-4 bg-none border border-dashed border-border rounded-[8px] px-4 py-3 text-[0.75rem] text-text-tertiary hover:border-border-md hover:text-text-secondary hover:bg-background3 transition-all duration-[180ms]"
-                style={{ width: 'calc(100% - 2rem)' }}
-              >
-                <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Add question
-              </button>
-            </div>
-
-            {/* ── Situations ── */}
-            <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-[0.85rem]">
-                <div>
-                  <p className="text-[0.78rem] text-text-primary font-[400] lowercase tracking-[-0.01em]">situations</p>
-                  <p className="text-[0.65rem] text-text-tertiary mt-[2px]">real-time context Luna should be aware of</p>
-                </div>
-                <Toggle enabled={situationsEnabled} onToggle={() => setSituationsEnabled(!situationsEnabled)} />
-              </div>
-
-              {situationsEnabled && (
-                <div className="border-t border-border">
-                  {situations.map((sit) => (
-                    <div
-                      key={sit.id}
-                      className="flex items-start gap-2 border-b border-border group hover:bg-background3/50 transition-colors duration-150"
-                    >
-                      <div className="flex-1 flex items-center gap-2 px-4 py-[0.75rem]">
-                        <svg className="w-[12px] h-[12px] shrink-0 text-text-tertiary mt-[2px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
-                          <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
-                          <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
-                        </svg>
-                        <textarea
-                          value={sit.text}
-                          onChange={(e) => handleUpdateSituation(sit.id, e.target.value)}
-                          placeholder="e.g. We are experiencing delays with deliveries and are working to resolve this as quickly as possible."
-                          rows={1}
-                          className="flex-1 bg-transparent border-none outline-none resize-none text-[0.75rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.5] min-h-[24px]"
-                          onInput={(e) => {
-                            const el = e.currentTarget;
-                            el.style.height = 'auto';
-                            el.style.height = el.scrollHeight + 'px';
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleDeleteSituation(sit.id)}
-                        className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary mt-[0.7rem] mr-3 shrink-0"
-                        title="Remove"
-                      >
-                        <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                {/* ── Card 1: What Luna knows ── */}
+                <button
+                  onClick={() => setActiveDrawer('knowledge')}
+                  className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
+                >
+                  <div className="absolute right-[-18px] bottom-[-18px] opacity-[0.05] pointer-events-none">
+                    <BrainIcon className="w-40 h-40" />
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                      <BrainIcon className="w-[18px] h-[18px]" />
                     </div>
-                  ))}
+                    <span className="text-[0.57rem] text-text-tertiary border border-border rounded-[4px] px-[6px] py-[3px]">
+                      {items.length} entries
+                    </span>
+                  </div>
+                  <div className="mt-auto pt-6">
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">What Luna knows</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Questions and answers Luna uses to help your customers.</p>
+                  </div>
+                </button>
 
-                  <button
-                    onClick={handleAddSituation}
-                    className="w-full flex items-center gap-2 border-0 px-4 py-3 text-[0.73rem] text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms] text-left"
-                  >
-                    <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Add situation
-                  </button>
-                </div>
-              )}
-            </div>
+                {/* ── Card 2: How Luna acts ── */}
+                <button
+                  onClick={() => setActiveDrawer('situations')}
+                  className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
+                >
+                  <div className="absolute right-[-18px] bottom-[-18px] opacity-[0.05] pointer-events-none">
+                    <ZapIcon className="w-40 h-40" />
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                      <ZapIcon className="w-[18px] h-[18px]" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {situationsEnabled && (
+                        <span className="w-[5px] h-[5px] rounded-full bg-green-400/80 shrink-0" />
+                      )}
+                      <span className="text-[0.57rem] text-text-tertiary border border-border rounded-[4px] px-[6px] py-[3px]">
+                        {situations.length} situations
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-auto pt-6">
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">How Luna acts</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Real-time context and situations Luna stays aware of.</p>
+                  </div>
+                </button>
 
-            {/* ── Size guides ── */}
-            <div className="bg-background border border-border rounded-[12px] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-[0.85rem]">
-                <div>
-                  <p className="text-[0.78rem] text-text-primary font-[400] lowercase tracking-[-0.01em]">size guides</p>
-                  <p className="text-[0.65rem] text-text-tertiary mt-[2px]">help Luna share the right sizing info per product</p>
-                </div>
-                <Toggle enabled={sizeGuidesEnabled} onToggle={() => setSizeGuidesEnabled(!sizeGuidesEnabled)} />
+                {/* ── Card 3: Products & Sizing ── */}
+                <button
+                  onClick={() => setActiveDrawer('sizing')}
+                  className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
+                >
+                  <div className="absolute right-[-18px] bottom-[-18px] opacity-[0.05] pointer-events-none">
+                    <TagIcon className="w-40 h-40" />
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                      <TagIcon className="w-[18px] h-[18px]" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {sizeGuidesEnabled && (
+                        <span className="w-[5px] h-[5px] rounded-full bg-green-400/80 shrink-0" />
+                      )}
+                      <span className="text-[0.57rem] text-text-tertiary border border-border rounded-[4px] px-[6px] py-[3px]">
+                        {sizeGuides.length} guide{sizeGuides.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-auto pt-6">
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">Products & Sizing</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Size charts and product info Luna shares when customers ask.</p>
+                  </div>
+                </button>
+
+                {/* ── Card 4: Luna's Voice ── */}
+                <button
+                  onClick={() => setActiveDrawer('voice')}
+                  className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
+                >
+                  <div className="absolute right-[-18px] bottom-[-18px] opacity-[0.05] pointer-events-none">
+                    <MicIcon className="w-40 h-40" />
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                      <MicIcon className="w-[18px] h-[18px]" />
+                    </div>
+                    <span className="text-[0.57rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[4px] px-[6px] py-[3px] uppercase tracking-[0.06em]">
+                      Pro
+                    </span>
+                  </div>
+                  <div className="mt-auto pt-6">
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">Luna&apos;s Voice</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Train Luna to match your brand&apos;s tone from real conversations.</p>
+                  </div>
+                </button>
+
               </div>
-
-              {sizeGuidesEnabled && (
-                <div className="border-t border-border">
-                  {sizeGuides.length > 0 && (
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.6rem] border-b border-border font-normal w-[38%]">
-                            Products
-                          </th>
-                          <th className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.6rem] border-b border-border font-normal">
-                            Size guide
-                          </th>
-                          <th className="text-[0.6rem] border-b border-border font-normal w-[40px]">&nbsp;</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sizeGuides.map((sg) => {
-                          return (
-                            <tr
-                              key={sg.id}
-                              className="border-b border-border transition-colors duration-150 group/row"
-                            >
-                              {/* Left: selected pills + add button */}
-                              <td className="border-r border-border align-top">
-                                <div className="px-3 pt-3 pb-3 min-h-[52px] flex flex-wrap gap-[5px] items-center">
-                                  {sg.productNames.map((name) => (
-                                    <button
-                                      key={name}
-                                      onClick={() => handleToggleProduct(sg.id, name)}
-                                      title="Click to remove"
-                                      className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.67rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
-                                    >
-                                      {name}
-                                      <svg className="w-[8px] h-[8px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                      </svg>
-                                    </button>
-                                  ))}
-                                  <button
-                                    onClick={() => openProductPicker(sg.id, sg.productNames)}
-                                    title="Add products"
-                                    className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-full border border-dashed border-border text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150 shrink-0"
-                                  >
-                                    <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <line x1="12" y1="5" x2="12" y2="19" />
-                                      <line x1="5" y1="12" x2="19" y2="12" />
-                                    </svg>
-                                  </button>
-                                  {sg.productNames.length === 0 && (
-                                    <span className="text-[0.63rem] text-text-tertiary italic">click + to select products</span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Right: chart image or text */}
-                              <td className="px-4 py-0 align-top">
-                                {sg.imagePreview || sg.imageUrl ? (
-                                  <div className="px-4 py-3 flex flex-col gap-2">
-                                    <button
-                                      onClick={() => setModalImage((sg.imagePreview || sg.imageUrl)!)}
-                                      className="relative group/img w-full max-w-[260px] rounded-[6px] overflow-hidden border border-border hover:border-border-md transition-all duration-150"
-                                    >
-                                      <img
-                                        src={sg.imagePreview || sg.imageUrl}
-                                        alt="size guide"
-                                        className="w-full h-[120px] object-cover block"
-                                      />
-                                      <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-all duration-150 flex items-center justify-center">
-                                        <span className="opacity-0 group-hover/img:opacity-100 transition-opacity duration-150 text-white text-[0.65rem] tracking-[0.04em]">
-                                          preview
-                                        </span>
-                                      </div>
-                                    </button>
-                                    <button
-                                      onClick={() => handleRemoveSizeGuideImage(sg.id)}
-                                      className="text-[0.62rem] text-text-tertiary hover:text-red-400 transition-colors duration-150 text-left w-fit"
-                                    >
-                                      remove image
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <textarea
-                                      value={sg.content}
-                                      onChange={(e) => handleUpdateContent(sg.id, e.target.value)}
-                                      placeholder="e.g. XS = chest 36cm, S = chest 38cm, M = chest 42cm, L = chest 46cm, XL = chest 50cm"
-                                      rows={2}
-                                      className="w-full min-h-[52px] px-4 py-[0.85rem] bg-transparent border-none outline-none resize-none text-[0.75rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200"
-                                    />
-                                    {!sg.content.trim() && (
-                                      <div className="px-4 pb-[0.75rem]">
-                                        <button
-                                          onClick={() => fileInputRefs.current[sg.id]?.click()}
-                                          className="flex items-center gap-[5px] text-[0.62rem] text-text-tertiary hover:text-text-secondary border border-dashed border-border rounded-[4px] px-2 py-[3px] transition-all duration-150 hover:border-border-md"
-                                        >
-                                          <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
-                                          </svg>
-                                          attach image instead
-                                        </button>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                                <input
-                                  ref={(el) => { fileInputRefs.current[sg.id] = el; }}
-                                  type="file"
-                                  accept="image/*"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleSizeGuideImageUpload(sg.id, file);
-                                    e.target.value = '';
-                                  }}
-                                />
-                              </td>
-
-                              {/* Delete row */}
-                              <td className="px-4 py-0 text-center align-top pt-[0.85rem]">
-                                <button
-                                  onClick={() => handleDeleteSizeGuide(sg.id)}
-                                  className="opacity-0 group-hover/row:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary"
-                                  title="Remove"
-                                >
-                                  <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-
-                  {/* Add size guide row button */}
-                  <button
-                    onClick={handleAddSizeGuide}
-                    className="w-full flex items-center gap-2 border-0 px-4 py-3 text-[0.73rem] text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms] text-left border-t border-border"
-                  >
-                    <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Add size guide
-                  </button>
-
-                  {allProducts.length === 0 && (
-                    <p className="px-4 pb-3 text-[0.68rem] text-text-tertiary">
-                      No products found. Add products to your catalog first.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Save Row */}
-            <div className="flex justify-end items-center gap-4 mt-1">
-              {saved && <div className="text-[0.7rem] text-green-400">✓ Customize saved</div>}
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="bg-btn-bg text-btn-text px-5 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save changes'}
-              </button>
-            </div>
-
-            </>)}
+            )}
           </div>
         </main>
       </div>
 
-      {/* Product picker modal */}
+      {/* ══════════════════════════════════════
+          Drawer
+      ══════════════════════════════════════ */}
+      {activeDrawer && (
+        <div
+          className="fixed inset-0 z-40 flex justify-end"
+          onClick={() => setActiveDrawer(null)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] kb-drawer-fade" />
+
+          {/* Sheet */}
+          <div
+            className="relative flex flex-col w-full max-w-[540px] max-md:max-w-full h-full bg-background border-l border-border shadow-2xl kb-drawer-slide"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-[1.1rem] border-b border-border shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-[8px] bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                  <DrawerIcon type={activeDrawer} />
+                </div>
+                <h3 className="text-[0.84rem] font-[450] text-text-primary tracking-[-0.015em]">
+                  {DRAWER_TITLES[activeDrawer]}
+                </h3>
+                {activeDrawer === 'voice' && (
+                  <span className="text-[0.52rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[3px] px-[5px] py-[2px] uppercase tracking-[0.06em]">
+                    Pro
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setActiveDrawer(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-[8px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
+              >
+                <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+
+              {/* ── What Luna knows ── */}
+              {activeDrawer === 'knowledge' && (
+                <div className="px-6 py-5 flex flex-col gap-3">
+                  <div className="bg-background2 border border-border rounded-[12px] overflow-hidden">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.65rem] border-b border-border font-normal w-[40%]">
+                            Question
+                          </th>
+                          <th className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.65rem] border-b border-border font-normal">
+                            Answer
+                          </th>
+                          <th className="border-b border-border font-normal w-[36px]">&nbsp;</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item) => (
+                          <tr
+                            key={item.id}
+                            className={`border-b border-border transition-colors duration-150 group ${
+                              item.fixed ? '' : 'hover:bg-background3/50'
+                            }`}
+                          >
+                            <td className="px-4 py-0 border-r border-border">
+                              {item.fixed ? (
+                                <div className="flex items-start justify-between gap-2 py-[0.8rem]">
+                                  <span className="text-[0.72rem] text-text-secondary font-medium leading-[1.5]">
+                                    {item.question}
+                                  </span>
+                                  <span className="shrink-0 text-[0.52rem] uppercase tracking-[0.07em] text-text-tertiary border border-border rounded-[4px] px-[4px] py-[2px] mt-[1px]">
+                                    req
+                                  </span>
+                                </div>
+                              ) : (
+                                <textarea
+                                  value={item.question}
+                                  onChange={(e) => handleUpdate(item.id, 'question', e.target.value)}
+                                  placeholder="Type your question…"
+                                  rows={2}
+                                  className="w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary font-medium focus:text-text-primary transition-colors duration-200"
+                                />
+                              )}
+                            </td>
+                            <td className="px-4 py-0">
+                              <textarea
+                                value={item.answer}
+                                onChange={(e) => handleUpdate(item.id, 'answer', e.target.value)}
+                                placeholder={item.placeholder ?? 'Type the answer Luna should give…'}
+                                rows={2}
+                                className={`w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 ${
+                                  item.fixed && !item.answer ? 'text-text-tertiary' : 'text-text-secondary'
+                                }`}
+                              />
+                            </td>
+                            <td className="py-0 text-center">
+                              {!item.fixed && (
+                                <button
+                                  onClick={() => handleDeleteRow(item.id)}
+                                  className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary"
+                                  title="Remove"
+                                >
+                                  <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button
+                      onClick={handleAddRow}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-[0.71rem] text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms]"
+                    >
+                      <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      Add question
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── How Luna acts ── */}
+              {activeDrawer === 'situations' && (
+                <div className="px-6 py-5 flex flex-col gap-4">
+                  <div className="flex items-center justify-between bg-background2 border border-border rounded-[12px] px-4 py-[0.85rem]">
+                    <div>
+                      <p className="text-[0.75rem] text-text-primary font-[400] tracking-[-0.01em]">Enable situations</p>
+                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Turn on to let Luna be aware of real-time context</p>
+                    </div>
+                    <Toggle enabled={situationsEnabled} onToggle={() => setSituationsEnabled(!situationsEnabled)} />
+                  </div>
+
+                  {situationsEnabled && (
+                    <div className="bg-background2 border border-border rounded-[12px] overflow-hidden">
+                      {situations.map((sit) => (
+                        <div
+                          key={sit.id}
+                          className="flex items-start gap-2 border-b border-border group hover:bg-background3/50 transition-colors duration-150"
+                        >
+                          <div className="flex-1 flex items-center gap-2 px-4 py-[0.75rem]">
+                            <svg className="w-[11px] h-[11px] shrink-0 text-text-tertiary mt-[2px]" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="2" fill="currentColor" />
+                              <circle cx="12" cy="5" r="1" fill="currentColor" />
+                              <circle cx="12" cy="19" r="1" fill="currentColor" />
+                            </svg>
+                            <textarea
+                              value={sit.text}
+                              onChange={(e) => handleUpdateSituation(sit.id, e.target.value)}
+                              placeholder="e.g. We are experiencing delays with deliveries and are working to resolve this as quickly as possible."
+                              rows={1}
+                              className="flex-1 bg-transparent border-none outline-none resize-none text-[0.73rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.5] min-h-[24px]"
+                              onInput={(e) => {
+                                const el = e.currentTarget;
+                                el.style.height = 'auto';
+                                el.style.height = el.scrollHeight + 'px';
+                              }}
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleDeleteSituation(sit.id)}
+                            className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary mt-[0.7rem] mr-3 shrink-0"
+                            title="Remove"
+                          >
+                            <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={handleAddSituation}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-[0.71rem] text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms] text-left"
+                      >
+                        <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="5" x2="12" y2="19" />
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add situation
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Products & Sizing ── */}
+              {activeDrawer === 'sizing' && (
+                <div className="px-6 py-5 flex flex-col gap-4">
+                  <div className="flex items-center justify-between bg-background2 border border-border rounded-[12px] px-4 py-[0.85rem]">
+                    <div>
+                      <p className="text-[0.75rem] text-text-primary font-[400] tracking-[-0.01em]">Enable size guides</p>
+                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Let Luna share sizing info per product</p>
+                    </div>
+                    <Toggle enabled={sizeGuidesEnabled} onToggle={() => setSizeGuidesEnabled(!sizeGuidesEnabled)} />
+                  </div>
+
+                  {sizeGuidesEnabled && (
+                    <div className="flex flex-col gap-3">
+                      {sizeGuides.length > 0 && (
+                        <div className="bg-background2 border border-border rounded-[12px] overflow-hidden">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr>
+                                <th className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.6rem] border-b border-border font-normal w-[40%]">
+                                  Products
+                                </th>
+                                <th className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary text-left px-4 py-[0.6rem] border-b border-border font-normal">
+                                  Size guide
+                                </th>
+                                <th className="border-b border-border font-normal w-[36px]">&nbsp;</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sizeGuides.map((sg) => (
+                                <tr
+                                  key={sg.id}
+                                  className="border-b border-border transition-colors duration-150 group/row"
+                                >
+                                  <td className="border-r border-border align-top">
+                                    <div className="px-3 pt-3 pb-3 min-h-[52px] flex flex-wrap gap-[5px] items-center">
+                                      {sg.productNames.map((name) => (
+                                        <button
+                                          key={name}
+                                          onClick={() => handleToggleProduct(sg.id, name)}
+                                          title="Click to remove"
+                                          className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.62rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
+                                        >
+                                          {name}
+                                          <svg className="w-[7px] h-[7px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                          </svg>
+                                        </button>
+                                      ))}
+                                      <button
+                                        onClick={() => openProductPicker(sg.id, sg.productNames)}
+                                        title="Add products"
+                                        className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-full border border-dashed border-border text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150 shrink-0"
+                                      >
+                                        <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                          <line x1="12" y1="5" x2="12" y2="19" />
+                                          <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                      </button>
+                                      {sg.productNames.length === 0 && (
+                                        <span className="text-[0.6rem] text-text-tertiary italic">click + to select</span>
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  <td className="px-3 py-0 align-top">
+                                    {sg.imagePreview || sg.imageUrl ? (
+                                      <div className="py-3 flex flex-col gap-2">
+                                        <button
+                                          onClick={() => setModalImage((sg.imagePreview || sg.imageUrl)!)}
+                                          className="relative group/img w-full max-w-[200px] rounded-[6px] overflow-hidden border border-border hover:border-border-md transition-all duration-150"
+                                        >
+                                          <img
+                                            src={sg.imagePreview || sg.imageUrl}
+                                            alt="size guide"
+                                            className="w-full h-[96px] object-cover block"
+                                          />
+                                          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-all duration-150 flex items-center justify-center">
+                                            <span className="opacity-0 group-hover/img:opacity-100 transition-opacity duration-150 text-white text-[0.62rem] tracking-[0.04em]">
+                                              preview
+                                            </span>
+                                          </div>
+                                        </button>
+                                        <button
+                                          onClick={() => handleRemoveSizeGuideImage(sg.id)}
+                                          className="text-[0.6rem] text-text-tertiary hover:text-red-400 transition-colors duration-150 text-left w-fit"
+                                        >
+                                          remove image
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <textarea
+                                          value={sg.content}
+                                          onChange={(e) => handleUpdateContent(sg.id, e.target.value)}
+                                          placeholder="e.g. XS = chest 36cm, S = 38cm, M = 42cm…"
+                                          rows={2}
+                                          className="w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200"
+                                        />
+                                        {!sg.content.trim() && (
+                                          <div className="pb-[0.65rem]">
+                                            <button
+                                              onClick={() => fileInputRefs.current[sg.id]?.click()}
+                                              className="flex items-center gap-[5px] text-[0.6rem] text-text-tertiary hover:text-text-secondary border border-dashed border-border rounded-[4px] px-2 py-[3px] transition-all duration-150 hover:border-border-md"
+                                            >
+                                              <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
+                                              </svg>
+                                              attach image
+                                            </button>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                    <input
+                                      ref={(el) => { fileInputRefs.current[sg.id] = el; }}
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleSizeGuideImageUpload(sg.id, file);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </td>
+
+                                  <td className="py-0 text-center align-top pt-[0.8rem]">
+                                    <button
+                                      onClick={() => handleDeleteSizeGuide(sg.id)}
+                                      className="opacity-0 group-hover/row:opacity-100 hover:text-red-400 transition-all duration-150 p-1 text-text-tertiary"
+                                      title="Remove"
+                                    >
+                                      <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleAddSizeGuide}
+                        className="w-full flex items-center gap-2 border border-dashed border-border rounded-[10px] px-4 py-3 text-[0.71rem] text-text-tertiary hover:border-border-md hover:text-text-secondary hover:bg-background3/50 transition-all duration-[180ms]"
+                      >
+                        <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="5" x2="12" y2="19" />
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add size guide
+                      </button>
+
+                      {allProducts.length === 0 && (
+                        <p className="text-[0.65rem] text-text-tertiary">
+                          No products found. Add products to your catalog first.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Luna's Voice ── */}
+              {activeDrawer === 'voice' && (
+                <div className="px-6 py-5 flex flex-col gap-4">
+                  <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                    <p className="text-[0.73rem] text-text-secondary leading-[1.6]">
+                      Upload your exported Instagram or Facebook DM history and Luna will learn your brand&apos;s tone, style, and how your team naturally talks to customers.
+                    </p>
+                    <p className="mt-2 text-[0.62rem] text-text-tertiary leading-[1.55]">
+                      Your data stays private and is only used to train your Luna. Export from Meta&apos;s Download Your Information tool, then drop the JSON file below.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`relative flex flex-col items-center justify-center gap-3 rounded-[14px] border-2 border-dashed px-6 py-14 text-center transition-all duration-200 ${
+                      voiceDragOver
+                        ? 'border-text-secondary bg-background3'
+                        : 'border-border hover:border-border-md hover:bg-background3/20'
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); setVoiceDragOver(true); }}
+                    onDragLeave={() => setVoiceDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setVoiceDragOver(false);
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.name.endsWith('.json')) setVoiceFile(file);
+                    }}
+                  >
+                    {voiceFile ? (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-[0.73rem] text-text-primary font-medium">{voiceFile.name}</p>
+                          <p className="text-[0.62rem] text-text-tertiary mt-1">{(voiceFile.size / 1024).toFixed(0)} KB</p>
+                        </div>
+                        <button
+                          onClick={() => setVoiceFile(null)}
+                          className="text-[0.62rem] text-text-tertiary hover:text-red-400 transition-colors duration-150"
+                        >
+                          remove
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-tertiary">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-[0.73rem] text-text-secondary">Drop your DM export here</p>
+                          <p className="text-[0.62rem] text-text-tertiary mt-[3px]">
+                            or{' '}
+                            <button
+                              onClick={() => voiceFileRef.current?.click()}
+                              className="underline hover:text-text-secondary transition-colors duration-150"
+                            >
+                              browse files
+                            </button>
+                          </p>
+                        </div>
+                        <p className="text-[0.57rem] text-text-tertiary/60">Accepts .json — exported from Meta&apos;s Download Your Information</p>
+                      </>
+                    )}
+                    <input
+                      ref={voiceFileRef}
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setVoiceFile(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer — save button (not shown for Voice) */}
+            {activeDrawer !== 'voice' && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
+                <div>
+                  {saved && <span className="text-[0.68rem] text-green-400">✓ Saved</span>}
+                </div>
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="bg-btn-bg text-btn-text px-5 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Save changes'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════
+          Product picker modal (unchanged)
+      ══════════════════════════════════════ */}
       {productPickerOpen !== null && (() => {
         const activeGuide = sizeGuides.find((sg) => sg.id === productPickerOpen);
         const pickable = allProducts.filter(
@@ -753,7 +1033,6 @@ export default function KnowledgeBasePage() {
               style={{ maxHeight: '80vh' }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <h3 className="text-[0.83rem] font-medium text-text-primary tracking-[-0.01em]">Select products</h3>
                 <button
@@ -767,7 +1046,6 @@ export default function KnowledgeBasePage() {
                 </button>
               </div>
 
-              {/* Search */}
               <div className="px-5 py-3 border-b border-border">
                 <div className="relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-text-tertiary pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -785,7 +1063,6 @@ export default function KnowledgeBasePage() {
                 </div>
               </div>
 
-              {/* Product grid */}
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {filtered.length === 0 ? (
                   <p className="text-center text-[0.68rem] text-text-tertiary py-10">No products found</p>
@@ -799,16 +1076,11 @@ export default function KnowledgeBasePage() {
                           onClick={() => togglePickerProduct(product.name)}
                           className="flex flex-col items-center gap-[6px] text-center group/card"
                         >
-                          {/* Image tile */}
                           <div className={`relative w-full aspect-square rounded-[8px] overflow-hidden border transition-all duration-150 ${
                             checked ? 'border-text-primary ring-2 ring-text-primary/20' : 'border-border hover:border-border-md'
                           } bg-background3`}>
                             {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
+                              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <svg className="w-6 h-6 text-text-tertiary/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -818,7 +1090,6 @@ export default function KnowledgeBasePage() {
                                 </svg>
                               </div>
                             )}
-                            {/* Checkbox top-left */}
                             <div className={`absolute top-[6px] left-[6px] w-[16px] h-[16px] rounded-[4px] border flex items-center justify-center transition-all duration-150 ${
                               checked
                                 ? 'bg-text-primary border-text-primary'
@@ -831,7 +1102,6 @@ export default function KnowledgeBasePage() {
                               )}
                             </div>
                           </div>
-                          {/* Product name */}
                           <span className="text-[0.62rem] text-text-secondary leading-tight w-full truncate px-[2px]">
                             {product.name}
                           </span>
@@ -842,11 +1112,8 @@ export default function KnowledgeBasePage() {
                 )}
               </div>
 
-              {/* Footer */}
               <div className="flex items-center justify-between px-5 py-3 border-t border-border">
-                <span className="text-[0.65rem] text-text-tertiary">
-                  {pickerTemp.length} selected
-                </span>
+                <span className="text-[0.65rem] text-text-tertiary">{pickerTemp.length} selected</span>
                 <div className="flex gap-2">
                   <button
                     onClick={closeProductPicker}
@@ -867,7 +1134,9 @@ export default function KnowledgeBasePage() {
         );
       })()}
 
-      {/* Image preview modal */}
+      {/* ══════════════════════════════════════
+          Image preview modal (unchanged)
+      ══════════════════════════════════════ */}
       {modalImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[2px] p-6"
