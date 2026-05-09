@@ -274,6 +274,14 @@ export const getIntegrationStatus = async () => {
   });
 };
 
+// Disconnect integration(s)
+export const disconnectIntegration = async (platform: 'shopify' | 'instagram' | 'all') => {
+  return apiRequest('/integrations/disconnect', {
+    method: 'DELETE',
+    body: JSON.stringify({ platform }),
+  });
+};
+
 // Orders API calls
 export const getOrders = async () => {
   return apiRequest('/orders', { method: 'GET' });

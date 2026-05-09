@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
-import { connectShopify, getShopifyStatus, getUserInfo, updateBrandDescription } from '@/lib/api';
+import { connectShopify, getShopifyStatus, getUserInfo, updateBrandDescription, disconnectIntegration } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 
@@ -227,13 +227,32 @@ function SettingsContent() {
     setChannels((prev) => ({ ...prev, [ch]: !prev[ch] }));
   };
 
+  const handleDisconnect = async (platform: 'shopify' | 'instagram' | 'all') => {
+    try {
+      await disconnectIntegration(platform);
+      if (platform === 'shopify' || platform === 'all') {
+        setShopifyConnected(false);
+        setShopifyStoreDomain('');
+      }
+      if (platform === 'instagram' || platform === 'all') {
+        setMetaConnected(false);
+      }
+      if (platform === 'all') {
+        setBostaConnected(false);
+      }
+      showToast(platform === 'all' ? 'All integrations disconnected' : `${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to disconnect', 'error');
+    }
+  };
+
   const integrations = [
     {
       id: 'shopify' as const,
       name: 'Shopify',
       desc: shopifyConnected ? shopifyStoreDomain : 'Sync your product catalog, inventory, and orders.',
       connected: shopifyConnected,
-      onDisconnect: () => { setShopifyConnected(false); setShopifyStoreDomain(''); showToast('Shopify disconnected'); },
+      onDisconnect: () => handleDisconnect('shopify'),
       logo: (
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: '#96bf48' }}>
           <svg width="18" height="20" viewBox="0 0 24 28" fill="none">
@@ -247,7 +266,7 @@ function SettingsContent() {
       name: 'Meta Business',
       desc: 'Connect Instagram DMs and WhatsApp Business. Luna reads and replies in real time.',
       connected: metaConnected,
-      onDisconnect: () => { setMetaConnected(false); showToast('Meta disconnected'); },
+      onDisconnect: () => handleDisconnect('instagram'),
       logo: (
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#1877f2]" style={{ background: '#1a1a1a', border: '1px solid rgba(24,119,242,0.2)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -261,7 +280,7 @@ function SettingsContent() {
       name: 'Bosta',
       desc: 'Plug in your Bosta account so Luna can track shipments and give live delivery updates.',
       connected: bostaConnected,
-      onDisconnect: () => { setBostaConnected(false); showToast('Bosta disconnected'); },
+      onDisconnect: () => handleDisconnect('all'),
       logo: (
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#ff6b35]" style={{ background: '#1a1a1a', border: '1px solid rgba(255,107,53,0.2)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -300,7 +319,17 @@ function SettingsContent() {
             {/* ── INTEGRATIONS ──
                 API: see Shopify/Meta/Bosta above */}
             <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
-              <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Integrations</div>
+              <div className="flex items-center justify-between mb-[0.3rem]">
+                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary">Integrations</div>
+                {(shopifyConnected || metaConnected || bostaConnected) && (
+                  <button
+                    onClick={() => handleDisconnect('all')}
+                    className="text-[0.68rem] text-red-400/70 border border-red-400/30 rounded-[7px] px-3 py-[5px] hover:text-red-400 hover:border-red-400/60 transition-all duration-[180ms]"
+                  >
+                    Disconnect all
+                  </button>
+                )}
+              </div>
               <p className="text-[0.68rem] text-text-secondary mb-4">
                 Connect your tools so Luna can access your store, channels, and shipping data.
               </p>
@@ -331,7 +360,7 @@ function SettingsContent() {
                             : 'bg-btn-bg text-btn-text hover:opacity-85'
                         } disabled:opacity-50`}
                       >
-                        {intg.connected ? 'Disconnect' : (intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect')}
+                        {intg.connected ? 'Connected' : (intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect')}
                       </button>
                     </div>
                   </div>

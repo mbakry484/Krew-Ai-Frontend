@@ -18,12 +18,9 @@
       "Bash(find /d/KrewAi/krew-ai-backend -maxdepth 3 -type f \\\\\\(-name *.py -o -name *.js -o -name *.ts \\\\\\) -not -path */node_modules/*)",
       "Bash(npm install:*)",
       "Bash(find /d/KrewAi/Krew-Ai-Frontend/components -name *RequestCard* -o -name *Exchange* -o -name *Refund*)",
-      "Bash(node -e \"const pkg = require\\('./node_modules/tailwindcss/package.json'\\); console.log\\(pkg.version\\)\")",
-      "Bash(Get-ChildItem -Path \"f:\\\\Krew-Ai-Frontend\" -Directory)",
-      "Bash(Select-Object -First 10)",
-      "PowerShell(Head -50)",
-      "PowerShell(Get-ChildItem -Path \"f:\\\\Krew-Ai-Frontend\\\\components\" | Where-Object { $_.Extension -eq '.tsx' -or $_.Extension -eq '.ts' } | Select-Object Name)",
-      "PowerShell(\\(Get-Item \"f:\\\\Krew-Ai-Frontend\\\\app\\\\dashboard\\\\luna\\\\knowledge-base\\\\page.tsx\"\\).FullName)"
+      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *integrat*)",
+      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *settings*)",
+      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *luna*)"
     ],
     "deny": [],
     "ask": []
