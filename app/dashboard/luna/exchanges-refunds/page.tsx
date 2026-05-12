@@ -99,50 +99,53 @@ function RequestCard({ req, onMarkDone, onDismiss, onOpenConversation }: Request
         <StatusBadge status={req.status} />
       </div>
 
-      {/* Message block */}
-      <div className="bg-background3 rounded-[8px] px-[0.75rem] py-[0.55rem] mb-[0.75rem]">
-        <p className="text-[0.69rem] text-text-secondary leading-[1.5]">{req.reason}</p>
-      </div>
-
-      {/* Actions */}
-      {!isDismissed && (
-        <div className="flex items-center justify-end gap-[6px] max-md:flex-col max-md:items-stretch">
-          {req.conversation_id && (
-            <button
-              onClick={() => onOpenConversation(req.conversation_id!)}
-              className="flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-border-md hover:text-text-secondary transition-all duration-150"
-            >
-              <svg className="w-[11px] h-[11px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-              </svg>
-              View convo
-            </button>
-          )}
-
-          {isPending && (
-            <div className="flex items-center gap-[6px] max-md:w-full">
-              <button
-                onClick={() => onDismiss(req.id, req.type)}
-                className="flex flex-1 items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all duration-150"
-              >
-                <svg className="w-[10px] h-[10px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-                Dismiss
-              </button>
-              <button
-                onClick={() => onMarkDone(req.id, req.type)}
-                className="flex flex-1 items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-green-600/40 hover:text-green-600 hover:bg-green-600/5 transition-all duration-150"
-              >
-                <svg className="w-[10px] h-[10px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 6L9 17l-5-5"/>
-                </svg>
-                Approve
-              </button>
-            </div>
-          )}
+      {/* Message + Actions inline row */}
+      <div className="flex items-center gap-3 max-md:flex-col max-md:items-stretch">
+        {/* Reason block */}
+        <div className="flex-1 min-w-0 border-l-[2px] border-border-md pl-[0.65rem] py-[0.15rem]">
+          <p className="text-[0.69rem] text-text-tertiary leading-[1.5] truncate">{req.reason}</p>
         </div>
-      )}
+
+        {/* Actions */}
+        {!isDismissed && (
+          <div className="flex items-center gap-[6px] shrink-0 max-md:w-full">
+            {req.conversation_id && (
+              <button
+                onClick={() => onOpenConversation(req.conversation_id!)}
+                className="flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-border-md hover:text-text-secondary transition-all duration-150 max-md:flex-1"
+              >
+                <svg className="w-[11px] h-[11px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                View convo
+              </button>
+            )}
+
+            {isPending && (
+              <>
+                <button
+                  onClick={() => onDismiss(req.id, req.type)}
+                  className="flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all duration-150 max-md:flex-1"
+                >
+                  <svg className="w-[10px] h-[10px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                  Dismiss
+                </button>
+                <button
+                  onClick={() => onMarkDone(req.id, req.type)}
+                  className="flex items-center justify-center gap-[5px] px-[10px] py-[5px] rounded-[7px] text-[0.68rem] font-[450] border border-border text-text-tertiary bg-background hover:border-green-600/40 hover:text-green-600 hover:bg-green-600/5 transition-all duration-150 max-md:flex-1"
+                >
+                  <svg className="w-[10px] h-[10px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                  Approve
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -176,10 +179,12 @@ function SkeletonColumn() {
               </div>
               <Skeleton className="w-[52px] h-[1.1rem] rounded-full" />
             </div>
-            <Skeleton className="w-full h-[2.2rem] rounded-[8px] mb-[0.75rem]" />
-            <div className="flex justify-end gap-[6px]">
-              <Skeleton className="w-[78px] h-[26px] rounded-[7px]" />
-              <Skeleton className="w-[70px] h-[26px] rounded-[7px]" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="flex-1 h-[0.55rem]" />
+              <div className="flex gap-[6px] shrink-0">
+                <Skeleton className="w-[78px] h-[26px] rounded-[7px]" />
+                <Skeleton className="w-[70px] h-[26px] rounded-[7px]" />
+              </div>
             </div>
           </div>
         ))}
