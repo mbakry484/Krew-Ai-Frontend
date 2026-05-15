@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { isLoggedIn, logout } from '@/lib/auth';
 
@@ -22,6 +22,16 @@ export default function Navigation() {
   const [mobileOpen,      setMobileOpen]      = useState(false);
   const [hoveredMega,     setHoveredMega]     = useState<'agents' | 'about' | null>(null);
   const [navPhase, setNavPhase] = useState<'hidden' | 'stretching' | 'content'>('hidden');
+  const megaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openMega = (key: 'agents' | 'about') => {
+    if (megaTimer.current) clearTimeout(megaTimer.current);
+    setHoveredMega(key);
+  };
+
+  const closeMega = () => {
+    megaTimer.current = setTimeout(() => setHoveredMega(null), 120);
+  };
 
   useEffect(() => {
     setIsAuthenticated(isLoggedIn());
@@ -130,15 +140,15 @@ export default function Navigation() {
             {/* ── Agents ── */}
             <div
               className="relative"
-              onMouseEnter={() => setHoveredMega('agents')}
-              onMouseLeave={() => setHoveredMega(null)}
+              onMouseEnter={() => openMega('agents')}
+              onMouseLeave={closeMega}
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 Agents
                 <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
               </button>
 
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-2xl overflow-hidden shadow-xl dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
                 <div className="grid grid-cols-2">
                   <button
                     onClick={() => { router.push('/agents/luna'); setHoveredMega(null); }}
@@ -179,15 +189,15 @@ export default function Navigation() {
             {/* ── About ── */}
             <div
               className="relative"
-              onMouseEnter={() => setHoveredMega('about')}
-              onMouseLeave={() => setHoveredMega(null)}
+              onMouseEnter={() => openMega('about')}
+              onMouseLeave={closeMega}
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 About
                 <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
               </button>
 
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-2xl overflow-hidden shadow-xl dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'about' ? panelVisible : panelHidden}`}>
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'about' ? panelVisible : panelHidden}`}>
                 <div className="grid grid-cols-2">
                   <button
                     onClick={() => { router.push('/about/vision'); setHoveredMega(null); }}
@@ -310,7 +320,7 @@ export default function Navigation() {
               >
                 {mobileUserInitials}
               </button>
-              <div className={`absolute top-[calc(100%+10px)] right-0 w-[200px] bg-white/90 backdrop-blur-xl border border-black/[0.08] rounded-[10px] overflow-hidden ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:bg-white/[0.08] dark:backdrop-blur-xl dark:border dark:border-white/[0.12] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${dropdownOpen ? panelVisible : panelHidden}`}>
+              <div className={`absolute top-[calc(100%+10px)] right-0 w-[200px] bg-dropdown-bg border border-border rounded-[10px] overflow-hidden ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.18)] ${dropdownOpen ? panelVisible : panelHidden}`}>
                 <div className="px-4 py-[0.9rem] border-b border-border">
                   <div className="text-[0.78rem] font-medium text-text-primary mb-[1px]">{userInfo.first_name} {userInfo.last_name}</div>
                   <div className="text-[0.68rem] text-text-tertiary">{userInfo.email}</div>
