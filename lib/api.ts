@@ -291,6 +291,23 @@ export const getOrderStats = async () => {
   return apiRequest('/orders/stats', { method: 'GET' });
 };
 
+// Interactions / Issues / Reports API calls
+export const getIssues = async (brandId: string, days = 30) => {
+  return apiRequest(`/interactions/issues?brand_id=${brandId}&days=${days}`, { method: 'GET' });
+};
+
+export const getIssueInteractions = async (brandId: string, category: string, days = 30) => {
+  return apiRequest(`/interactions/issues/${encodeURIComponent(category)}?brand_id=${brandId}&days=${days}`, { method: 'GET' });
+};
+
+export const getSentiment = async (brandId: string, days = 30) => {
+  return apiRequest(`/interactions/sentiment?brand_id=${brandId}&days=${days}`, { method: 'GET' });
+};
+
+export const getReports = async (brandId: string, days = 30) => {
+  return apiRequest(`/interactions/reports?brand_id=${brandId}&days=${days}`, { method: 'GET' });
+};
+
 // Overview stats (aggregated from orders, exchanges, refunds, conversations)
 export const getOverviewStats = async () => {
   const [orderStats, exchangeRefunds, conversations] = await Promise.all([

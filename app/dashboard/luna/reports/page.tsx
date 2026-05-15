@@ -1,48 +1,96 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
+import { getUserInfo, getReports } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 
-// =============================================================================
-// BACKEND API NOTES (for backend team)
-// =============================================================================
-// GET /api/luna/reports/summary?period=month
-//   Returns:
-//   {
-//     total_dms: number,               // e.g. 1842
-//     resolution_rate: number,          // percentage, e.g. 96
-//     avg_response_ms: number,          // milliseconds, display as "0.4s"
-//     escalations: number,              // e.g. 31
-//     total_dms_delta: number,          // % change
-//     resolution_delta: number,
-//     response_delta: number,
-//     escalations_delta: number,
-//     monthly_volume: number[],         // 6 values for bar chart (last 6 months)
-//     monthly_labels: string[],         // e.g. ["Sep","Oct","Nov","Dec","Jan","Feb"]
-//   }
-//
-// POST /api/luna/reports/export
-//   Body: { format: 'pdf'|'csv', period: 'daily'|'weekly'|'monthly' }
-//   Returns: { download_url: string }
-//
-// POST /api/luna/reports/send-email
-//   Body: { period: 'daily'|'weekly'|'monthly' }
-//   Returns: { success: boolean }
-// =============================================================================
+interface MonthVolume {
+  month: string; // YYYY-MM
+  count: number;
+}
 
-// Bar heights for 6-month volume chart
-const MONTHLY_BARS = [55, 68, 44, 78, 60, 94];
-const MONTHLY_LABELS = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
+interface ReportsData {
+  total_dms: { value: number; change: number };
+  resolution_rate: { value: number; change: number };
+  avg_response_ms: { value: number; change: number };
+  escalations: { value: number; change: number };
+  monthly_volume: MonthVolume[];
+}
+
+function formatMs(ms: number): string {
+  if (ms === 0) return '—';
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function shortMonth(ym: string): string {
+  const [year, month] = ym.split('-');
+  const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+  return d.toLocaleString('en-US', { month: 'short' });
+}
 
 export default function ReportsPage() {
   const router = useRouter();
+  const [brandId, setBrandId] = useState<string | null>(null);
+  const [data, setData] = useState<ReportsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoggedIn()) router.push('/auth/login');
+    if (!isLoggedIn()) { router.push('/auth/login'); return; }
+    getUserInfo().then((res) => {
+      const id = res.user?.brand_id || res.brand_id;
+      if (id) setBrandId(id);
+    }).catch(() => {});
   }, [router]);
+
+  useEffect(() => {
+    if (!brandId) return;
+    setLoading(true);
+    getReports(brandId, 30)
+      .then((res) => setData(res))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brandId]);
+
+  // Derive bar chart data from monthly_volume
+  const monthlyVolume = data?.monthly_volume || [];
+  const maxVol = Math.max(...monthlyVolume.map((m) => m.count), 1);
+  const barHeights = monthlyVolume.map((m) => Math.max(8, Math.round((m.count / maxVol) * 100)));
+  const barLabels = monthlyVolume.map((m) => shortMonth(m.month));
+
+  const stats = data ? [
+    {
+      label: 'Total DMs (Month)',
+      value: data.total_dms.value.toLocaleString(),
+      delta: `${data.total_dms.change > 0 ? '+' : ''}${data.total_dms.change}%`,
+      up: data.total_dms.change >= 0,
+      icon: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>,
+    },
+    {
+      label: 'Resolution Rate',
+      value: `${data.resolution_rate.value}%`,
+      delta: `${data.resolution_rate.change > 0 ? '+' : ''}${data.resolution_rate.change}%`,
+      up: data.resolution_rate.change >= 0,
+      icon: <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>,
+    },
+    {
+      label: 'Avg Response',
+      value: formatMs(data.avg_response_ms.value),
+      delta: formatMs(Math.abs(data.avg_response_ms.change)),
+      up: data.avg_response_ms.change <= 0, // lower is better
+      icon: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    },
+    {
+      label: 'Escalations',
+      value: String(data.escalations.value),
+      delta: `${data.escalations.change > 0 ? '+' : ''}${data.escalations.change}`,
+      up: data.escalations.change <= 0, // fewer is better
+      icon: <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>,
+    },
+  ] : null;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -63,76 +111,66 @@ export default function ReportsPage() {
 
           <div className="px-8 py-6 pb-12 flex flex-col gap-6">
 
-            {/* Summary stat cards
-                API: GET /api/luna/reports/summary */}
+            {/* Summary stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  label: 'Total DMs (Month)',
-                  value: '1,842',
-                  delta: '18%',
-                  up: true,
-                  icon: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                },
-                {
-                  label: 'Resolution Rate',
-                  value: '96%',
-                  delta: '3%',
-                  up: true,
-                  icon: <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                },
-                {
-                  label: 'Avg Response',
-                  value: '0.4s',
-                  delta: '0.1s',
-                  up: true,
-                  icon: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>
-                },
-                {
-                  label: 'Escalations',
-                  value: '31',
-                  delta: '2',
-                  up: false,
-                  icon: <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                },
-              ].map((s) => (
-                <div key={s.label} className="bg-background border border-border rounded-[12px] p-[1.2rem] hover:border-border-md transition-colors duration-200">
-                  <div className="flex items-start justify-between mb-[0.9rem]">
-                    <div className="text-text-tertiary">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{s.icon}</svg>
+              {loading || !stats ? (
+                [1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-background border border-border rounded-[12px] p-[1.2rem] h-[110px] animate-pulse" />
+                ))
+              ) : (
+                stats.map((s) => (
+                  <div key={s.label} className="bg-background border border-border rounded-[12px] p-[1.2rem] hover:border-border-md transition-colors duration-200">
+                    <div className="flex items-start justify-between mb-[0.9rem]">
+                      <div className="text-text-tertiary">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">{s.icon}</svg>
+                      </div>
+                      <div className={`text-[0.68rem] flex items-center gap-[3px] ${s.up ? 'text-[#6bcf8f]' : 'text-[#e07070]'}`}>
+                        {s.up ? (
+                          <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+                        ) : (
+                          <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7l10 10M17 7v10H7"/></svg>
+                        )}
+                        {s.delta}
+                      </div>
                     </div>
-                    <div className={`text-[0.68rem] flex items-center gap-[3px] ${s.up ? 'text-[#6bcf8f]' : 'text-[#e07070]'}`}>
-                      {s.up ? (
-                        <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-                      ) : (
-                        <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7l10 10M17 7v10H7"/></svg>
-                      )}
-                      {s.delta}
-                    </div>
+                    <div className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary mb-[0.3rem]">{s.label}</div>
+                    <div className="text-[1.9rem] font-light tracking-[-0.04em] text-text-primary">{s.value}</div>
                   </div>
-                  <div className="text-[0.6rem] uppercase tracking-[0.08em] text-text-tertiary mb-[0.3rem]">{s.label}</div>
-                  <div className="text-[1.9rem] font-light tracking-[-0.04em] text-text-primary">{s.value}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
-            {/* Monthly volume bar chart
-                API: GET /api/luna/reports/summary → monthly_volume[], monthly_labels[] */}
+            {/* Monthly volume bar chart */}
             <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
               <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Monthly Volume</div>
               <p className="text-[0.68rem] text-text-secondary mb-4">DM volume over the past 6 months</p>
-              <div className="flex items-end gap-[3px]" style={{ height: '70px' }}>
-                {MONTHLY_BARS.map((h, i) => (
-                  <div key={i} className={`flex-1 rounded-t-[2px] transition-colors duration-200 hover:bg-text-tertiary ${h >= 90 ? 'bg-text-secondary' : 'bg-border-md'}`} style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <div className="flex justify-between mt-1">
-                {MONTHLY_LABELS.map((l) => <span key={l} className="text-[0.55rem] text-text-tertiary">{l}</span>)}
-              </div>
+
+              {loading ? (
+                <div className="h-[70px] bg-border rounded animate-pulse" />
+              ) : monthlyVolume.length === 0 ? (
+                <div className="text-[0.72rem] text-text-tertiary py-4 text-center">no volume data yet</div>
+              ) : (
+                <>
+                  <div className="flex items-end gap-[3px]" style={{ height: '70px' }}>
+                    {barHeights.map((h, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-t-[2px] transition-colors duration-200 hover:bg-text-tertiary ${h >= 90 ? 'bg-text-secondary' : 'bg-border-md'}`}
+                        style={{ height: `${h}%` }}
+                        title={`${monthlyVolume[i]?.count ?? 0} DMs`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    {barLabels.map((l, i) => (
+                      <span key={i} className="text-[0.55rem] text-text-tertiary">{l}</span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Export panel
-                API: POST /api/luna/reports/export, /send-email */}
+            {/* Export panel */}
             <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
               <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Export Reports</div>
               <p className="text-[0.68rem] text-text-secondary mb-4">Download or share your data</p>
