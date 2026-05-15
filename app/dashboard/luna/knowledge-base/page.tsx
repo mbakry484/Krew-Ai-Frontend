@@ -179,9 +179,9 @@ export default function KnowledgeBasePage() {
         ]);
 
         const products: Product[] = (productsData?.products || []).map(
-          (p: { name: string; image?: string; images?: Array<{ src: string }> }) => ({
+          (p: { name: string; image_url?: string; image?: string; images?: Array<{ src: string }> }) => ({
             name: p.name,
-            image: p.image || p.images?.[0]?.src,
+            image: p.image_url || p.image || p.images?.[0]?.src,
           })
         );
         setAllProducts(products);
