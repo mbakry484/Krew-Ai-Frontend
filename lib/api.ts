@@ -1,6 +1,39 @@
-import { getAuthHeader } from './auth';
+import { getAuthHeader, getRefreshToken, setToken, setRefreshToken, logout } from './auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
+
+// Prevent multiple simultaneous refresh calls
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      setToken(data.token);
+      setRefreshToken(data.refreshToken);
+      return data.token;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
 
 // Helper for API requests
 const apiRequest = async (
@@ -9,27 +42,40 @@ const apiRequest = async (
 ): Promise<any> => {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...getAuthHeader(),
+  const buildHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    };
+    if (options.headers) {
+      Object.assign(headers, options.headers as Record<string, string>);
+    }
+    return headers;
   };
 
-  if (options.headers) {
-    const existingHeaders = options.headers as Record<string, string>;
-    Object.assign(headers, existingHeaders);
-  }
-
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    const response = await fetch(url, { ...options, headers: buildHeaders() });
+
+    // Silently refresh on expired access token and retry once
+    if (response.status === 401) {
+      const error = await response.json().catch(() => ({}));
+      if (error.error === 'Token expired') {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          const retryResponse = await fetch(url, { ...options, headers: buildHeaders() });
+          if (retryResponse.ok) return retryResponse.json();
+          // Retry also failed — fall through to error handling below
+          const retryError = await retryResponse.json().catch(() => ({}));
+          throw new Error(retryError.message || retryError.error || `Request failed with status ${retryResponse.status}`);
+        }
+        // No refresh token or refresh failed — kick to login
+        await logout();
+        return;
+      }
+    }
 
     if (!response.ok) {
-      // Try to parse error response
       const error = await response.json().catch(() => ({}));
-
-      // Map HTTP status codes to meaningful messages
       let errorMessage = error.message || error.detail || error.error;
 
       if (!errorMessage) {
@@ -73,11 +119,9 @@ const apiRequest = async (
 
     return response.json();
   } catch (error: any) {
-    // Handle network errors
     if (error.message === 'Failed to fetch' || error instanceof TypeError) {
       throw new Error('Unable to connect to server. Please check your internet connection.');
     }
-    // Re-throw other errors
     throw error;
   }
 };
@@ -95,10 +139,8 @@ export const signup = async (data: {
     body: JSON.stringify(data),
   });
 
-  // Store token if returned
-  if (response.token) {
-    localStorage.setItem('krew_token', response.token);
-  }
+  if (response.token) setToken(response.token);
+  if (response.refreshToken) setRefreshToken(response.refreshToken);
 
   return response;
 };
@@ -112,10 +154,8 @@ export const login = async (data: {
     body: JSON.stringify(data),
   });
 
-  // Store token if returned
-  if (response.token) {
-    localStorage.setItem('krew_token', response.token);
-  }
+  if (response.token) setToken(response.token);
+  if (response.refreshToken) setRefreshToken(response.refreshToken);
 
   return response;
 };
@@ -128,7 +168,6 @@ export const saveOnboarding = async (data: {
   painPoint?: string;
   brandDescription?: string;
 }) => {
-  // Convert camelCase frontend keys to snake_case backend keys
   const payload: Record<string, string> = {};
   if (data.businessType) payload.business_type = data.businessType;
   if (data.revenueRange) payload.revenue_range = data.revenueRange;
