@@ -20,11 +20,6 @@ import { getOverviewStats, getOrders, getIntegrationStatus } from '@/lib/api';
 
 const TIME_OPTIONS = ['Today', 'Yesterday', 'This Week', 'Last Week', 'This Month', 'Last Month'];
 
-const HOURLY_BARS = [30, 20, 25, 40, 60, 75, 95, 80, 70, 65, 50, 45];
-const HOURLY_LABELS = ['8am','10','12','2pm','4','6','8','10','12','2am','4','6'];
-const WEEKLY_BARS = [55, 62, 48, 70, 65, 92, 78];
-const WEEKLY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
 interface Order {
   id: string;
   shopify_order_id: string;
@@ -248,26 +243,18 @@ export default function LunaOverview() {
               <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Daily Breakdown</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Conversation volume by hour</p>
-                <div className="flex items-end gap-[3px] h-[52px]">
-                  {HOURLY_BARS.map((h, i) => (
-                    <div key={i} className={`flex-1 rounded-t-[2px] transition-colors duration-200 hover:bg-text-tertiary ${h >= 90 ? 'bg-text-secondary' : 'bg-border-md'}`} style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-                <div className="flex justify-between mt-1">
-                  {HOURLY_LABELS.map((l) => <span key={l} className="text-[0.55rem] text-text-tertiary">{l}</span>)}
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <svg className="w-7 h-7 text-text-tertiary opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  <p className="text-[0.65rem] text-text-tertiary">No data yet</p>
                 </div>
               </div>
 
               <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Monthly Trends</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Conversations over time</p>
-                <div className="flex items-end gap-[3px] h-[52px]">
-                  {WEEKLY_BARS.map((h, i) => (
-                    <div key={i} className={`flex-1 rounded-t-[2px] transition-colors duration-200 hover:bg-text-tertiary ${h >= 90 ? 'bg-text-secondary' : 'bg-border-md'}`} style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-                <div className="flex justify-between mt-1">
-                  {WEEKLY_LABELS.map((l) => <span key={l} className="text-[0.55rem] text-text-tertiary">{l}</span>)}
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <svg className="w-7 h-7 text-text-tertiary opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  <p className="text-[0.65rem] text-text-tertiary">No data yet</p>
                 </div>
               </div>
             </div>
@@ -276,29 +263,9 @@ export default function LunaOverview() {
             <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
               <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Top Issues</div>
               <p className="text-[0.68rem] text-text-secondary mb-4">Most common customer concerns</p>
-              <div className="flex flex-col gap-[0.6rem]">
-                {[
-                  { num: 12, name: 'Sizing issue', sub: 'mentions today', delta: '+20%', up: true },
-                  { num: 8,  name: 'Late delivery', sub: 'mentions today', delta: '-10%', up: false },
-                  { num: 5,  name: 'Color mismatch', sub: 'mentions today', delta: '+15%', up: true },
-                  { num: 4,  name: 'Product quality', sub: 'mentions today', delta: '-5%', up: false },
-                ].map((issue) => (
-                  <div key={issue.name} className="flex items-center gap-4 bg-background4 border border-border rounded-xl p-4 hover:border-border-md transition-colors duration-150">
-                    <div className="text-[1.1rem] font-light text-text-primary tracking-[-0.03em] min-w-[22px]">{issue.num}</div>
-                    <div className="flex-1">
-                      <div className="text-[0.75rem] text-text-primary mb-[1px]">{issue.name}</div>
-                      <div className="text-[0.63rem] text-text-tertiary">{issue.sub}</div>
-                    </div>
-                    <div className="text-[0.68rem] flex items-center gap-[3px] whitespace-nowrap text-text-tertiary">
-                      {issue.up ? (
-                        <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
-                      ) : (
-                        <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7l10 10M17 7v10H7"/></svg>
-                      )}
-                      {issue.delta}
-                    </div>
-                  </div>
-                ))}
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <svg className="w-8 h-8 text-text-tertiary opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                <p className="text-[0.68rem] text-text-tertiary">No issues detected yet</p>
               </div>
             </div>
 
@@ -307,22 +274,9 @@ export default function LunaOverview() {
               <div className="bg-background3 border border-border rounded-2xl p-[1.4rem]">
                 <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Sentiment Analysis</div>
                 <p className="text-[0.68rem] text-text-secondary mb-4">Customer mood overview</p>
-                <div className="flex flex-col gap-4">
-                  {[
-                    { label: 'Angry', pct: 15, color: 'var(--border-md)' },
-                    { label: 'Neutral', pct: 45, color: 'var(--text-tertiary)' },
-                    { label: 'Positive', pct: 40, color: 'var(--text-secondary)' },
-                  ].map((s) => (
-                    <div key={s.label}>
-                      <div className="flex justify-between text-[0.72rem] mb-[5px]">
-                        <span className="text-text-secondary">{s.label}</span>
-                        <span className="text-text-tertiary">{s.pct}%</span>
-                      </div>
-                      <div className="bg-border-md rounded-[3px] h-1 overflow-hidden">
-                        <div className="h-full rounded-[3px]" style={{ width: `${s.pct}%`, background: s.color }} />
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <svg className="w-8 h-8 text-text-tertiary opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+                  <p className="text-[0.68rem] text-text-tertiary">No sentiment data yet</p>
                 </div>
               </div>
 
