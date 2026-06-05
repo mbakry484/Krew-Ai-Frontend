@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   signup,
+  checkEmail,
   saveOnboarding,
   connectShopify,
   getShopifyStatus,
@@ -280,6 +281,7 @@ const cleanShopDomain = (input: string): string => {
 type OBState = {
   email: string;
   password: string;
+  confirmPassword: string;
   ssoProvider: null | 'google' | 'shopify';
   fullName: string;
   phone: string;
@@ -298,6 +300,7 @@ type OBState = {
 const INITIAL_STATE: OBState = {
   email: '',
   password: '',
+  confirmPassword: '',
   ssoProvider: null,
   fullName: '',
   phone: '',
@@ -349,10 +352,21 @@ const StepSignup: StepDef = {
   phase: 'account',
   progressVisible: false,
   luna: () => ({ state: 'idle', line: 'Before we meet — one account.' }),
-  valid: ({ email, password, ssoProvider }) =>
-    !!ssoProvider || (/\S+@\S+\.\S+/.test(email || '') && (password || '').length >= 8),
+  valid: ({ email, password, confirmPassword, ssoProvider }) =>
+    !!ssoProvider || (
+      /\S+@\S+\.\S+/.test(email || '') &&
+      (password || '').length >= 8 &&
+      password === confirmPassword
+    ),
   hasFooter: true,
-  render: ({ state, set, signupError }) => (
+  render: (ctx) => <StepSignupForm {...ctx} />,
+};
+
+function StepSignupForm({ state, set, signupError }: StepCtx) {
+  const passwordMismatch =
+    (state.confirmPassword || '').length > 0 && state.password !== state.confirmPassword;
+
+  return (
     <div className="form-screen signup-screen">
       <div className="form-head">
         <h2 className="form-title ds-h1-mixed">
@@ -399,6 +413,19 @@ const StepSignup: StepDef = {
             onChange={(e) => set({ password: e.target.value, ssoProvider: null })}
           />
         </label>
+        <label className="field">
+          <span className="field-lbl">Confirm password</span>
+          <input
+            type="password"
+            className={`field-input${passwordMismatch ? ' field-input-error' : ''}`}
+            placeholder="Repeat your password"
+            value={state.confirmPassword}
+            onChange={(e) => set({ confirmPassword: e.target.value, ssoProvider: null })}
+          />
+          {passwordMismatch && (
+            <span className="field-error">Passwords don&apos;t match</span>
+          )}
+        </label>
       </div>
       {signupError && <div className="signup-error">{signupError}</div>}
       <div className="signup-foot">
@@ -414,8 +441,8 @@ const StepSignup: StepDef = {
         <Link href="/auth/login">Log in</Link>
       </div>
     </div>
-  ),
-};
+  );
+}
 
 // Step 1 — Name + Phone
 const StepNamePhone: StepDef = {
@@ -508,8 +535,8 @@ const StepBrand: StepDef = {
     brand
       ? { state: 'idle', line: `Nice to meet you, ${brand}.` }
       : { state: 'idle', line: 'What should I call your store?' },
-  valid: ({ brand, url }) =>
-    (brand || '').trim().length >= 2 && (url || '').trim().length >= 4,
+  valid: ({ brand }) =>
+    (brand || '').trim().length >= 2,
   hasFooter: true,
   render: ({ state, set, signupError }) => (
     <div className="form-screen">
@@ -531,15 +558,16 @@ const StepBrand: StepDef = {
           />
         </label>
         <label className="field">
-          <span className="field-lbl">Shopify URL</span>
+          <span className="field-lbl">Shopify URL <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span></span>
           <div className="field-compound">
             <input
               className="field-input"
               placeholder="noor-atelier"
               value={(state.url || '').replace(/\.myshopify\.com$/, '')}
-              onChange={(e) =>
-                set({ url: e.target.value.replace(/\.myshopify\.com$/, '') + '.myshopify.com' })
-              }
+              onChange={(e) => {
+                const val = e.target.value.replace(/\.myshopify\.com$/, '');
+                set({ url: val ? val + '.myshopify.com' : '' });
+              }}
             />
             <span className="field-suffix">.myshopify.com</span>
           </div>
@@ -672,7 +700,7 @@ const StepChannels: StepDef = {
     igConnected
       ? { state: 'idle', line: "Connected. I'll watch your DMs from here." }
       : { state: 'idle', line: 'Your Instagram inbox — let me in.' },
-  valid: ({ igConnected }) => !!igConnected,
+  valid: () => true,
   hasFooter: true,
   render: ({ state, connecting, connectError, handleConnectInstagram }) => {
     return (
@@ -876,39 +904,7 @@ function AliveScreen({ state, set }: { state: OBState; set: (patch: Partial<OBSt
         <div className="alive-bar">
           <div className="alive-bar-fill" style={{ width: `${prog * 100}%` }} />
         </div>
-        <div className="alive-steps">
-          {sequence.map((s, i) => (
-            <div
-              key={s.t}
-              className={`alive-step ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : 'pending'}`}
-            >
-              <span className="alive-step-dot">
-                {i < stepIdx ? <IconCheck size={10} sw={2.4} /> : i === stepIdx ? <span className="pulse-dot" /> : null}
-              </span>
-              <span className="alive-step-t">{s.t}</span>
-              <span className="alive-step-d">· {s.detail}</span>
-            </div>
-          ))}
-        </div>
       </div>
-      {prog >= 1 && (
-        <div className="alive-summary">
-          <div className="sum-stat">
-            <div className="sum-val">{DEMO_CATALOG.length}</div>
-            <div className="sum-lbl">products learned</div>
-          </div>
-          <div className="sum-div" />
-          <div className="sum-stat">
-            <div className="sum-val">{state.igConnected ? '1' : '0'}</div>
-            <div className="sum-lbl">channel live</div>
-          </div>
-          <div className="sum-div" />
-          <div className="sum-stat">
-            <div className="sum-val">~0s</div>
-            <div className="sum-lbl">response time</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -918,7 +914,6 @@ const ALL_STEPS: StepDef[] = [
   StepNamePhone,
   StepHook,
   StepBrand,
-  StepConnect,
   StepChannels,
   StepVoice,
   StepAlive,
@@ -944,6 +939,7 @@ function SignupFlow() {
 
   const [signupError, setSignupError] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
+  const signupInFlight = useRef(false);
 
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState('');
@@ -1029,32 +1025,48 @@ function SignupFlow() {
 
   // Signup API — called after Brand step
   const submitSignup = async (): Promise<boolean> => {
-    if (state.accountCreated) return true;
+    if (state.accountCreated || signupInFlight.current) return true;
+    signupInFlight.current = true;
     setSignupError('');
     setSignupLoading(true);
     try {
       const { first_name, last_name } = splitName(state.fullName);
-      await signup({
-        email: state.email,
-        password: state.password,
-        first_name,
-        last_name,
-        business_name: state.brand,
-      });
+      try {
+        await signup({
+          email: state.email,
+          password: state.password,
+          first_name,
+          last_name,
+          business_name: state.brand,
+        });
+      } catch (err: any) {
+        // If the account was already created (e.g. stale localStorage from a prior session),
+        // treat it as success and continue rather than blocking the user.
+        const msg: string = err?.message || '';
+        if (!msg.toLowerCase().includes('already exists')) {
+          setSignupError(msg || 'Unable to create account. Please try again.');
+          return false;
+        }
+      }
+      const { first_name: fn, last_name: ln } = splitName(state.fullName);
+      const updatedState = { ...state, accountCreated: true };
       localStorage.setItem('user_info', JSON.stringify({
-        first_name,
-        last_name,
+        first_name: fn,
+        last_name: ln,
         business_name: state.brand,
         phone_number: `${state.phoneCode} ${state.phone}`.trim(),
         email: state.email,
       }));
-      setState(s => ({ ...s, accountCreated: true }));
+      // Persist accountCreated immediately so remounts don't re-trigger signup
+      try { localStorage.setItem(STATE_KEY, JSON.stringify(updatedState)); } catch { /* ignore */ }
+      setState(updatedState);
       return true;
     } catch (err: any) {
       setSignupError(err?.message || 'Unable to create account. Please try again.');
       return false;
     } finally {
       setSignupLoading(false);
+      signupInFlight.current = false;
     }
   };
 
@@ -1195,8 +1207,25 @@ function SignupFlow() {
   // Navigation
   const goNext = async () => {
     setConnectError('');
+    setSignupError('');
     const current = ALL_STEPS[idx];
     if (!current.valid(state)) return;
+
+    // At the signup step — check email availability before proceeding
+    if (current.id === 'signup' && !state.ssoProvider) {
+      setSignupLoading(true);
+      try {
+        const { exists } = await checkEmail(state.email);
+        if (exists) {
+          setSignupError('An account with this email already exists. Please log in.');
+          return;
+        }
+      } catch {
+        // If the check fails, allow continuing — signup itself will catch duplicates
+      } finally {
+        setSignupLoading(false);
+      }
+    }
 
     // After Brand step — create the Krew account
     if (current.id === 'brand' && !state.accountCreated) {
@@ -1311,7 +1340,9 @@ function SignupFlow() {
                     onClick={goNext}
                     disabled={continueDisabled}
                   >
-                    {signupLoading && step.id === 'brand' ? (
+                    {signupLoading && step.id === 'signup' ? (
+                      <>Checking…</>
+                    ) : signupLoading && step.id === 'brand' ? (
                       <>Creating account…</>
                     ) : isLastStep ? (
                       <>Enter dashboard <IconArrowRight size={12} sw={1.8} /></>
