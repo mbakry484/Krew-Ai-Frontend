@@ -712,7 +712,7 @@ const StepChannels: StepDef = {
             <span className="rest">your Instagram inbox.</span>
           </h2>
           <p className="ds-body form-sub">
-            DMs, story replies, comments. One Meta login — you can add WhatsApp later.
+            DMs, story replies, comments. Connect your Instagram account to get started.
           </p>
         </div>
         <div className="ig-card">
@@ -739,7 +739,7 @@ const StepChannels: StepDef = {
                 disabled={connecting}
               >
                 <IconInstagram size={14} sw={1.8} />
-                {connecting ? 'Opening Meta…' : 'Connect with Meta'}
+                {connecting ? 'Opening Instagram…' : 'Connect with Instagram'}
               </button>
               {connectError && <div className="shop-error">{connectError}</div>}
             </>

@@ -264,14 +264,16 @@ function SettingsContent() {
     },
     {
       id: 'meta' as const,
-      name: 'Meta Business',
-      desc: metaConnected ? (instagramUsername ? `@${instagramUsername}` : 'Connected') : 'Connect Instagram DMs and WhatsApp Business. Luna reads and replies in real time.',
+      name: 'Instagram',
+      desc: metaConnected ? (instagramUsername ? `@${instagramUsername}` : 'Connected') : 'Connect your Instagram account. Luna reads and replies to DMs in real time.',
       connected: metaConnected,
       onDisconnect: () => handleDisconnect('instagram'),
       logo: (
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#1877f2]" style={{ background: '#1a1a1a', border: '1px solid rgba(24,119,242,0.2)' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', border: 'none' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none" />
           </svg>
         </div>
       )
