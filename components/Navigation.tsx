@@ -95,7 +95,7 @@ export default function Navigation() {
             ? { overflow: 'hidden', transformOrigin: 'center', opacity: 1, filter: 'blur(0px)', transition: 'width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease, filter 0.5s ease' }
             : { transformOrigin: 'center' }
         }
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-8 px-8 py-3 rounded-2xl w-[calc(100%-2rem)] max-w-5xl bg-black/[0.04] backdrop-blur-xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:bg-white/[0.06] dark:backdrop-blur-xl dark:border dark:border-white/[0.10] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-8 px-8 py-3 rounded-2xl w-[calc(100%-2rem)] max-w-5xl bg-black/[0.04] backdrop-blur-xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:bg-[#161618]/60 dark:backdrop-blur-xl dark:border dark:border-[#26262a] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
       >
 
         {/* Logo */}
@@ -145,7 +145,7 @@ export default function Navigation() {
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 Agents
-                <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
+                <span className="text-[0.65rem] leading-none text-text-tertiary">+</span>
               </button>
 
               <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
@@ -194,7 +194,7 @@ export default function Navigation() {
             >
               <button className="flex items-center gap-1 text-[0.75rem] text-text-secondary hover:text-text-primary hover:bg-tag-bg px-[10px] py-[5px] rounded-[6px] tracking-[0.02em] transition-all duration-150">
                 About
-                <span className="text-[0.65rem] leading-none text-zinc-400 dark:text-zinc-500">+</span>
+                <span className="text-[0.65rem] leading-none text-text-tertiary">+</span>
               </button>
 
               <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'about' ? panelVisible : panelHidden}`}>

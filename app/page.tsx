@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
+import ReliefSection from '@/components/landing/ReliefSection';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -173,28 +174,32 @@ export default function LandingPage() {
           <div className="flex-1 grid hero-grid max-w-[1320px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
 
             {/* LEFT */}
-            <div className="hero-left flex flex-col gap-[1.2rem] py-20 pr-8">
+            <div className="hero-left flex flex-col gap-8 py-20 pr-8">
 
               <h1
-                className={`${heroReady ? 'hero-blur-in' : ''} text-[clamp(2.3rem,3.6vw,3.5rem)] tracking-[-0.04em] leading-[1.08] text-text-primary`}
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[clamp(2.6rem,4.6vw,4.3rem)] tracking-[-0.045em] leading-[1.03] text-text-primary`}
                 style={{ opacity: heroReady ? undefined : 0, animationDelay: '0ms' }}
               >
                 <span className="font-bold">Luna.</span>
-                <span className="font-light"> Your brand&apos;s<br />customer service,<br />automated.</span>
+                <span className="font-light"> Every DM,<br />answered.</span>
+                <span className="font-light text-text-secondary"><br />While you sleep.</span>
               </h1>
 
               <p
-                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.88rem] text-text-secondary max-w-[480px] leading-[1.78] font-light`}
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.95rem] text-text-secondary max-w-[460px] leading-[1.75] font-light`}
                 style={{ opacity: heroReady ? undefined : 0, animationDelay: '120ms' }}
               >
-                Luna handles every customer DM — orders, returns, questions — automatically.
+                140 conversations a week — orders, returns, questions — handled in Arabic, Franco, and English. Automatically.
               </p>
 
               <div
-                className={`${heroReady ? 'hero-blur-in' : ''} flex gap-[0.9rem] mt-[0.2rem] flex-wrap items-center`}
+                className={`${heroReady ? 'hero-blur-in' : ''} flex gap-[0.9rem] mt-2 flex-wrap items-center`}
                 style={{ opacity: heroReady ? undefined : 0, animationDelay: '220ms' }}
               >
-                <Link href="/auth/signup" className="bg-btn-bg text-btn-text border-none rounded-[8px] px-5 py-[9px] text-[0.8rem] font-medium hover:opacity-85 transition-opacity duration-200">
+                <Link
+                  href="/auth/signup"
+                  className="bg-btn-bg text-btn-text border-none rounded-[8px] px-6 py-[10px] text-[0.82rem] font-medium hover:opacity-85 transition-opacity duration-200"
+                >
                   Start with Luna
                 </Link>
                 <Link href="/agents/luna" className="text-text-secondary text-[0.8rem] font-light hover:text-text-primary transition-colors duration-200">
@@ -210,9 +215,11 @@ export default function LandingPage() {
             >
               <div className="demo-wrap relative w-full" style={{ height: '540px' }}>
 
-                {/* IG gradient glow */}
+                {/* glow — monochrome in dark mode (gradient is reserved), IG tint in light */}
                 <div className="demo-glow absolute inset-[-40px] rounded-full pointer-events-none z-0" style={{
-                  background: 'radial-gradient(ellipse at 55% 45%, rgba(193,53,132,0.1) 0%, rgba(253,100,5,0.07) 35%, transparent 65%)'
+                  background: dk
+                    ? 'radial-gradient(ellipse at 55% 45%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 35%, transparent 65%)'
+                    : 'radial-gradient(ellipse at 55% 45%, rgba(193,53,132,0.1) 0%, rgba(253,100,5,0.07) 35%, transparent 65%)'
                 }} />
 
                 {/* BACK: desktop dashboard */}
@@ -288,7 +295,7 @@ export default function LandingPage() {
                   <div className="border-b flex items-center gap-[0.45rem] px-[0.75rem] py-[0.6rem]" style={{ background: ph.topbar, borderColor: ph.topBorder }}>
                     <svg className="w-[15px] h-[15px] shrink-0" style={{ color: ph.backArrow }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                     <div className="relative w-[28px] h-[28px] shrink-0">
-                      <div className="absolute inset-[-2px] rounded-full" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }} />
+                      <div className="absolute inset-[-2px] rounded-full" style={{ background: dk ? 'rgba(255,255,255,0.18)' : 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }} />
                       <div className="absolute inset-[1.5px] rounded-full" style={{ background: ph.topbar }} />
                       <div className="absolute inset-[3.5px] rounded-full flex items-center justify-center text-[0.42rem] font-bold text-white" style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>ZN</div>
                     </div>
@@ -327,7 +334,7 @@ export default function LandingPage() {
                 { num: '100%', label: 'Consistency' },
                 { num: '∞', label: 'Scale' },
               ].map((s, i) => (
-                <div key={i} className={`text-center px-9 py-5 ${i < 3 ? 'border-r border-border' : ''}`}>
+                <div key={i} className={`text-center px-9 py-8 ${i < 3 ? 'border-r border-border' : ''}`}>
                   <div className="text-[1.2rem] font-light tracking-[-0.04em]">{s.num}</div>
                   <div className="text-[0.63rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">{s.label}</div>
                 </div>
@@ -335,6 +342,9 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
+        {/* ── RELIEF BEAT — DMs pile up, then clear (landing-only, no data) ── */}
+        <ReliefSection />
 
         {/* ── WHY LUNA — pinned scroll: minimal centered headline + cards flying in & tilting ── */}
         <div ref={whyRef} className="why-outer border-t border-b border-border bg-background">
@@ -436,16 +446,16 @@ export default function LandingPage() {
         </div>
 
         {/* ── INTEGRATIONS STRIP ── */}
-        <div className="border-t border-b border-border py-[1.4rem] px-8 flex items-center justify-center gap-[0.6rem] flex-wrap">
+        <div className="border-t border-b border-border py-10 px-8 flex items-center justify-center gap-[0.6rem] flex-wrap">
           <span className="text-[0.62rem] uppercase tracking-[0.1em] text-text-tertiary mr-[0.8rem] whitespace-nowrap">Integrates with</span>
 
-          {/* Instagram */}
+          {/* Instagram — monochrome mark in dark mode (gradient reserved), brand gradient in light */}
           <div className="integ-logo-item">
             <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none">
               <defs><linearGradient id="ig-g2" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#f09433"/><stop offset="25%" stopColor="#e6683c"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs>
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig-g2)" strokeWidth="1.8"/>
-              <circle cx="12" cy="12" r="4" stroke="url(#ig-g2)" strokeWidth="1.8"/>
-              <circle cx="17.5" cy="6.5" r="1" fill="url(#ig-g2)"/>
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke={dk ? 'currentColor' : 'url(#ig-g2)'} strokeWidth="1.8"/>
+              <circle cx="12" cy="12" r="4" stroke={dk ? 'currentColor' : 'url(#ig-g2)'} strokeWidth="1.8"/>
+              <circle cx="17.5" cy="6.5" r="1" fill={dk ? 'currentColor' : 'url(#ig-g2)'}/>
             </svg>
             Instagram
           </div>
@@ -480,7 +490,7 @@ export default function LandingPage() {
         </div>
 
         {/* How It Works — four steps */}
-        <div className="py-24 px-8 max-w-[1080px] mx-auto" id="products">
+        <div className="py-44 px-8 max-w-[1080px] mx-auto" id="products">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">How it works</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] max-w-[540px] mb-[0.9rem]">
             Four steps.<br />From setup to live in minutes.
@@ -489,7 +499,7 @@ export default function LandingPage() {
             No code. No plugins. No engineering team needed.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-x-12 gap-y-16">
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-24">
 
             {/* STEP 01 — Connect */}
             <div>
@@ -507,7 +517,7 @@ export default function LandingPage() {
                 {/* IG card — top-left, tilted */}
                 <div className="scene-card" style={{ top: '8%', left: '4%', width: '58%', transform: 'perspective(900px) rotateX(10deg) rotateY(-14deg) rotateZ(-4deg)' }}>
                   <div className="flex items-center gap-[0.6rem] p-[0.7rem]">
-                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}>
+                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center shrink-0" style={{ background: dk ? '#232327' : 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' }}>
                       <svg className="w-[13px] h-[13px] text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
                     </div>
                     <div className="min-w-0">
@@ -610,7 +620,7 @@ export default function LandingPage() {
                   {/* header */}
                   <div className="flex items-center gap-[0.4rem] px-[0.65rem] py-[0.5rem] border-b border-border">
                     <div className="relative w-[20px] h-[20px] shrink-0">
-                      <div className="absolute inset-[-1.5px] rounded-full" style={{ background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)' }} />
+                      <div className="absolute inset-[-1.5px] rounded-full" style={{ background: dk ? 'rgba(255,255,255,0.18)' : 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)' }} />
                       <div className="absolute inset-[1px] rounded-full bg-background" />
                       <div className="absolute inset-[2.5px] rounded-full flex items-center justify-center text-[0.35rem] font-bold text-white" style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>ZN</div>
                     </div>
@@ -704,7 +714,7 @@ export default function LandingPage() {
         <div className="h-[1px] bg-border" />
 
         {/* Intelligence Section */}
-        <div className="py-24 px-8 max-w-[960px] mx-auto">
+        <div className="py-44 px-8 max-w-[960px] mx-auto">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Luna — Intelligence Layer</div>
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
@@ -735,7 +745,7 @@ export default function LandingPage() {
         <div className="h-[1px] bg-border" />
 
         {/* Pricing teaser — links to /pricing for the full experience */}
-        <div className="py-24 px-8 max-w-[960px] mx-auto" id="pricing">
+        <div className="py-44 px-8 max-w-[960px] mx-auto" id="pricing">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Pricing</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] max-w-[540px] mb-[0.9rem]">
             Four tiers.<br />Every feature in each.
@@ -777,7 +787,7 @@ export default function LandingPage() {
         </div>
 
         {/* FAQ teaser — links to /faq */}
-        <div className="py-20 px-8 max-w-[960px] mx-auto text-center" id="faq">
+        <div className="py-40 px-8 max-w-[960px] mx-auto text-center" id="faq">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">FAQ</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] mb-4">
             Have questions?
@@ -799,7 +809,7 @@ export default function LandingPage() {
         <div className="h-[1px] bg-border" />
 
         {/* CTA Section */}
-        <div className="text-center border-b border-border py-20 px-8">
+        <div className="text-center border-b border-border py-40 px-8">
           <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">Early Access</div>
           <h2 className="text-[clamp(1.3rem,3vw,1.9rem)] font-light tracking-[-0.025em] leading-[1.2] mx-auto mb-[0.9rem]">
             Start with Luna.<br />Scale with Krew.
@@ -818,7 +828,7 @@ export default function LandingPage() {
         </div>
 
         <footer className="border-t border-border mt-0">
-          <div className="max-w-[960px] mx-auto px-8 py-16 grid footer-grid gap-12">
+          <div className="max-w-[960px] mx-auto px-8 py-24 grid footer-grid gap-12">
 
             {/* Brand col */}
             <div className="flex flex-col gap-4">

@@ -17,21 +17,21 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0f0f0f;
-  --bg2: #161616;
-  --bg3: #1e1e1e;
-  --bg4: #272727;
-  --border: rgba(255,255,255,0.08);
-  --border-md: rgba(255,255,255,0.14);
-  --border-hover: rgba(255,255,255,0.24);
-  --text-primary: #f1f1f1;
-  --text-secondary: rgba(241,241,241,0.52);
-  --text-tertiary: rgba(241,241,241,0.28);
-  --btn-bg: #f1f1f1;
-  --btn-text: #0f0f0f;
+  --bg: #0A0A0A;
+  --bg2: #161618;
+  --bg3: #1C1C1F;
+  --bg4: #232327;
+  --border: #1F1F22;
+  --border-md: #2A2A2E;
+  --border-hover: #3A3A40;
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #63636B;
+  --btn-bg: #FAFAFA;
+  --btn-text: #0A0A0A;
   --tag-bg: rgba(255,255,255,0.06);
   --input-bg: rgba(255,255,255,0.05);
-  --dropdown-bg: #161616;
+  --dropdown-bg: #161618;
   --overlay-bg: rgba(0,0,0,0.6);
 }
 
@@ -170,6 +170,10 @@ select option:checked {
     border-radius: 26px;
     box-shadow: 0 16px 48px rgba(193, 53, 132, 0.22), 0 8px 24px rgba(0, 0, 0, 0.3);
   }
+  /* dark mode: drop the pink tint — monochrome shadow only */
+  [data-theme="dark"] .demo-phone {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  }
   .hero-left {
     padding-top: 3rem;
     padding-bottom: 1.5rem;
@@ -185,9 +189,9 @@ select option:checked {
   box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.06);
 }
 
-/* ── Demo — phone shadow (theme-aware) ── */
+/* ── Demo — phone shadow (theme-aware; dark is monochrome, gradient/tint reserved) ── */
 .demo-phone {
-  box-shadow: 0 28px 70px rgba(0,0,0,0.65), -8px 0 32px rgba(193,53,132,0.18);
+  box-shadow: 0 28px 70px rgba(0,0,0,0.65);
 }
 [data-theme="light"] .demo-phone {
   box-shadow: 0 28px 70px rgba(0,0,0,0.5), -8px 0 32px rgba(193,53,132,0.22), 0 0 0 0.5px rgba(255,255,255,0.25);
@@ -230,7 +234,8 @@ select option:checked {
   border-bottom-left-radius: 4px;
 }
 .demo-dm-bubble.out {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  /* Luna's bubble — the one reserved use of the brand gradient */
+  background: linear-gradient(135deg, #c13584, #e1306c 40%, #fd5949 75%, #ffcd67);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
