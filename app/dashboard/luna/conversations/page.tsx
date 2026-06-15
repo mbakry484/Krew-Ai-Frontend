@@ -670,7 +670,7 @@ function ConversationsContent() {
                         className="flex-1 bg-background2 border border-border rounded-[8px] px-4 py-[0.65rem] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-md transition-colors duration-150 disabled:opacity-50"
                       />
                       <button
-                        onClick={handleSend}
+                        onClick={() => handleSend()}
                         disabled={!inputText.trim() || sending}
                         className="w-[34px] h-[34px] rounded-[8px] bg-text-secondary flex items-center justify-center hover:opacity-80 transition-opacity duration-150 disabled:opacity-30 shrink-0"
                       >
