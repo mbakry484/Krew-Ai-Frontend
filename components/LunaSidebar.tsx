@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
+import { useLunaGlobal } from '@/components/LunaGlobalProvider';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -151,6 +152,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
 export default function LunaSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { lunaGlobalEnabled } = useLunaGlobal();
 
   return (
     <>
@@ -172,7 +174,17 @@ export default function LunaSidebar() {
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <span className="flex-1 text-center text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">Luna</span>
+        <div className="flex-1 flex items-center justify-center gap-[6px]">
+          <span className="text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">Luna</span>
+          {lunaGlobalEnabled ? (
+            <span className="relative flex h-[6px] w-[6px]">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-green-400" />
+            </span>
+          ) : (
+            <span className="inline-flex rounded-full h-[6px] w-[6px] bg-text-tertiary opacity-50" />
+          )}
+        </div>
         <LunaTopBarActions />
       </div>
 

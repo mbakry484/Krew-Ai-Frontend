@@ -6,6 +6,7 @@ import { isLoggedIn } from '@/lib/auth';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 import Skeleton from '@/components/Skeleton';
+import { useLunaGlobal } from '@/components/LunaGlobalProvider';
 import {
   getConversations,
   getConversation,
@@ -116,15 +117,18 @@ function StatusDot({ status }: { status: Status }) {
   return <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${colors[status]}`} />;
 }
 
-function LunaToggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
+function LunaToggle({ enabled, onChange, disabled }: { enabled: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onChange(!enabled); }}
-      title={enabled ? 'Luna is ON — click to disable' : 'Luna is OFF — click to enable'}
-      className={`relative w-[28px] h-[15px] rounded-full transition-colors duration-200 shrink-0 ${enabled ? 'bg-text-secondary' : 'bg-border-md'}`}
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onChange(!enabled); }}
+      disabled={disabled}
+      title={disabled ? 'Luna is globally disabled — enable in the top bar' : enabled ? 'Luna is ON — click to disable' : 'Luna is OFF — click to enable'}
+      className={`relative w-[28px] h-[15px] rounded-full transition-colors duration-200 shrink-0 ${
+        disabled ? 'bg-border opacity-50 cursor-not-allowed' : enabled ? 'bg-text-secondary' : 'bg-border-md'
+      }`}
     >
       <span
-        className={`absolute top-[2px] w-[11px] h-[11px] rounded-full bg-background transition-all duration-200 ${enabled ? 'left-[15px]' : 'left-[2px]'}`}
+        className={`absolute top-[2px] w-[11px] h-[11px] rounded-full bg-background transition-all duration-200 ${enabled && !disabled ? 'left-[15px]' : 'left-[2px]'}`}
       />
     </button>
   );
@@ -133,6 +137,7 @@ function LunaToggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boo
 function ConversationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { lunaGlobalEnabled } = useLunaGlobal();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [filter, setFilter] = useState<'all' | Status>('all');
@@ -547,13 +552,14 @@ function ConversationsContent() {
                   {/* Header actions — compact on mobile */}
                   <div className="flex items-center gap-2 max-md:gap-1">
                     <div className="flex items-center gap-[6px]">
-                      <span className="text-[0.65rem] text-text-tertiary">Luna</span>
+                      <span className={`text-[0.65rem] ${!lunaGlobalEnabled ? 'text-text-tertiary opacity-50' : 'text-text-tertiary'}`}>Luna</span>
                       <LunaToggle
                         enabled={selected.luna_enabled}
                         onChange={(v) => handleLunaToggle(selected.id, v)}
+                        disabled={!lunaGlobalEnabled}
                       />
                     </div>
-                    {selected.luna_enabled && (
+                    {selected.luna_enabled && lunaGlobalEnabled && (
                       <button
                         onClick={() => handleTakeover(selected.id)}
                         className="flex items-center gap-[5px] text-[0.68rem] text-text-secondary border border-border hover:border-border-md hover:text-text-primary rounded-[7px] px-3 py-[5px] transition-all duration-150"
@@ -651,7 +657,7 @@ function ConversationsContent() {
 
                 {/* Input area */}
                 <div className="shrink-0 border-t border-border bg-background px-4 py-3">
-                  {selected.luna_enabled ? (
+                  {selected.luna_enabled && lunaGlobalEnabled ? (
                     <div className="flex items-center gap-3 bg-background2 border border-border rounded-[8px] px-4 py-[0.7rem]">
                       <svg className="w-[13px] h-[13px] text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
