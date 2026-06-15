@@ -156,6 +156,7 @@ export default function KnowledgeBasePage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [activeDrawer, setActiveDrawer] = useState<DrawerType | null>(null);
 
@@ -333,6 +334,7 @@ export default function KnowledgeBasePage() {
   };
 
   const handleUpdate = (id: string, field: 'question' | 'answer', value: string) => {
+    if (saveError) setSaveError(null);
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   };
 
@@ -349,15 +351,33 @@ export default function KnowledgeBasePage() {
   };
 
   const handleSave = async () => {
-    const missingRequired = items.filter((i) => i.fixed && !i.answer.trim());
-    if (missingRequired.length > 0) {
-      alert('Please fill in the answers for all required questions before saving.');
+    setSaveError(null);
+
+    // Check for incomplete items: question without answer or answer without question
+    const incompleteItem = items.find((i) => {
+      if (i.fixed) return !i.answer.trim(); // fixed items must have an answer
+      const hasQ = i.question.trim();
+      const hasA = i.answer.trim();
+      return (hasQ && !hasA) || (!hasQ && hasA);
+    });
+
+    if (incompleteItem) {
+      if (incompleteItem.fixed) {
+        setSaveError(`Please fill in the answer for "${incompleteItem.question}"`);
+      } else if (incompleteItem.question.trim() && !incompleteItem.answer.trim()) {
+        setSaveError('Please fill in the answer for your question');
+      } else {
+        setSaveError('Please fill in the question for your answer');
+      }
       return;
     }
 
     setLoading(true);
     try {
-      const faqs = items.map(({ question, answer }) => ({ question, answer }));
+      // Filter out completely empty custom items, keep fixed items always
+      const faqs = items
+        .filter((i) => i.fixed || (i.question.trim() && i.answer.trim()))
+        .map(({ question, answer }) => ({ question, answer }));
 
       const processedSizeGuides = await Promise.all(
         sizeGuides.map(async (sg) => {
@@ -381,16 +401,20 @@ export default function KnowledgeBasePage() {
 
       await saveKnowledgeBase(faqs, {
         situations_enabled: situationsEnabled,
-        situations: situations.map((s) => ({ text: s.text })),
+        situations: situations.filter((s) => s.text.trim()).map((s) => ({ text: s.text })),
         size_guides_enabled: sizeGuidesEnabled,
         size_guides: processedSizeGuides,
       });
+
+      // Clean up empty items after successful save
+      setItems((prev) => prev.filter((i) => i.fixed || (i.question.trim() && i.answer.trim())));
+      setSituations((prev) => prev.filter((s) => s.text.trim()));
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
       console.error('Failed to save:', error);
-      alert('Failed to save. Please try again.');
+      setSaveError('Failed to save. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1054,14 +1078,15 @@ export default function KnowledgeBasePage() {
 
             {/* Footer — save button (not shown for Voice) */}
             {activeDrawer !== 'voice' && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
-                <div>
+              <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border shrink-0">
+                <div className="flex-1 min-w-0">
                   {saved && <span className="text-[0.68rem] text-green-400">✓ Saved</span>}
+                  {saveError && <span className="text-[0.68rem] text-red-400">{saveError}</span>}
                 </div>
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="bg-btn-bg text-btn-text px-5 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
+                  className="bg-btn-bg text-btn-text px-5 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50 shrink-0"
                 >
                   {loading ? 'Saving...' : 'Save changes'}
                 </button>
