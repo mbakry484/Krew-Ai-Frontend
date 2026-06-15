@@ -310,6 +310,19 @@ export default function KnowledgeBasePage() {
     );
   };
 
+  const handleCloseDrawer = () => {
+    if (activeDrawer === 'knowledge') {
+      setItems((prev) => prev.filter((item) => item.fixed || item.question.trim() || item.answer.trim()));
+    }
+    if (activeDrawer === 'situations') {
+      setSituations((prev) => prev.filter((s) => s.text.trim()));
+    }
+    if (activeDrawer === 'sizing') {
+      setSizeGuides((prev) => prev.filter((sg) => sg.productNames.length > 0 || sg.content.trim() || sg.imageUrl || sg.imageFile));
+    }
+    setActiveDrawer(null);
+  };
+
   const handleAddRow = () => {
     setItems((prev) => [...prev, { id: Date.now().toString(), question: '', answer: '' }]);
   };
@@ -552,7 +565,7 @@ export default function KnowledgeBasePage() {
       {activeDrawer && (
         <div
           className="fixed inset-0 z-40 flex justify-end"
-          onClick={() => setActiveDrawer(null)}
+          onClick={handleCloseDrawer}
         >
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] kb-drawer-fade" />
@@ -578,7 +591,7 @@ export default function KnowledgeBasePage() {
                 )}
               </div>
               <button
-                onClick={() => setActiveDrawer(null)}
+                onClick={handleCloseDrawer}
                 className="w-7 h-7 flex items-center justify-center rounded-[8px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
               >
                 <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -630,8 +643,19 @@ export default function KnowledgeBasePage() {
                                   value={item.question}
                                   onChange={(e) => handleUpdate(item.id, 'question', e.target.value)}
                                   placeholder="Type your question…"
-                                  rows={2}
+                                  rows={1}
                                   className="w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary font-medium focus:text-text-primary transition-colors duration-200"
+                                  onInput={(e) => {
+                                    const el = e.currentTarget;
+                                    el.style.height = 'auto';
+                                    el.style.height = el.scrollHeight + 'px';
+                                  }}
+                                  ref={(el) => {
+                                    if (el) {
+                                      el.style.height = 'auto';
+                                      el.style.height = el.scrollHeight + 'px';
+                                    }
+                                  }}
                                 />
                               )}
                             </td>
@@ -640,10 +664,21 @@ export default function KnowledgeBasePage() {
                                 value={item.answer}
                                 onChange={(e) => handleUpdate(item.id, 'answer', e.target.value)}
                                 placeholder={item.placeholder ?? 'Type the answer Luna should give…'}
-                                rows={2}
+                                rows={1}
                                 className={`w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 ${
                                   item.fixed && !item.answer ? 'text-text-tertiary' : 'text-text-secondary'
                                 }`}
+                                onInput={(e) => {
+                                  const el = e.currentTarget;
+                                  el.style.height = 'auto';
+                                  el.style.height = el.scrollHeight + 'px';
+                                }}
+                                ref={(el) => {
+                                  if (el) {
+                                    el.style.height = 'auto';
+                                    el.style.height = el.scrollHeight + 'px';
+                                  }
+                                }}
                               />
                             </td>
                             <td className="py-0 text-center">
@@ -712,6 +747,12 @@ export default function KnowledgeBasePage() {
                                 el.style.height = 'auto';
                                 el.style.height = el.scrollHeight + 'px';
                               }}
+                              ref={(el) => {
+                                if (el) {
+                                  el.style.height = 'auto';
+                                  el.style.height = el.scrollHeight + 'px';
+                                }
+                              }}
                             />
                           </div>
                           <button
@@ -748,7 +789,13 @@ export default function KnowledgeBasePage() {
                       <p className="text-[0.75rem] text-text-primary font-[400] tracking-[-0.01em]">Enable size guides</p>
                       <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Let Luna share sizing info per product</p>
                     </div>
-                    <Toggle enabled={sizeGuidesEnabled} onToggle={() => setSizeGuidesEnabled(!sizeGuidesEnabled)} />
+                    <Toggle enabled={sizeGuidesEnabled} onToggle={() => {
+                      const next = !sizeGuidesEnabled;
+                      setSizeGuidesEnabled(next);
+                      if (next && sizeGuides.length === 0) {
+                        handleAddSizeGuide();
+                      }
+                    }} />
                   </div>
 
                   {sizeGuidesEnabled && (
@@ -774,35 +821,47 @@ export default function KnowledgeBasePage() {
                                   className="border-b border-border transition-colors duration-150 group/row"
                                 >
                                   <td className="border-r border-border align-top">
-                                    <div className="px-3 pt-3 pb-3 min-h-[52px] flex flex-wrap gap-[5px] items-center">
-                                      {sg.productNames.map((name) => (
-                                        <button
-                                          key={name}
-                                          onClick={() => handleToggleProduct(sg.id, name)}
-                                          title="Click to remove"
-                                          className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.62rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
-                                        >
-                                          {name}
-                                          <svg className="w-[7px] h-[7px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                          </svg>
-                                        </button>
-                                      ))}
+                                    {sg.productNames.length === 0 ? (
                                       <button
                                         onClick={() => openProductPicker(sg.id, sg.productNames)}
-                                        title="Add products"
-                                        className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-full border border-dashed border-border text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150 shrink-0"
+                                        className="w-full min-h-[80px] flex flex-col items-center justify-center gap-[6px] px-3 py-4 text-text-tertiary hover:text-text-secondary hover:bg-background3/50 transition-all duration-150 cursor-pointer"
                                       >
-                                        <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <line x1="12" y1="5" x2="12" y2="19" />
-                                          <line x1="5" y1="12" x2="19" y2="12" />
-                                        </svg>
+                                        <div className="w-8 h-8 rounded-full border border-dashed border-border-md flex items-center justify-center">
+                                          <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <line x1="12" y1="5" x2="12" y2="19" />
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                          </svg>
+                                        </div>
+                                        <span className="text-[0.62rem]">Select products</span>
                                       </button>
-                                      {sg.productNames.length === 0 && (
-                                        <span className="text-[0.6rem] text-text-tertiary italic">click + to select</span>
-                                      )}
-                                    </div>
+                                    ) : (
+                                      <div className="px-3 pt-3 pb-3 min-h-[52px] flex flex-wrap gap-[5px] items-center">
+                                        {sg.productNames.map((name) => (
+                                          <button
+                                            key={name}
+                                            onClick={() => handleToggleProduct(sg.id, name)}
+                                            title="Click to remove"
+                                            className="inline-flex items-center gap-[5px] px-[8px] py-[3px] rounded-full bg-background3 border border-border-md text-[0.62rem] text-text-primary font-medium transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/pill"
+                                          >
+                                            {name}
+                                            <svg className="w-[7px] h-[7px] opacity-40 group-hover/pill:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                              <line x1="18" y1="6" x2="6" y2="18" />
+                                              <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                          </button>
+                                        ))}
+                                        <button
+                                          onClick={() => openProductPicker(sg.id, sg.productNames)}
+                                          title="Add products"
+                                          className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-full border border-dashed border-border text-text-tertiary hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150 shrink-0"
+                                        >
+                                          <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <line x1="12" y1="5" x2="12" y2="19" />
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    )}
                                   </td>
 
                                   <td className="px-3 py-0 align-top">
