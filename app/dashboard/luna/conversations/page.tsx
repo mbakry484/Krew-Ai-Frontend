@@ -25,6 +25,7 @@ interface Message {
   text: string;
   time: string;
   image_url?: string | null;
+  error?: boolean;
 }
 
 interface Conversation {
@@ -345,41 +346,30 @@ function ConversationsContent() {
     }
   };
 
-  const handleSend = async () => {
-    if (!inputText.trim() || !selectedId || sending) return;
-    const text = inputText.trim();
-    setInputText('');
+  const handleSend = async (retryText?: string) => {
+    const text = retryText || inputText.trim();
+    if (!text || !selectedId || sending) return;
+    if (!retryText) setInputText('');
     setSending(true);
 
-    // Optimistic message
-    const tempId = `temp-${Date.now()}`;
-    const now = new Date();
-    const tempMsg: Message = {
-      id: tempId,
-      from: 'agent',
-      text,
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages((prev) => [...prev, tempMsg]);
+    // Remove any previous failed message for this text (if retrying)
+    if (retryText) {
+      setMessages((prev) => prev.filter((m) => !(m.error && m.text === retryText)));
+    }
 
     try {
-      const data = await sendConversationMessage(selectedId, text);
-      // Replace temp message with real one from server
-      setMessages((prev) =>
-        prev.map((m) => m.id === tempId ? { ...data.message } : m)
-      );
-      // Update conversation last_message
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedId
-            ? { ...c, last_message: text, timestamp: new Date().toISOString() }
-            : c
-        )
-      );
+      await sendConversationMessage(selectedId, text);
+      // Message will appear via the Supabase realtime subscription
     } catch (err: any) {
-      // Remove temp message on failure and restore input
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setInputText(text);
+      // Show failed message with error state
+      const failedMsg: Message = {
+        id: `failed-${Date.now()}`,
+        from: 'agent',
+        text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        error: true,
+      };
+      setMessages((prev) => [...prev, failedMsg]);
     } finally {
       setSending(false);
     }
@@ -612,11 +602,13 @@ function ConversationsContent() {
                           className={`flex flex-col ${msg.from === 'customer' ? 'items-start' : 'items-end'} max-w-[75%] ${msg.from === 'customer' ? '' : 'self-end'}`}
                         >
                           <div
-                            className={`px-[0.85rem] py-[0.6rem] rounded-[10px] text-[0.72rem] leading-[1.5] ${
+                            className={`px-[0.85rem] py-[0.6rem] rounded-[10px] text-[0.72rem] leading-[1.5] whitespace-pre-wrap ${
                               msg.from === 'customer'
                                 ? 'bg-background border border-border text-text-primary rounded-tl-[3px]'
                                 : msg.from === 'luna'
                                 ? 'bg-background3 border border-border text-text-primary rounded-tr-[3px]'
+                                : msg.error
+                                ? 'bg-text-secondary/60 text-background rounded-tr-[3px] border border-[#e07070]/40'
                                 : 'bg-text-secondary text-background rounded-tr-[3px]'
                             }`}
                           >
@@ -630,7 +622,20 @@ function ConversationsContent() {
                             {!msg.image_url && !['[Image]', '[Image/Audio]', '[Voice Note]', '[Story Reply]'].includes(msg.text) && msg.text}
                           </div>
                           <div className="flex items-center gap-[4px] mt-[3px]">
-                            {msg.from !== 'customer' && (
+                            {msg.error && (
+                              <>
+                                <span className="text-[0.55rem] text-[#e07070]">Failed to send</span>
+                                <span className="text-[0.55rem] text-text-tertiary">·</span>
+                                <button
+                                  onClick={() => handleSend(msg.text)}
+                                  className="text-[0.55rem] text-text-secondary hover:text-text-primary underline transition-colors duration-150"
+                                >
+                                  Retry
+                                </button>
+                                <span className="text-[0.55rem] text-text-tertiary">·</span>
+                              </>
+                            )}
+                            {msg.from !== 'customer' && !msg.error && (
                               <span className="text-[0.55rem] text-text-tertiary">
                                 {msg.from === 'luna' ? '✦ Luna' : 'You'}
                               </span>
