@@ -20,7 +20,10 @@
       "Bash(find /d/KrewAi/Krew-Ai-Frontend/components -name *RequestCard* -o -name *Exchange* -o -name *Refund*)",
       "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *integrat*)",
       "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *settings*)",
-      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *luna*)"
+      "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *luna*)",
+      "Bash(Get-ChildItem -Path \"f:\\\\Krew-Ai-Frontend\" -Recurse -Filter \"package.json\")",
+      "Bash(Select-Object -First 5)",
+      "PowerShell(npx tsc --noEmit)"
     ],
     "deny": [],
     "ask": []

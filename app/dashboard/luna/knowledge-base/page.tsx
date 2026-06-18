@@ -7,6 +7,8 @@ import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage, getProducts 
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 import Skeleton from '@/components/Skeleton';
+import { useAgentName } from '@/components/AgentNameProvider';
+import { ONBOARDING_STEPS, isSetupComplete } from '@/lib/onboarding';
 
 interface KBItem {
   id: string;
@@ -84,12 +86,29 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
 
 type DrawerType = 'knowledge' | 'situations' | 'sizing' | 'voice';
 
-const DRAWER_TITLES: Record<DrawerType, string> = {
-  knowledge: 'What Luna knows',
-  situations: 'How Luna acts',
+const drawerTitles = (name: string): Record<DrawerType, string> => ({
+  knowledge: `What ${name} knows`,
+  situations: `How ${name} acts`,
   sizing: 'Products & Sizing',
-  voice: "Luna's Voice",
-};
+  voice: `${name}'s Voice`,
+});
+
+// Onboarding completion (ONBOARDING_STEPS) is the shared single source of truth
+// in lib/onboarding.ts — imported above so the sidebar setup dot and this
+// checklist never disagree. Step copy stays here (page-specific) and pulls the
+// name from the shared agent-name source of truth (useAgentName()).
+//
+// Copy is intentionally action+benefit phrasing, decoupled from the card
+// titles/subtitles — the step title is a verb-first action, the helper is the
+// payoff. Editing card copy must NOT require editing this, and vice versa. The
+// "Go"/"Edit" destinations are unchanged (see handleGoToStep): each step still
+// routes to its existing card.
+const stepCopy = (name: string): Record<DrawerType, { label: string; helper: string }> => ({
+  knowledge: { label: `Start here: teach ${name} your top questions`, helper: 'Answer the questions customers ask every day, once.' },
+  situations: { label: `Tell ${name} what to watch for`, helper: 'Out-of-stock items, active promos, anything she should flag.' },
+  sizing: { label: 'Add your sizing info', helper: `So ${name} can answer "will this fit?" on her own.` },
+  voice: { label: `Make ${name} sound like your brand`, helper: 'Train her tone from real conversations.' },
+});
 
 function BrainIcon({ className }: { className?: string }) {
   return (
@@ -138,6 +157,7 @@ function DrawerIcon({ type }: { type: DrawerType }) {
 
 export default function KnowledgeBasePage() {
   const router = useRouter();
+  const agentName = useAgentName();
   const [items, setItems] = useState<KBItem[]>(FIXED_ITEMS);
 
   const [situationsEnabled, setSituationsEnabled] = useState(false);
@@ -158,6 +178,16 @@ export default function KnowledgeBasePage() {
   const [saved, setSaved] = useState(false);
 
   const [activeDrawer, setActiveDrawer] = useState<DrawerType | null>(null);
+
+  // Onboarding checklist dismiss — session-only (resets on refresh, by design).
+  // TODO(backend): persist a "dismissed/completed" flag so it stops reappearing.
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const cardRefs = useRef<{ [K in DrawerType]?: HTMLButtonElement | null }>({});
+
+  const handleGoToStep = (key: DrawerType) => {
+    cardRefs.current[key]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setActiveDrawer(key);
+  };
 
   const [voiceFile, setVoiceFile] = useState<File | null>(null);
   const [voiceDragOver, setVoiceDragOver] = useState(false);
@@ -409,7 +439,7 @@ export default function KnowledgeBasePage() {
                 customize
               </h2>
               <p className="text-[0.72rem] text-text-secondary">
-                teach Luna how to be yours
+                teach {agentName} how to be yours
               </p>
             </div>
             <div className="max-md:hidden">
@@ -438,12 +468,142 @@ export default function KnowledgeBasePage() {
               </div>
             )}
 
+            {/* ── Onboarding setup checklist ──
+                Inline, dismissible helper panel. NOT a modal — never gates the
+                page; the cards below are usable immediately. Completion is
+                mocked (ONBOARDING_STEPS); dismiss is session-only state.
+                The whole panel auto-hides once all required steps are complete
+                (isSetupComplete — same shared source; PRO/voice doesn't block),
+                reusing the same hidden treatment as the dismiss (X) button.
+                TODO(backend): "stays hidden permanently once complete" must be
+                persisted server-side; today it's session state only. */}
+            {!pageLoading && !onboardingDismissed && !isSetupComplete() && (() => {
+              const copy = stepCopy(agentName);
+              const completedCount = ONBOARDING_STEPS.filter((s) => s.completed).length;
+              const totalSteps = ONBOARDING_STEPS.length;
+              const progressPct = Math.round((completedCount / totalSteps) * 100);
+              // Incomplete steps first so the next action is always at the top;
+              // each keeps its original step number regardless of sort order.
+              const orderedSteps = ONBOARDING_STEPS
+                .map((step, index) => ({ step, number: index + 1 }))
+                .sort((a, b) => Number(a.step.completed) - Number(b.step.completed));
+
+              return (
+                <div className="relative mb-4 bg-background border border-border rounded-2xl p-5 max-md:p-4">
+                  <button
+                    onClick={() => setOnboardingDismissed(true)}
+                    aria-label="Dismiss setup checklist"
+                    className="absolute top-4 right-4 w-6 h-6 flex items-center justify-center rounded-[7px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
+                  >
+                    <svg className="w-[12px] h-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+
+                  {/* Header */}
+                  <div className="pr-8">
+                    <h3 className="text-[0.92rem] font-[450] text-text-primary tracking-[-0.015em]">
+                      Set up {agentName} in 4 steps
+                    </h3>
+                    <p className="text-[0.68rem] text-text-tertiary mt-[3px] leading-[1.5]">
+                      Finish setup so {agentName} can start helping your customers. You can do this anytime.
+                    </p>
+                  </div>
+
+                  {/* Progress */}
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="flex-1 h-[5px] rounded-full bg-background3 overflow-hidden">
+                      <div
+                        className="h-full bg-text-primary/80 rounded-full transition-all duration-300"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span className="text-[0.62rem] text-text-tertiary shrink-0 tabular-nums">
+                      {completedCount} of {totalSteps} done
+                    </span>
+                  </div>
+
+                  {/* Steps — completed ones collapse to a compact done row
+                      (no helper, struck title, "Edit" instead of "Go") and sort
+                      below the still-actionable steps. */}
+                  <div className="mt-4 border border-border rounded-[12px] overflow-hidden divide-y divide-border">
+                    {orderedSteps.map(({ step, number }) => (
+                      <div
+                        key={step.key}
+                        className={`flex items-center gap-3 px-4 hover:bg-background3/40 transition-colors duration-150 ${
+                          step.completed ? 'py-[0.5rem]' : 'py-[0.8rem]'
+                        }`}
+                      >
+                        {/* Indicator */}
+                        <span
+                          className={`shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[0.58rem] transition-colors duration-150 ${
+                            step.completed
+                              ? 'bg-text-primary text-background'
+                              : 'border border-border text-text-tertiary'
+                          }`}
+                        >
+                          {step.completed ? (
+                            <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            number
+                          )}
+                        </span>
+
+                        {/* Label + helper (helper hidden once complete) */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[0.74rem] tracking-[-0.01em] ${step.completed ? 'text-text-tertiary line-through' : 'text-text-primary'}`}>
+                              {copy[step.key].label}
+                            </span>
+                            {step.optional && (
+                              <span className="text-[0.52rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[3px] px-[5px] py-[2px] uppercase tracking-[0.06em] shrink-0">
+                                Pro
+                              </span>
+                            )}
+                          </div>
+                          {!step.completed && (
+                            <p className="text-[0.62rem] text-text-tertiary mt-[1px] truncate">
+                              {copy[step.key].helper}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Action — same destination either way (handleGoToStep) */}
+                        {step.completed ? (
+                          <button
+                            onClick={() => handleGoToStep(step.key)}
+                            className="shrink-0 text-[0.62rem] text-text-tertiary hover:text-text-secondary underline underline-offset-2 transition-colors duration-150"
+                          >
+                            Edit
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleGoToStep(step.key)}
+                            className="shrink-0 flex items-center gap-1 text-[0.68rem] text-text-secondary border border-border rounded-[7px] px-3 py-[5px] hover:text-text-primary hover:border-border-md hover:bg-background3 transition-all duration-150"
+                          >
+                            {step.optional ? 'Set up' : 'Go'}
+                            <svg className="w-[10px] h-[10px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 2×2 Card Grid */}
             {!pageLoading && (
               <div className="grid grid-cols-2 max-md:grid-cols-1 gap-4">
 
                 {/* ── Card 1: What Luna knows ── */}
                 <button
+                  ref={(el) => { cardRefs.current.knowledge = el; }}
                   onClick={() => setActiveDrawer('knowledge')}
                   className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
                 >
@@ -459,13 +619,14 @@ export default function KnowledgeBasePage() {
                     </span>
                   </div>
                   <div className="mt-auto pt-6">
-                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">What Luna knows</h3>
-                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Questions and answers Luna uses to help your customers.</p>
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">What {agentName} knows</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">FAQs, return &amp; refund policy, shipping, store info</p>
                   </div>
                 </button>
 
                 {/* ── Card 2: How Luna acts ── */}
                 <button
+                  ref={(el) => { cardRefs.current.situations = el; }}
                   onClick={() => setActiveDrawer('situations')}
                   className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
                 >
@@ -486,13 +647,14 @@ export default function KnowledgeBasePage() {
                     </div>
                   </div>
                   <div className="mt-auto pt-6">
-                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">How Luna acts</h3>
-                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Real-time context and situations Luna stays aware of.</p>
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">How {agentName} acts</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Sales, restocks, promos, and situations to watch for</p>
                   </div>
                 </button>
 
                 {/* ── Card 3: Products & Sizing ── */}
                 <button
+                  ref={(el) => { cardRefs.current.sizing = el; }}
                   onClick={() => setActiveDrawer('sizing')}
                   className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
                 >
@@ -514,12 +676,13 @@ export default function KnowledgeBasePage() {
                   </div>
                   <div className="mt-auto pt-6">
                     <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">Products & Sizing</h3>
-                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Size charts and product info Luna shares when customers ask.</p>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Size charts and product details {agentName} shares when asked</p>
                   </div>
                 </button>
 
                 {/* ── Card 4: Luna's Voice ── */}
                 <button
+                  ref={(el) => { cardRefs.current.voice = el; }}
                   onClick={() => setActiveDrawer('voice')}
                   className="relative group overflow-hidden bg-background border border-border rounded-2xl p-6 text-left cursor-pointer transition-all duration-200 hover:border-border-md hover:-translate-y-px hover:shadow-lg min-h-[190px] flex flex-col"
                 >
@@ -535,8 +698,8 @@ export default function KnowledgeBasePage() {
                     </span>
                   </div>
                   <div className="mt-auto pt-6">
-                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">Luna&apos;s Voice</h3>
-                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Train Luna to match your brand&apos;s tone from real conversations.</p>
+                    <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">{agentName}&apos;s Voice</h3>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Train {agentName} to match your brand&apos;s tone from real conversations.</p>
                   </div>
                 </button>
 
@@ -569,7 +732,7 @@ export default function KnowledgeBasePage() {
                   <DrawerIcon type={activeDrawer} />
                 </div>
                 <h3 className="text-[0.84rem] font-[450] text-text-primary tracking-[-0.015em]">
-                  {DRAWER_TITLES[activeDrawer]}
+                  {drawerTitles(agentName)[activeDrawer]}
                 </h3>
                 {activeDrawer === 'voice' && (
                   <span className="text-[0.52rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[3px] px-[5px] py-[2px] uppercase tracking-[0.06em]">
@@ -639,7 +802,7 @@ export default function KnowledgeBasePage() {
                               <textarea
                                 value={item.answer}
                                 onChange={(e) => handleUpdate(item.id, 'answer', e.target.value)}
-                                placeholder={item.placeholder ?? 'Type the answer Luna should give…'}
+                                placeholder={item.placeholder ?? `Type the answer ${agentName} should give…`}
                                 rows={2}
                                 className={`w-full min-h-[48px] py-[0.8rem] bg-transparent border-none outline-none resize-none text-[0.72rem] placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 ${
                                   item.fixed && !item.answer ? 'text-text-tertiary' : 'text-text-secondary'
@@ -683,7 +846,7 @@ export default function KnowledgeBasePage() {
                   <div className="flex items-center justify-between bg-background2 border border-border rounded-[12px] px-4 py-[0.85rem]">
                     <div>
                       <p className="text-[0.75rem] text-text-primary font-[400] tracking-[-0.01em]">Enable situations</p>
-                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Turn on to let Luna be aware of real-time context</p>
+                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Turn on to let {agentName} be aware of real-time context</p>
                     </div>
                     <Toggle enabled={situationsEnabled} onToggle={() => setSituationsEnabled(!situationsEnabled)} />
                   </div>
@@ -746,7 +909,7 @@ export default function KnowledgeBasePage() {
                   <div className="flex items-center justify-between bg-background2 border border-border rounded-[12px] px-4 py-[0.85rem]">
                     <div>
                       <p className="text-[0.75rem] text-text-primary font-[400] tracking-[-0.01em]">Enable size guides</p>
-                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Let Luna share sizing info per product</p>
+                      <p className="text-[0.62rem] text-text-tertiary mt-[2px]">Let {agentName} share sizing info per product</p>
                     </div>
                     <Toggle enabled={sizeGuidesEnabled} onToggle={() => setSizeGuidesEnabled(!sizeGuidesEnabled)} />
                   </div>
@@ -911,10 +1074,10 @@ export default function KnowledgeBasePage() {
                 <div className="px-6 py-5 flex flex-col gap-4">
                   <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
                     <p className="text-[0.73rem] text-text-secondary leading-[1.6]">
-                      Upload your exported Instagram or Facebook DM history and Luna will learn your brand&apos;s tone, style, and how your team naturally talks to customers.
+                      Upload your exported Instagram or Facebook DM history and {agentName} will learn your brand&apos;s tone, style, and how your team naturally talks to customers.
                     </p>
                     <p className="mt-2 text-[0.62rem] text-text-tertiary leading-[1.55]">
-                      Your data stays private and is only used to train your Luna. Export from Meta&apos;s Download Your Information tool, then drop the JSON file below.
+                      Your data stays private and is only used to train your {agentName}. Export from Meta&apos;s Download Your Information tool, then drop the JSON file below.
                     </p>
                   </div>
 

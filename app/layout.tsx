@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AgentNameProvider } from "@/components/AgentNameProvider";
 import ConditionalNavigation from "@/components/ConditionalNavigation";
 
 export const metadata: Metadata = {
@@ -25,10 +26,12 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <Suspense fallback={null}>
-            <ConditionalNavigation />
-          </Suspense>
-          {children}
+          <AgentNameProvider>
+            <Suspense fallback={null}>
+              <ConditionalNavigation />
+            </Suspense>
+            {children}
+          </AgentNameProvider>
         </ThemeProvider>
       </body>
     </html>

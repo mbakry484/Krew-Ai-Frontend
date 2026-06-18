@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
+import { useAgentName } from '@/components/AgentNameProvider';
+import { isSetupComplete } from '@/lib/onboarding';
+
+// The Customize item carries a setup-incomplete dot. Kept as a const so it's
+// obvious which nav item the dot belongs to.
+const CUSTOMIZE_HREF = '/dashboard/luna/knowledge-base';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -83,6 +89,12 @@ const menuItems = [
 
 function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
+  const agentName = useAgentName();
+
+  // Reads the shared onboarding source (lib/onboarding.ts) — same source as the
+  // Customize checklist. Dot shows while any required step is incomplete and
+  // disappears at 100% (the optional/PRO voice step does not block).
+  const setupIncomplete = !isSetupComplete();
 
   const isActive = (href: string) => {
     if (href === '/dashboard/luna') return pathname === '/dashboard/luna';
@@ -103,7 +115,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
           </svg>
         </Link>
         <div className="px-[1rem] pt-[1.1rem] pb-[1.2rem] flex-1">
-          <div className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary mb-[1px]">Luna</div>
+          <div className="text-[0.85rem] font-medium tracking-[-0.01em] text-text-primary mb-[1px]">{agentName}</div>
           <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary">Customer Operations · Krew</div>
         </div>
       </div>
@@ -123,6 +135,13 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
           >
             <span className="w-[15px] h-[15px] shrink-0">{item.icon}</span>
             <span>{item.label}</span>
+            {item.href === CUSTOMIZE_HREF && setupIncomplete && (
+              <span
+                className="ml-auto w-[5px] h-[5px] rounded-full bg-green-400/80 shrink-0"
+                title="Finish setting up"
+                aria-label="Setup incomplete"
+              />
+            )}
           </Link>
         ))}
       </nav>
@@ -151,6 +170,7 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
 export default function LunaSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const agentName = useAgentName();
 
   return (
     <>
@@ -172,7 +192,7 @@ export default function LunaSidebar() {
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <span className="flex-1 text-center text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">Luna</span>
+        <span className="flex-1 text-center text-[0.78rem] font-medium tracking-[-0.01em] text-text-primary">{agentName}</span>
         <LunaTopBarActions />
       </div>
 

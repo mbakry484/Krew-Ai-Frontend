@@ -4,16 +4,70 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import { logout } from '@/lib/auth';
+import {
+  MOCK_NOTIFICATIONS,
+  NOTIFICATION_TYPE_LABEL,
+  type AppNotification,
+  type NotificationType,
+} from '@/lib/notifications';
 
 const panelVisible = 'opacity-100 pointer-events-auto translate-y-0';
 const panelHidden  = 'opacity-0 pointer-events-none -translate-y-[6px]';
 const panelAnim    = 'transition-all duration-[150ms] ease-out';
+
+// Icon per notification type. Add a new case here when a new type is added in
+// lib/notifications.ts — routing/labels live there, only the glyph lives here.
+function NotificationIcon({ type }: { type: NotificationType }) {
+  const cls = 'w-[13px] h-[13px]';
+  if (type === 'escalation') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    );
+  }
+  if (type === 'new_order') {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <path d="M16 10a4 4 0 01-8 0" />
+      </svg>
+    );
+  }
+  // new_exchange
+  return (
+    <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 014-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 01-4 4H3" />
+    </svg>
+  );
+}
 
 export default function LunaTopBarActions() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userInfo, setUserInfo] = useState({ first_name: '', last_name: '', email: '' });
+
+  // Notifications — transient events, mocked. Unread/read is local state only
+  // (resets on refresh, by design for now). Separate system from onboarding.
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAllRead = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+  const handleNotifClick = (n: AppNotification) => {
+    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    setNotifOpen(false);
+    router.push(n.href);
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('user_info');
@@ -30,6 +84,17 @@ export default function LunaTopBarActions() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
+
+  // Close notifications dropdown on outside click
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handler = (e: MouseEvent) => {
+      const el = document.getElementById('luna-topbar-notif');
+      if (el && !el.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [notifOpen]);
 
   const initials = (
     userInfo.first_name && userInfo.last_name
@@ -72,6 +137,70 @@ export default function LunaTopBarActions() {
         )}
         <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
       </button>
+
+      {/* Notifications bell + dropdown */}
+      <div className="relative" id="luna-topbar-notif">
+        <button
+          onClick={() => setNotifOpen((o) => !o)}
+          aria-label="Notifications"
+          className="relative w-[30px] h-[30px] rounded-full border border-border flex items-center justify-center text-text-tertiary hover:border-border-md hover:text-text-secondary transition-all duration-200"
+        >
+          <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+          {unreadCount > 0 && (
+            <span className="absolute -top-[2px] -right-[2px] min-w-[15px] h-[15px] px-[3px] rounded-full bg-text-primary text-background text-[0.55rem] font-medium leading-none flex items-center justify-center tabular-nums">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+
+        <div className={`absolute top-[calc(100%+10px)] right-0 w-[300px] max-w-[calc(100vw-24px)] bg-background border border-border-md rounded-[10px] overflow-hidden z-[300] ${panelAnim} shadow-[0_8px_32px_rgba(0,0,0,0.2)] ${notifOpen ? panelVisible : panelHidden}`}>
+          <div className="flex items-center justify-between px-4 py-[0.7rem] border-b border-border">
+            <span className="text-[0.75rem] font-medium text-text-primary">Notifications</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllRead}
+                className="text-[0.65rem] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-[320px] overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="px-4 py-8 flex flex-col items-center gap-2 text-center">
+                <svg className="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                <span className="text-[0.72rem] text-text-tertiary">You&apos;re all caught up</span>
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => handleNotifClick(n)}
+                  className="w-full flex items-start gap-[0.7rem] px-4 py-[0.8rem] border-b border-border last:border-b-0 hover:bg-background3 transition-all duration-150 text-left"
+                >
+                  <span className="mt-[1px] w-[26px] h-[26px] shrink-0 rounded-[8px] bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                    <NotificationIcon type={n.type} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-center gap-2">
+                      <span className="text-[0.7rem] font-medium text-text-primary">{NOTIFICATION_TYPE_LABEL[n.type]}</span>
+                      {!n.read && <span className="w-[5px] h-[5px] rounded-full bg-green-400/80 shrink-0" />}
+                    </span>
+                    <span className="block text-[0.68rem] text-text-secondary leading-[1.45] mt-[1px]">{n.label}</span>
+                    <span className="block text-[0.6rem] text-text-tertiary mt-[3px]">{n.time}</span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Avatar + dropdown */}
       <div className="relative" id="luna-topbar-avatar">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import ReliefSection from '@/components/landing/ReliefSection';
+import FeaturesSection from '@/components/landing/FeaturesSection';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -342,6 +343,9 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
+        {/* ── FEATURES — 4-tab feature switcher, sits directly under the hero ── */}
+        <FeaturesSection />
 
         {/* ── RELIEF BEAT — DMs pile up, then clear (landing-only, no data) ── */}
         <ReliefSection />
