@@ -3,8 +3,9 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
-import { connectShopify, getShopifyStatus, getUserInfo, updateBrandDescription } from '@/lib/api';
+import { connectShopify, getIntegrationStatus, getUserInfo, updateBrandDescription, disconnectIntegration } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
+import LunaTopBarActions from '@/components/LunaTopBarActions';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -69,7 +70,9 @@ function SettingsContent() {
   // Integration states
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyStoreDomain, setShopifyStoreDomain] = useState('');
+  const [shopifyShopName, setShopifyShopName] = useState('');
   const [metaConnected, setMetaConnected] = useState(false);
+  const [instagramUsername, setInstagramUsername] = useState('');
   const [bostaConnected, setBostaConnected] = useState(false);
 
   // Modal + form state
@@ -85,7 +88,7 @@ function SettingsContent() {
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/auth/login'); return; }
-    checkShopifyStatus();
+    checkIntegrationStatus();
     getUserInfo().then(res => {
       if (res.user?.brand_description) {
         setBrandDescription(res.user.brand_description);
@@ -99,7 +102,7 @@ function SettingsContent() {
     if (searchParams.get('shopify') === 'connected') {
       showToast('Shopify connected successfully', 'success');
       router.replace('/dashboard/luna/settings', { scroll: false });
-      checkShopifyStatus();
+      checkIntegrationStatus();
     }
   }, [searchParams, router]);
 
@@ -107,11 +110,15 @@ function SettingsContent() {
   useEffect(() => {
     if (searchParams.get('instagram') === 'connected') {
       showToast('Instagram connected successfully', 'success');
-      setMetaConnected(true);
       router.replace('/dashboard/luna/settings', { scroll: false });
+      checkIntegrationStatus();
     }
     if (searchParams.get('error') === 'instagram_failed') {
       showToast('Failed to connect Instagram. Please try again.', 'error');
+      router.replace('/dashboard/luna/settings', { scroll: false });
+    }
+    if (searchParams.get('error') === 'instagram_already_connected') {
+      showToast('This Instagram account is already connected to another brand.', 'error');
       router.replace('/dashboard/luna/settings', { scroll: false });
     }
   }, [searchParams, router]);
@@ -121,20 +128,19 @@ function SettingsContent() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // GET /api/integrations/shopify/status
-  const checkShopifyStatus = async () => {
+  // Fetch integration statuses from DB
+  const checkIntegrationStatus = async () => {
     try {
-      const res = await getShopifyStatus();
-      if (res.linked === true) {
-        setShopifyConnected(true);
-        setShopifyStoreDomain(res.shop_domain || '');
-      } else {
-        setShopifyConnected(false);
-        setShopifyStoreDomain('');
-      }
+      const status = await getIntegrationStatus();
+      setShopifyConnected(!!status.shopify?.linked);
+      setShopifyStoreDomain(status.shopify?.shop_domain || '');
+      setShopifyShopName(status.shopify?.shop_name || '');
+      setMetaConnected(!!status.meta?.linked);
+      setInstagramUsername(status.meta?.instagram_username || '');
     } catch {
       setShopifyConnected(false);
       setShopifyStoreDomain('');
+      setShopifyShopName('');
     }
   };
 
@@ -199,20 +205,18 @@ function SettingsContent() {
   };
 
   // PUT /api/luna/settings
-  const handleSaveConfig = () => {
-    // TODO: call PUT /api/luna/settings with { brand_tone: brandTone, escalation_threshold: escalation, active_channels: channels }
-    showToast('Settings saved');
-  };
-
-  const handleSaveBrandDescription = async () => {
-    if (brandDescription === savedBrandDescription) return;
+  const handleSaveConfig = async () => {
     setDescSaving(true);
     try {
-      await updateBrandDescription(brandDescription);
-      setSavedBrandDescription(brandDescription);
-      showToast('Brand description saved');
+      // Save brand description if changed
+      if (brandDescription !== savedBrandDescription) {
+        await updateBrandDescription(brandDescription);
+        setSavedBrandDescription(brandDescription);
+      }
+      // TODO: call PUT /api/luna/settings with { brand_tone: brandTone, escalation_threshold: escalation, active_channels: channels }
+      showToast('Settings saved');
     } catch (err: any) {
-      showToast(err.message || 'Failed to save', 'error');
+      showToast(err.message || 'Failed to save settings', 'error');
     } finally {
       setDescSaving(false);
     }
@@ -222,33 +226,54 @@ function SettingsContent() {
     setChannels((prev) => ({ ...prev, [ch]: !prev[ch] }));
   };
 
+  const handleDisconnect = async (platform: 'shopify' | 'instagram' | 'all') => {
+    try {
+      await disconnectIntegration(platform);
+      if (platform === 'shopify' || platform === 'all') {
+        setShopifyConnected(false);
+        setShopifyStoreDomain('');
+        setShopifyShopName('');
+      }
+      if (platform === 'instagram' || platform === 'all') {
+        setMetaConnected(false);
+        setInstagramUsername('');
+      }
+      if (platform === 'all') {
+        setBostaConnected(false);
+      }
+      showToast(platform === 'all' ? 'All integrations disconnected' : `${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to disconnect', 'error');
+    }
+  };
+
   const integrations = [
     {
       id: 'shopify' as const,
       name: 'Shopify',
-      desc: shopifyConnected ? shopifyStoreDomain : 'Sync your product catalog, inventory, and orders.',
+      desc: shopifyConnected ? (shopifyShopName || shopifyStoreDomain || 'Connected') : 'Sync your product catalog, inventory, and orders.',
       connected: shopifyConnected,
-      onDisconnect: () => { setShopifyConnected(false); setShopifyStoreDomain(''); showToast('Shopify disconnected'); },
+      onDisconnect: () => handleDisconnect('shopify'),
       logo: (
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#96bf48]" style={{ background: '#1a1a1a', border: '1px solid rgba(150,191,72,0.2)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-            <path d="M15.5 4.5s-.3-1.5-1.8-1.5c0 0-1.2.1-2.2 1.2" strokeLinecap="round"/>
-            <path d="M8 7.5l1 12 7.5 1.5 2.5-13.5-3-.5s-.4-2-2-2.5c0 0-1.8-.3-3 1L8 7.5z" strokeLinejoin="round"/>
-            <path d="M10.5 7l.5 11M14 7.5l-1 10.5" strokeLinecap="round" strokeWidth="1.4"/>
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: '#96bf48' }}>
+          <svg width="18" height="20" viewBox="0 0 24 28" fill="none">
+            <path d="M1.7 1.3c-.1 0-.2 0-.3.1-.1 0-1.5.5-1.5.5S12.7.4 12.5.2c-.2-.2-.6-.2-.7-.2h-.1C11.1 0 10.5.9 10.2 1.6L8.5 2.1c-.3-.9-.8-1.7-1.5-1.7h-.1C6 .4 5.2 1 4.6 2 3.7 3.5 3 6.2 3 6.2L1.2 6.8c-.4.1-.4.1-.5.5C.7 7.6 0 27 0 27l17.4 3 7.6-1.7S16 1.5 15.9 1.4c0-.1-.1-.1-.2-.1zM11.2 3l-1.8.6c.3-1.2.9-2.4 1.8-2.9V3zm-2.5.8L5.6 4.9c.5-2 1.5-3 2.5-3.3l.6 2.2zM8 .8c.1 0 .3.1.4.2-.1 0-.3.1-.4.1.1-.1.1-.2 0-.3zm4.1 5.5l-.8 2.5s-.9-.4-1.9-.4c-1.5 0-1.6.9-1.6 1.2 0 1.3 3.4 1.8 3.4 4.8 0 2.4-1.5 3.9-3.6 3.9-2.5 0-3.7-1.5-3.7-1.5l.7-2.2s1.3 1.1 2.4 1.1c.7 0 1-.6 1-1 0-1.7-2.8-1.8-2.8-4.5 0-2.3 1.7-4.6 5.1-4.6 1.3 0 1.8.4 1.8.4z" fill="white"/>
           </svg>
         </div>
       )
     },
     {
       id: 'meta' as const,
-      name: 'Meta Business',
-      desc: 'Connect Instagram DMs and WhatsApp Business. Luna reads and replies in real time.',
+      name: 'Instagram',
+      desc: metaConnected ? (instagramUsername ? `@${instagramUsername}` : 'Connected') : 'Connect your Instagram account. Luna reads and replies to DMs in real time.',
       connected: metaConnected,
-      onDisconnect: () => { setMetaConnected(false); showToast('Meta disconnected'); },
+      onDisconnect: () => handleDisconnect('instagram'),
       logo: (
-        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#1877f2]" style={{ background: '#1a1a1a', border: '1px solid rgba(24,119,242,0.2)' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', border: 'none' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none" />
           </svg>
         </div>
       )
@@ -258,7 +283,7 @@ function SettingsContent() {
       name: 'Bosta',
       desc: 'Plug in your Bosta account so Luna can track shipments and give live delivery updates.',
       connected: bostaConnected,
-      onDisconnect: () => { setBostaConnected(false); showToast('Bosta disconnected'); },
+      onDisconnect: () => handleDisconnect('all'),
       logo: (
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[#ff6b35]" style={{ background: '#1a1a1a', border: '1px solid rgba(255,107,53,0.2)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -278,23 +303,36 @@ function SettingsContent() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-1 gap-3 p-3 max-md:pt-[60px]">
         <LunaSidebar />
 
-        <main className="flex-1 overflow-y-auto bg-background2 max-md:pt-12">
+        <main className="flex-1 rounded-2xl border border-border overflow-y-auto bg-background2">
           {/* Top Bar */}
-          <div className="px-8 max-md:px-4 pt-[1.6rem] pb-0">
-            <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.2rem] lowercase">settings</h2>
-            <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
+          <div className="flex items-center justify-between px-8 max-md:px-4 pt-[1.6rem] pb-0 flex-wrap gap-3">
+            <div>
+              <h2 className="text-[1.4rem] font-[400] tracking-[-0.02em] text-text-primary mb-[0.15rem] lowercase">settings</h2>
+              <p className="text-[0.72rem] text-text-secondary">configure Luna for your brand</p>
+            </div>
+            <div className="max-md:hidden"><LunaTopBarActions /></div>
           </div>
 
-          <div className="px-8 py-6 pb-12 flex flex-col gap-6 max-w-2xl">
+          <div className="px-8 py-6 pb-12 flex flex-col gap-6">
 
             {/* ── INTEGRATIONS ──
                 API: see Shopify/Meta/Bosta above */}
             <div className="bg-background border border-border rounded-[12px] p-[1.4rem]">
-              <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary mb-[0.3rem]">Integrations</div>
+              <div className="flex items-center justify-between mb-[0.3rem]">
+                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-text-primary">Integrations</div>
+                {(shopifyConnected || metaConnected || bostaConnected) && (
+                  <button
+                    onClick={() => handleDisconnect('all')}
+                    className="text-[0.68rem] text-red-400/70 border border-red-400/30 rounded-[7px] px-3 py-[5px] hover:text-red-400 hover:border-red-400/60 transition-all duration-[180ms]"
+                  >
+                    Disconnect all
+                  </button>
+                )}
+              </div>
               <p className="text-[0.68rem] text-text-secondary mb-4">
                 Connect your tools so Luna can access your store, channels, and shipping data.
               </p>
@@ -316,17 +354,19 @@ function SettingsContent() {
                       {intg.connected && (
                         <div className="w-[6px] h-[6px] rounded-full bg-green-400 shadow-[0_0_6px_rgba(92,207,143,0.5)]" />
                       )}
-                      <button
-                        onClick={() => intg.connected ? intg.onDisconnect() : (intg.id === 'meta' ? handleInstagramConnect() : setModal({ name: intg.id as 'shopify' | 'bosta' }))}
-                        disabled={intg.id === 'meta' && formLoading}
-                        className={`rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium transition-all duration-[180ms] whitespace-nowrap ${
-                          intg.connected
-                            ? 'text-text-tertiary border border-border hover:border-red-400/50 hover:text-red-400/80'
-                            : 'bg-btn-bg text-btn-text hover:opacity-85'
-                        } disabled:opacity-50`}
-                      >
-                        {intg.connected ? 'Disconnect' : (intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect')}
-                      </button>
+                      {intg.connected ? (
+                        <span className="rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium text-text-tertiary border border-border whitespace-nowrap cursor-default select-none">
+                          Connected
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => intg.id === 'meta' ? handleInstagramConnect() : setModal({ name: intg.id as 'shopify' | 'bosta' })}
+                          disabled={intg.id === 'meta' && formLoading}
+                          className="rounded-[8px] px-4 py-[7px] text-[0.72rem] font-medium bg-btn-bg text-btn-text hover:opacity-85 transition-all duration-[180ms] whitespace-nowrap disabled:opacity-50"
+                        >
+                          {intg.id === 'meta' && formLoading ? 'Connecting...' : 'Connect'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -404,7 +444,7 @@ function SettingsContent() {
                   <textarea
                     value={brandDescription}
                     onChange={(e) => setBrandDescription(e.target.value)}
-                    placeholder="e.g. KARSA is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic."
+                    placeholder="e.g. YOUR BRAND is a streetwear brand built for youth with a grungy, rebellious edge. We keep it raw, affordable, and unapologetic."
                     rows={3}
                     className="w-full bg-input-bg border border-border rounded-[8px] px-3 py-2 text-[0.75rem] text-text-primary placeholder:text-text-tertiary outline-none focus:border-border-md transition-colors duration-200 resize-none leading-[1.7]"
                   />
@@ -414,23 +454,13 @@ function SettingsContent() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-6">
-                <button
-                  onClick={handleSaveConfig}
-                  className="flex-1 bg-btn-bg text-btn-text px-4 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200"
-                >
-                  Save settings
-                </button>
-                {brandDescription !== savedBrandDescription && (
-                  <button
-                    onClick={handleSaveBrandDescription}
-                    disabled={descSaving}
-                    className="px-4 py-2 border border-border-hover text-text-primary rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
-                  >
-                    {descSaving ? 'Saving…' : 'Save description'}
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={handleSaveConfig}
+                disabled={descSaving}
+                className="w-full mt-6 bg-btn-bg text-btn-text px-4 py-2 rounded-[8px] text-[0.75rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50"
+              >
+                {descSaving ? 'Saving…' : 'Save settings'}
+              </button>
             </div>
 
           </div>
@@ -451,17 +481,33 @@ function SettingsContent() {
             {modal.name === 'shopify' && (
               <>
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[#96bf48]" style={{ background: '#1a1a1a', border: '1px solid rgba(150,191,72,0.2)' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <path d="M15.5 4.5s-.3-1.5-1.8-1.5c0 0-1.2.1-2.2 1.2" strokeLinecap="round"/>
-                      <path d="M8 7.5l1 12 7.5 1.5 2.5-13.5-3-.5s-.4-2-2-2.5c0 0-1.8-.3-3 1L8 7.5z" strokeLinejoin="round"/>
+                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: '#96bf48' }}>
+                    <svg width="14" height="16" viewBox="0 0 24 28" fill="none">
+                      <path d="M15.7 1.3c-.1 0-.2 0-.3.1-.1 0-1.5.5-1.5.5S12.7.4 12.5.2c-.2-.2-.6-.2-.7-.2h-.1C11.1 0 10.5.9 10.2 1.6L8.5 2.1c-.3-.9-.8-1.7-1.5-1.7h-.1C6 .4 5.2 1 4.6 2 3.7 3.5 3 6.2 3 6.2L1.2 6.8c-.4.1-.4.1-.5.5C.7 7.6 0 27 0 27l17.4 3 7.6-1.7S16 1.5 15.9 1.4c0-.1-.1-.1-.2-.1zM11.2 3l-1.8.6c.3-1.2.9-2.4 1.8-2.9V3zm-2.5.8L5.6 4.9c.5-2 1.5-3 2.5-3.3l.6 2.2zM8 .8c.1 0 .3.1.4.2-.1 0-.3.1-.4.1.1-.1.1-.2 0-.3zm4.1 5.5l-.8 2.5s-.9-.4-1.9-.4c-1.5 0-1.6.9-1.6 1.2 0 1.3 3.4 1.8 3.4 4.8 0 2.4-1.5 3.9-3.6 3.9-2.5 0-3.7-1.5-3.7-1.5l.7-2.2s1.3 1.1 2.4 1.1c.7 0 1-.6 1-1 0-1.7-2.8-1.8-2.8-4.5 0-2.3 1.7-4.6 5.1-4.6 1.3 0 1.8.4 1.8.4z" fill="white"/>
                     </svg>
                   </div>
                   <div className="text-[1rem] font-[400] tracking-[-0.02em]">Connect Shopify</div>
                 </div>
-                <p className="text-[0.7rem] text-text-tertiary mb-5 leading-[1.6]">
-                  Enter your Shopify store URL. Luna will sync your products, inventory, and orders automatically.
+                <p className="text-[0.7rem] text-text-tertiary mb-4 leading-[1.6]">
+                  Paste your Shopify store URL below. Luna will install and sync your products automatically.
                 </p>
+                <div className="mb-4 bg-input-bg border border-border rounded-[10px] px-3 py-3 flex items-start gap-2">
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none" className="mt-[2px] shrink-0 text-text-tertiary" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="10" cy="10" r="8"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                  <span className="text-[0.68rem] text-text-tertiary leading-[1.6]">
+                    Go to{' '}
+                    <a
+                      href="https://admin.shopify.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+                    >
+                      admin.shopify.com
+                    </a>
+                    , select your store, then copy the <span className="text-text-primary">.myshopify.com</span> URL from your browser's address bar and paste it below.
+                  </span>
+                </div>
                 <div className="mb-3">
                   <div className="text-[0.62rem] uppercase tracking-[0.07em] text-text-tertiary mb-[0.3rem]">Store URL</div>
                   <input
@@ -479,9 +525,9 @@ function SettingsContent() {
                   disabled={formLoading}
                   className="w-full bg-btn-bg text-btn-text rounded-[8px] py-[10px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200 disabled:opacity-50 mt-1"
                 >
-                  {formLoading ? 'Connecting…' : 'Connect Shopify'}
+                  {formLoading ? 'Redirecting to Shopify…' : 'Connect Shopify'}
                 </button>
-                <p className="text-[0.65rem] text-text-tertiary text-center mt-3">Need help? View setup guide →</p>
+                <p className="text-[0.65rem] text-text-tertiary text-center mt-3">You'll be redirected to Shopify to approve the connection, then brought back automatically.</p>
               </>
             )}
 

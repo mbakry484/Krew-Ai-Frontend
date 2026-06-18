@@ -269,6 +269,18 @@ export const restoreLuna = async (id: string) => {
   return apiRequest(`/conversations/${id}/restore-luna`, { method: 'POST', body: '{}' });
 };
 
+// Luna global toggle
+export const getLunaGlobalStatus = async () => {
+  return apiRequest('/luna/global-status', { method: 'GET' });
+};
+
+export const updateLunaGlobalStatus = async (enabled: boolean) => {
+  return apiRequest('/luna/global-status', {
+    method: 'PUT',
+    body: JSON.stringify({ luna_global_enabled: enabled }),
+  });
+};
+
 export const resolveConversation = async (id: string) => {
   return apiRequest(`/conversations/${id}`, {
     method: 'PUT',

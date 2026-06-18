@@ -103,7 +103,11 @@ export default function LunaOverview() {
 
   const openShopifyOrder = (order: Order) => {
     if (shopDomain && order.shopify_order_id) {
-      window.open(`https://${shopDomain}/admin/orders/${order.shopify_order_id}`, '_blank');
+      // Extract numeric ID from GID format (gid://shopify/Order/123) or use as-is if already numeric
+      const numericId = order.shopify_order_id.includes('gid://')
+        ? order.shopify_order_id.split('/').pop()
+        : order.shopify_order_id;
+      window.open(`https://${shopDomain}/admin/orders/${numericId}`, '_blank');
     }
   };
 

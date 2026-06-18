@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
+import { useLunaGlobal } from './LunaGlobalProvider';
 import { logout } from '@/lib/auth';
 import {
   MOCK_NOTIFICATIONS,
@@ -51,6 +52,7 @@ function NotificationIcon({ type }: { type: NotificationType }) {
 export default function LunaTopBarActions() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { lunaGlobalEnabled, lunaGlobalLoading, toggleLunaGlobal } = useLunaGlobal();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userInfo, setUserInfo] = useState({ first_name: '', last_name: '', email: '' });
 
@@ -113,6 +115,41 @@ export default function LunaTopBarActions() {
 
   return (
     <div className="flex items-center gap-3 shrink-0">
+      {/* Luna global toggle */}
+      <button
+        onClick={toggleLunaGlobal}
+        disabled={lunaGlobalLoading}
+        title={lunaGlobalEnabled ? 'Luna is live — click to disable globally' : 'Luna is offline — click to enable globally'}
+        className={`border rounded-[20px] px-[10px] py-1 flex items-center gap-[6px] text-[0.7rem] transition-all duration-200 disabled:opacity-50 ${
+          lunaGlobalEnabled
+            ? 'border-green-400/40 text-green-400/90 hover:border-green-400/60'
+            : 'border-border text-text-tertiary hover:border-border-md hover:text-text-secondary'
+        }`}
+      >
+        {lunaGlobalEnabled ? (
+          <span className="relative flex h-[7px] w-[7px]">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-green-400" />
+          </span>
+        ) : (
+          <span className="relative flex h-[7px] w-[7px]">
+            <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-text-tertiary opacity-50" />
+          </span>
+        )}
+        <span className="hidden sm:inline font-medium">Luna</span>
+        <span
+          className={`relative w-[24px] h-[13px] rounded-full transition-colors duration-200 shrink-0 ${
+            lunaGlobalEnabled ? 'bg-green-400/80' : 'bg-border-md'
+          }`}
+        >
+          <span
+            className={`absolute top-[2px] w-[9px] h-[9px] rounded-full bg-background transition-all duration-200 ${
+              lunaGlobalEnabled ? 'left-[13px]' : 'left-[2px]'
+            }`}
+          />
+        </span>
+      </button>
+
       {/* Theme toggle */}
       <button
         onClick={toggleTheme}
