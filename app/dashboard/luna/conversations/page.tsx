@@ -13,6 +13,7 @@ import {
   sendConversationMessage,
   handoverConversation,
   restoreLuna,
+  sendLunaTestMessage,
 } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
@@ -134,6 +135,8 @@ function LunaToggle({ enabled, onChange, disabled }: { enabled: boolean; onChang
   );
 }
 
+const LUNA_TEST_ID = '__luna_test__';
+
 function ConversationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,6 +151,12 @@ function ConversationsContent() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Luna test chat state
+  const [testMessages, setTestMessages] = useState<Message[]>([]);
+  const [testHistory, setTestHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+
+  const isTestChat = selectedId === LUNA_TEST_ID;
 
   // Fetch conversation list
   const fetchConversations = useCallback(async (statusFilter: 'all' | Status = 'all') => {
@@ -207,7 +216,7 @@ function ConversationsContent() {
 
   // Realtime: subscribe to new/updated messages for the selected conversation
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || selectedId === LUNA_TEST_ID) return;
 
     const channel = supabase
       .channel(`messages:${selectedId}`)
@@ -284,9 +293,9 @@ function ConversationsContent() {
     };
   }, [filter, fetchConversations]);
 
-  // Fetch messages when selection changes
+  // Fetch messages when selection changes (skip for Luna test chat)
   useEffect(() => {
-    if (selectedId) {
+    if (selectedId && selectedId !== LUNA_TEST_ID) {
       fetchMessages(selectedId);
     }
   }, [selectedId, fetchMessages]);
@@ -380,6 +389,48 @@ function ConversationsContent() {
     }
   };
 
+  // Luna test chat send handler
+  const handleTestSend = async () => {
+    const text = inputText.trim();
+    if (!text || sending) return;
+    setInputText('');
+    setSending(true);
+
+    const userMsg: Message = {
+      id: `test-user-${Date.now()}`,
+      from: 'customer',
+      text,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setTestMessages((prev) => [...prev, userMsg]);
+
+    const newHistory = [...testHistory, { role: 'user' as const, content: text }];
+    setTestHistory(newHistory);
+
+    try {
+      const data = await sendLunaTestMessage(text, testHistory);
+      const lunaMsg: Message = {
+        id: `test-luna-${Date.now()}`,
+        from: 'luna',
+        text: data.reply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setTestMessages((prev) => [...prev, lunaMsg]);
+      setTestHistory((prev) => [...prev, { role: 'assistant' as const, content: data.reply }]);
+    } catch (err: any) {
+      const errorMsg: Message = {
+        id: `test-error-${Date.now()}`,
+        from: 'luna',
+        text: 'Sorry, I couldn\'t process that. Please try again.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        error: true,
+      };
+      setTestMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setSending(false);
+    }
+  };
+
   const escalatedCount = conversations.filter((c) => c.status === 'escalated').length;
 
   return (
@@ -461,12 +512,37 @@ function ConversationsContent() {
                     retry
                   </button>
                 </div>
-              ) : filtered.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
-                  no conversations
-                </div>
               ) : (
                 <div className="flex flex-col">
+                  {/* Pinned Luna test conversation — always visible on "All" tab */}
+                  {filter === 'all' && (
+                    <button
+                      onClick={() => { setSelectedId(LUNA_TEST_ID); }}
+                      className={`w-full text-left px-4 py-[0.85rem] border-b border-border transition-colors duration-150 ${
+                        selectedId === LUNA_TEST_ID
+                          ? 'bg-background3'
+                          : 'hover:bg-background2'
+                      }`}
+                    >
+                      <div className="flex items-center gap-[0.6rem]">
+                        <div className="w-[28px] h-[28px] rounded-full bg-text-secondary flex items-center justify-center text-[0.65rem] text-background shrink-0">
+                          ✦
+                        </div>
+                        <span className="flex-1 text-[0.72rem] text-text-primary font-[450] truncate">Luna</span>
+                        <span className="text-[0.55rem] text-text-tertiary bg-background3 border border-border px-[5px] py-[1px] rounded-[4px] shrink-0">pinned</span>
+                      </div>
+                      <p className="text-[0.63rem] text-text-tertiary truncate mt-[3px] pl-[34px]">
+                        {testMessages.length > 0
+                          ? testMessages[testMessages.length - 1].text
+                          : 'test luna before going live'}
+                      </p>
+                    </button>
+                  )}
+                  {filtered.length === 0 && filter !== 'all' && (
+                    <div className="flex items-center justify-center h-32 text-[0.7rem] text-text-tertiary">
+                      no conversations
+                    </div>
+                  )}
                   {filtered.map((conv) => (
                     <button
                       key={conv.id}
@@ -509,7 +585,125 @@ function ConversationsContent() {
             </div>
 
             {/* Right: Chat view — hidden on mobile when no chat selected */}
-            {selected ? (
+            {isTestChat ? (
+              /* ── Luna Test Chat ── */
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Test chat header */}
+                <div className="flex items-center justify-between px-5 max-md:px-3 py-3 border-b border-border bg-background shrink-0">
+                  <div className="flex items-center gap-3 max-md:gap-2">
+                    <button
+                      onClick={() => setSelectedId(null)}
+                      className="hidden max-md:flex items-center justify-center w-7 h-7 rounded-[6px] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150 shrink-0"
+                      aria-label="Back to conversations"
+                    >
+                      <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M15 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
+                    <div className="w-[30px] h-[30px] rounded-full bg-text-secondary flex items-center justify-center text-[0.7rem] text-background">
+                      ✦
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[0.78rem] text-text-primary font-[450]">Luna</span>
+                        <span className="text-[0.58rem] px-[5px] py-[2px] rounded-[4px] bg-text-secondary/10 text-text-secondary border border-text-secondary/20">test mode</span>
+                      </div>
+                      <div className="text-[0.62rem] text-text-tertiary mt-[1px]">chat as a customer to test luna</div>
+                    </div>
+                  </div>
+                  {testMessages.length > 0 && (
+                    <button
+                      onClick={() => { setTestMessages([]); setTestHistory([]); }}
+                      className="flex items-center gap-[5px] text-[0.68rem] text-text-secondary border border-border hover:border-border-md hover:text-text-primary rounded-[7px] px-3 py-[5px] transition-all duration-150"
+                    >
+                      <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Test messages area */}
+                <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-[0.6rem]">
+                  {testMessages.length === 0 ? (
+                    <div className="flex items-center justify-center flex-1">
+                      <div className="text-center max-w-[280px]">
+                        <div className="w-[36px] h-[36px] rounded-full bg-text-secondary/10 flex items-center justify-center text-[1rem] mx-auto mb-3">
+                          ✦
+                        </div>
+                        <p className="text-[0.72rem] text-text-secondary mb-1">test luna</p>
+                        <p className="text-[0.62rem] text-text-tertiary leading-[1.5]">
+                          send a message as if you were a customer. luna will respond using your knowledge base, products, and settings.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    testMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex flex-col ${msg.from === 'customer' ? 'items-end' : 'items-start'} max-w-[75%] ${msg.from === 'customer' ? 'self-end' : ''}`}
+                      >
+                        <div
+                          className={`px-[0.85rem] py-[0.6rem] rounded-[10px] text-[0.72rem] leading-[1.5] whitespace-pre-wrap ${
+                            msg.from === 'customer'
+                              ? 'bg-text-secondary text-background rounded-tr-[3px]'
+                              : msg.error
+                              ? 'bg-background3 border border-[#e07070]/30 text-text-tertiary rounded-tl-[3px]'
+                              : 'bg-background3 border border-border text-text-primary rounded-tl-[3px]'
+                          }`}
+                        >
+                          {msg.text}
+                        </div>
+                        <div className="flex items-center gap-[4px] mt-[3px]">
+                          <span className="text-[0.55rem] text-text-tertiary">
+                            {msg.from === 'customer' ? 'You' : '✦ Luna'}
+                          </span>
+                          <span className="text-[0.55rem] text-text-tertiary">{msg.time}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {sending && (
+                    <div className="flex flex-col items-start max-w-[75%]">
+                      <div className="px-[0.85rem] py-[0.6rem] rounded-[10px] rounded-tl-[3px] bg-background3 border border-border">
+                        <div className="flex items-center gap-[6px]">
+                          <span className="w-[4px] h-[4px] rounded-full bg-text-tertiary animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-[4px] h-[4px] rounded-full bg-text-tertiary animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-[4px] h-[4px] rounded-full bg-text-tertiary animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                      <span className="text-[0.55rem] text-text-tertiary mt-[3px]">✦ Luna is typing...</span>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Test input area */}
+                <div className="shrink-0 border-t border-border bg-background px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTestSend(); } }}
+                      placeholder="Message luna as a customer..."
+                      disabled={sending}
+                      className="flex-1 bg-background2 border border-border rounded-[8px] px-4 py-[0.65rem] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-md transition-colors duration-150 disabled:opacity-50"
+                    />
+                    <button
+                      onClick={handleTestSend}
+                      disabled={!inputText.trim() || sending}
+                      className="w-[34px] h-[34px] rounded-[8px] bg-text-secondary flex items-center justify-center hover:opacity-80 transition-opacity duration-150 disabled:opacity-30 shrink-0"
+                    >
+                      <svg className="w-[13px] h-[13px] text-background" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : selected ? (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Chat header */}
                 <div className="flex items-center justify-between px-5 max-md:px-3 py-3 border-b border-border bg-background shrink-0">

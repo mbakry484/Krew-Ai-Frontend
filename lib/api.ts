@@ -281,6 +281,17 @@ export const updateLunaGlobalStatus = async (enabled: boolean) => {
   });
 };
 
+// Luna test chat — user tests Luna directly
+export const sendLunaTestMessage = async (
+  message: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+) => {
+  return apiRequest('/luna/test-chat', {
+    method: 'POST',
+    body: JSON.stringify({ message, history }),
+  });
+};
+
 export const resolveConversation = async (id: string) => {
   return apiRequest(`/conversations/${id}`, {
     method: 'PUT',
@@ -364,6 +375,159 @@ export const getSentiment = async (brandId: string, days = 30) => {
 
 export const getReports = async (brandId: string, days = 30) => {
   return apiRequest(`/interactions/reports?brand_id=${brandId}&days=${days}`, { method: 'GET' });
+};
+
+// Voice profile API calls
+
+// The backend GPT analysis returns this shape inside the `profile` JSON column
+export interface VoiceProfileData {
+  summary: string;
+  tone: string[];
+  greeting_style: { example: string; notes: string };
+  closing_style: { example: string; notes: string };
+  complaint_handling: { approach: string; example: string };
+  order_status_replies: { example: string; notes: string };
+  emoji_usage: 'none' | 'light' | 'moderate' | 'heavy';
+  language_mix: { english: number; arabic: number; franco_arabic: number };
+  signature_phrases: string[];
+  formality: 'very_casual' | 'casual' | 'neutral' | 'formal';
+  message_length: 'short' | 'medium' | 'long';
+}
+
+// The full DB row from voice_profiles table
+export interface VoiceProfileRow {
+  brand_id: string;
+  profile: VoiceProfileData;
+  is_active: boolean;
+  sample_size: number;
+  updated_at: string;
+}
+
+// Normalized shape used by the UI (flattened from VoiceProfileRow)
+export interface VoiceProfile {
+  summary: string;
+  tone: string[];
+  greeting: string;
+  closing: string;
+  complaint_handling: string;
+  complaint_example: string;
+  emoji_vibe: 'none' | 'light' | 'moderate' | 'heavy';
+  language_mix: { english: number; arabic: number; franco_arabic: number };
+  signature_phrases: string[];
+  formality: 'very_casual' | 'casual' | 'neutral' | 'formal';
+  message_length: 'short' | 'medium' | 'long';
+  is_active: boolean;
+}
+
+/** Convert backend DB row → flat UI shape */
+function normalizeVoiceProfile(row: VoiceProfileRow): VoiceProfile {
+  const p = row.profile;
+  return {
+    summary: p.summary || '',
+    tone: p.tone || [],
+    greeting: p.greeting_style?.example || '',
+    closing: p.closing_style?.example || '',
+    complaint_handling: p.complaint_handling?.approach || '',
+    complaint_example: p.complaint_handling?.example || '',
+    emoji_vibe: p.emoji_usage || 'none',
+    language_mix: p.language_mix || { english: 100, arabic: 0, franco_arabic: 0 },
+    signature_phrases: p.signature_phrases || [],
+    formality: p.formality || 'neutral',
+    message_length: p.message_length || 'medium',
+    is_active: row.is_active,
+  };
+}
+
+/** Convert flat UI shape back → backend profile JSON for PATCH */
+function denormalizeVoiceProfile(ui: VoiceProfile): Partial<VoiceProfileData> {
+  return {
+    summary: ui.summary,
+    tone: ui.tone,
+    greeting_style: { example: ui.greeting, notes: '' },
+    closing_style: { example: ui.closing, notes: '' },
+    complaint_handling: { approach: ui.complaint_handling, example: ui.complaint_example },
+    emoji_usage: ui.emoji_vibe,
+    language_mix: ui.language_mix,
+    signature_phrases: ui.signature_phrases,
+    formality: ui.formality,
+    message_length: ui.message_length,
+  };
+}
+
+/** Helper: get brand_id from /auth/me */
+let cachedBrandId: string | null = null;
+async function getBrandId(): Promise<string> {
+  if (cachedBrandId) return cachedBrandId;
+  const res = await apiRequest('/auth/me', { method: 'GET' });
+  const id = res.user?.brand_id || res.brand_id;
+  if (!id) throw new Error('Brand not found');
+  cachedBrandId = id;
+  return id;
+}
+
+export const uploadVoiceFile = async (file: File): Promise<{ job_id: string }> => {
+  const authHeader = getAuthHeader() as Record<string, string>;
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/voice/upload`,
+    { method: 'POST', headers: authHeader, body: formData }
+  );
+
+  if (!response.ok) throw new Error('Voice file upload failed');
+  return response.json();
+};
+
+export const getVoiceJobStatus = async (jobId: string): Promise<{
+  status: 'processing' | 'ready' | 'failed';
+  progress: number;
+  error?: string;
+} | null> => {
+  const url = `${API_BASE_URL}/api/voice/status/${jobId}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+  });
+  if (response.status === 304) return null;
+  if (!response.ok) throw new Error(`Status check failed (${response.status})`);
+  return response.json();
+};
+
+export const getVoiceProfile = async (): Promise<VoiceProfile | null> => {
+  try {
+    const brandId = await getBrandId();
+    const row: VoiceProfileRow = await apiRequest(`/api/voice/profile/${brandId}`, { method: 'GET' });
+    return normalizeVoiceProfile(row);
+  } catch {
+    return null;
+  }
+};
+
+export const updateVoiceProfile = async (profile: VoiceProfile): Promise<VoiceProfile> => {
+  const brandId = await getBrandId();
+  const payload = denormalizeVoiceProfile(profile);
+  const row: VoiceProfileRow = await apiRequest(`/api/voice/profile/${brandId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return normalizeVoiceProfile(row);
+};
+
+export const activateVoiceProfile = async (): Promise<void> => {
+  const brandId = await getBrandId();
+  await apiRequest(`/api/voice/profile/${brandId}/activate`, { method: 'POST', body: '{}' });
+};
+
+export const deactivateVoiceProfile = async (): Promise<void> => {
+  const brandId = await getBrandId();
+  await apiRequest(`/api/voice/profile/${brandId}/deactivate`, { method: 'POST', body: '{}' });
+};
+
+export const reanalyzeVoice = async (): Promise<{ job_id: string }> => {
+  // Re-upload not needed — just re-trigger upload endpoint
+  // The caller should re-upload the file; for now this is a placeholder
+  throw new Error('Re-analysis requires re-uploading the file.');
 };
 
 // Overview stats (aggregated from orders, exchanges, refunds, conversations)
