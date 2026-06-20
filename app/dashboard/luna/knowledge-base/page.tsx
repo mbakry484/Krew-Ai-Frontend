@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
-import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage, getProducts } from '@/lib/api';
+import { getKnowledgeBase, saveKnowledgeBase, uploadSizeGuideImage, getProducts, uploadVoiceFile, getVoiceJobStatus, getVoiceProfile, updateVoiceProfile, activateVoiceProfile, deactivateVoiceProfile } from '@/lib/api';
+import type { VoiceProfile } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 import Skeleton from '@/components/Skeleton';
@@ -194,6 +195,20 @@ export default function KnowledgeBasePage() {
   const [voiceDragOver, setVoiceDragOver] = useState(false);
   const voiceFileRef = useRef<HTMLInputElement>(null);
 
+  // Voice profile state
+  const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null);
+  const [voiceProfileLoading, setVoiceProfileLoading] = useState(false);
+  const [voiceJobId, setVoiceJobId] = useState<string | null>(null);
+  const [voiceProcessingStep, setVoiceProcessingStep] = useState('');
+  const [voiceUploading, setVoiceUploading] = useState(false);
+  const [voiceSaving, setVoiceSaving] = useState(false);
+  const [voiceSaved, setVoiceSaved] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [howToExpanded, setHowToExpanded] = useState(false);
+  const [newToneChip, setNewToneChip] = useState('');
+  const [newPhrase, setNewPhrase] = useState('');
+  const voicePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   useEffect(() => {
@@ -252,6 +267,9 @@ export default function KnowledgeBasePage() {
             )
           );
         }
+        // Fetch voice profile
+        const vp = await getVoiceProfile();
+        if (vp) setVoiceProfile(vp);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -339,6 +357,105 @@ export default function KnowledgeBasePage() {
         sg.id === id ? { ...sg, imageFile: undefined, imagePreview: undefined, imageUrl: undefined } : sg
       )
     );
+  };
+
+  // Voice processing poll
+  useEffect(() => {
+    if (!voiceJobId) return;
+    const progressSteps = [
+      [0, 'Unzipping...'],
+      [25, 'Reading your conversations...'],
+      [50, 'Learning your style...'],
+      [85, 'Almost done...'],
+    ] as const;
+
+    voicePollRef.current = setInterval(async () => {
+      try {
+        const result = await getVoiceJobStatus(voiceJobId);
+        // null = 304 Not Modified, still processing — just keep polling
+        if (!result) return;
+
+        // Map progress number to human-readable step
+        const step = [...progressSteps].reverse().find(([threshold]) => result.progress >= threshold);
+        if (step) setVoiceProcessingStep(step[1]);
+
+        if (result.status === 'ready') {
+          // Job done — fetch the saved profile from DB
+          const profile = await getVoiceProfile();
+          if (profile) setVoiceProfile(profile);
+          setVoiceJobId(null);
+          setVoiceUploading(false);
+          setVoiceFile(null);
+        } else if (result.status === 'failed') {
+          setVoiceError(result.error || 'Analysis failed. Please try again.');
+          setVoiceJobId(null);
+          setVoiceUploading(false);
+        }
+      } catch {
+        // Don't kill the poll on transient errors — keep trying
+      }
+    }, 2000);
+    return () => {
+      if (voicePollRef.current) clearInterval(voicePollRef.current);
+    };
+  }, [voiceJobId]);
+
+  const handleVoiceUpload = async () => {
+    if (!voiceFile) return;
+    setVoiceUploading(true);
+    setVoiceError(null);
+    setVoiceProcessingStep('Uploading...');
+    try {
+      const { job_id } = await uploadVoiceFile(voiceFile);
+      setVoiceJobId(job_id);
+      setVoiceProcessingStep('Unzipping...');
+    } catch {
+      setVoiceError('Upload failed. Please try again.');
+      setVoiceUploading(false);
+    }
+  };
+
+  const handleVoiceSave = async () => {
+    if (!voiceProfile) return;
+    setVoiceSaving(true);
+    setVoiceError(null);
+    try {
+      const updated = await updateVoiceProfile(voiceProfile);
+      setVoiceProfile(updated);
+      setVoiceSaved(true);
+      setTimeout(() => setVoiceSaved(false), 2500);
+    } catch {
+      setVoiceError('Failed to save. Please try again.');
+    } finally {
+      setVoiceSaving(false);
+    }
+  };
+
+  const handleVoiceActivate = async () => {
+    setVoiceError(null);
+    try {
+      await activateVoiceProfile();
+      setVoiceProfile((prev) => prev ? { ...prev, is_active: true } : prev);
+    } catch {
+      setVoiceError('Failed to activate. Please try again.');
+    }
+  };
+
+  const handleVoiceDeactivate = async () => {
+    setVoiceError(null);
+    try {
+      await deactivateVoiceProfile();
+      setVoiceProfile((prev) => prev ? { ...prev, is_active: false } : prev);
+    } catch {
+      setVoiceError('Failed to deactivate. Please try again.');
+    }
+  };
+
+  const handleVoiceReanalyze = () => {
+    // No dedicated re-analyze endpoint — reset to upload state
+    setVoiceProfile(null);
+    setVoiceFile(null);
+    setVoiceError(null);
   };
 
   const handleCloseDrawer = () => {
@@ -730,13 +847,23 @@ export default function KnowledgeBasePage() {
                     <div className="w-9 h-9 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
                       <MicIcon className="w-[18px] h-[18px]" />
                     </div>
-                    <span className="text-[0.57rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[4px] px-[6px] py-[3px] uppercase tracking-[0.06em]">
-                      Pro
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {voiceProfile && (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${voiceProfile.is_active ? 'bg-green-400/80' : 'bg-text-tertiary/40'}`} />
+                          <span className="text-[0.54rem] text-text-tertiary">
+                            {voiceProfile.is_active ? 'Active' : 'Not set up'}
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-[0.57rem] text-[#a78bfa] border border-[#a78bfa]/25 bg-[#a78bfa]/5 rounded-[4px] px-[6px] py-[3px] uppercase tracking-[0.06em]">
+                        Pro
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-auto pt-6">
                     <h3 className="text-[0.87rem] font-[450] text-text-primary tracking-[-0.015em] mb-[3px]">{agentName}&apos;s Voice</h3>
-                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">Train {agentName} to match your brand&apos;s tone from real conversations.</p>
+                    <p className="text-[0.67rem] text-text-tertiary leading-[1.55]">teach {agentName} how you actually talk</p>
                   </div>
                 </button>
 
@@ -777,15 +904,29 @@ export default function KnowledgeBasePage() {
                   </span>
                 )}
               </div>
-              <button
-                onClick={handleCloseDrawer}
-                className="w-7 h-7 flex items-center justify-center rounded-[8px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
-              >
-                <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                {activeDrawer === 'voice' && voiceProfile && !voiceUploading && (
+                  <button
+                    onClick={handleVoiceReanalyze}
+                    className="flex items-center gap-1.5 text-[0.62rem] text-text-tertiary border border-border rounded-[7px] px-2.5 py-[4px] hover:text-text-secondary hover:border-border-md hover:bg-background3 transition-all duration-150"
+                  >
+                    <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10" />
+                      <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                    </svg>
+                    Re-analyze
+                  </button>
+                )}
+                <button
+                  onClick={handleCloseDrawer}
+                  className="w-7 h-7 flex items-center justify-center rounded-[8px] text-text-tertiary hover:text-text-primary hover:bg-background3 transition-all duration-150"
+                >
+                  <svg className="w-[13px] h-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Content */}
@@ -1155,92 +1296,409 @@ export default function KnowledgeBasePage() {
               {/* ── Luna's Voice ── */}
               {activeDrawer === 'voice' && (
                 <div className="px-6 py-5 flex flex-col gap-4">
-                  <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
-                    <p className="text-[0.73rem] text-text-secondary leading-[1.6]">
-                      Upload your exported Instagram or Facebook DM history and {agentName} will learn your brand&apos;s tone, style, and how your team naturally talks to customers.
-                    </p>
-                    <p className="mt-2 text-[0.62rem] text-text-tertiary leading-[1.55]">
-                      Your data stays private and is only used to train your {agentName}. Export from Meta&apos;s Download Your Information tool, then drop the JSON file below.
-                    </p>
-                  </div>
 
-                  <div
-                    className={`relative flex flex-col items-center justify-center gap-3 rounded-[14px] border-2 border-dashed px-6 py-14 text-center transition-all duration-200 ${
-                      voiceDragOver
-                        ? 'border-text-secondary bg-background3'
-                        : 'border-border hover:border-border-md hover:bg-background3/20'
-                    }`}
-                    onDragOver={(e) => { e.preventDefault(); setVoiceDragOver(true); }}
-                    onDragLeave={() => setVoiceDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setVoiceDragOver(false);
-                      const file = e.dataTransfer.files[0];
-                      if (file && file.name.endsWith('.json')) setVoiceFile(file);
-                    }}
-                  >
-                    {voiceFile ? (
-                      <>
-                        <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-[0.73rem] text-text-primary font-medium">{voiceFile.name}</p>
-                          <p className="text-[0.62rem] text-text-tertiary mt-1">{(voiceFile.size / 1024).toFixed(0)} KB</p>
-                        </div>
+                  {/* STATE 2 — Uploading / Processing */}
+                  {voiceUploading && (
+                    <div className="flex flex-col items-center justify-center gap-5 py-16">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 rounded-full border-2 border-border" />
+                        <div className="absolute inset-0 rounded-full border-2 border-t-[#a78bfa] animate-spin" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[0.78rem] text-text-primary font-[400]">{voiceProcessingStep || 'Processing...'}</p>
+                        <p className="text-[0.62rem] text-text-tertiary mt-1.5">This usually takes 30–60 seconds</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STATE 1 — No profile yet (upload) */}
+                  {!voiceUploading && !voiceProfile && (
+                    <>
+                      <div className="text-center pt-2 pb-1">
+                        <h4 className="text-[0.88rem] font-[450] text-text-primary tracking-[-0.015em]">Upload your Instagram chat history</h4>
+                        <p className="text-[0.68rem] text-text-tertiary mt-1.5 leading-[1.6] max-w-[360px] mx-auto">
+                          {agentName} will study how you talk to customers and learn your voice
+                        </p>
+                      </div>
+
+                      <div
+                        className={`relative flex flex-col items-center justify-center gap-3 rounded-[14px] border-2 border-dashed px-6 py-14 text-center transition-all duration-200 ${
+                          voiceDragOver
+                            ? 'border-[#a78bfa]/50 bg-[#a78bfa]/5'
+                            : 'border-border hover:border-border-md hover:bg-background3/20'
+                        }`}
+                        onDragOver={(e) => { e.preventDefault(); setVoiceDragOver(true); }}
+                        onDragLeave={() => setVoiceDragOver(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setVoiceDragOver(false);
+                          const file = e.dataTransfer.files[0];
+                          if (file && (file.name.endsWith('.zip'))) setVoiceFile(file);
+                        }}
+                      >
+                        {voiceFile ? (
+                          <>
+                            <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-secondary">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-[0.73rem] text-text-primary font-medium">{voiceFile.name}</p>
+                              <p className="text-[0.62rem] text-text-tertiary mt-1">{(voiceFile.size / (1024 * 1024)).toFixed(1)} MB</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => setVoiceFile(null)}
+                                className="text-[0.62rem] text-text-tertiary hover:text-red-400 transition-colors duration-150"
+                              >
+                                remove
+                              </button>
+                              <button
+                                onClick={handleVoiceUpload}
+                                className="text-[0.62rem] bg-btn-bg text-btn-text px-4 py-[5px] rounded-[7px] font-medium hover:opacity-85 transition-opacity duration-200"
+                              >
+                                Analyze
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-tertiary">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-[0.73rem] text-text-secondary">Drop your zip file here</p>
+                              <p className="text-[0.62rem] text-text-tertiary mt-[3px]">
+                                or{' '}
+                                <button
+                                  onClick={() => voiceFileRef.current?.click()}
+                                  className="underline hover:text-text-secondary transition-colors duration-150"
+                                >
+                                  browse files
+                                </button>
+                              </p>
+                            </div>
+                            <p className="text-[0.57rem] text-text-tertiary/60">Zip files only, up to 500MB</p>
+                          </>
+                        )}
+                        <input
+                          ref={voiceFileRef}
+                          type="file"
+                          accept=".zip"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setVoiceFile(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
+
+                      {/* How to get this file — expandable */}
+                      <div className="bg-background2 border border-border rounded-[12px] overflow-hidden">
                         <button
-                          onClick={() => setVoiceFile(null)}
-                          className="text-[0.62rem] text-text-tertiary hover:text-red-400 transition-colors duration-150"
+                          onClick={() => setHowToExpanded(!howToExpanded)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-background3/40 transition-colors duration-150"
                         >
-                          remove
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-xl bg-background3 border border-border flex items-center justify-center text-text-tertiary">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                            <polyline points="17 8 12 3 7 8" />
-                            <line x1="12" y1="3" x2="12" y2="15" />
+                          <span className="text-[0.68rem] text-text-secondary">How do I get this file?</span>
+                          <svg className={`w-[11px] h-[11px] text-text-tertiary transition-transform duration-200 ${howToExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
                           </svg>
+                        </button>
+                        {howToExpanded && (
+                          <div className="px-4 pb-4 flex flex-col gap-2.5">
+                            {[
+                              'Go to Instagram → Settings → Accounts Center',
+                              'Your information and permissions → Download your information',
+                              'Select only "Messages"',
+                              'Choose JSON format',
+                              'Download when ready (Meta emails it)',
+                              'Drop the zip here',
+                            ].map((step, i) => (
+                              <div key={i} className="flex items-start gap-2.5">
+                                <span className="shrink-0 w-[18px] h-[18px] rounded-full border border-border flex items-center justify-center text-[0.54rem] text-text-tertiary mt-[1px]">
+                                  {i + 1}
+                                </span>
+                                <p className="text-[0.66rem] text-text-secondary leading-[1.5]">{step}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {voiceError && (
+                        <p className="text-[0.68rem] text-red-400 text-center">{voiceError}</p>
+                      )}
+                    </>
+                  )}
+
+                  {/* STATE 3 & 4 — Voice Profile (Ready / Active) */}
+                  {!voiceUploading && voiceProfile && (
+                    <>
+                      {/* Currently active badge */}
+                      {voiceProfile.is_active && (
+                        <div className="flex items-center gap-2 bg-green-400/5 border border-green-400/15 rounded-[10px] px-4 py-2.5">
+                          <span className="w-[6px] h-[6px] rounded-full bg-green-400/80 shrink-0" />
+                          <span className="text-[0.68rem] text-green-400/90 font-[400]">Currently active</span>
                         </div>
-                        <div>
-                          <p className="text-[0.73rem] text-text-secondary">Drop your DM export here</p>
-                          <p className="text-[0.62rem] text-text-tertiary mt-[3px]">
-                            or{' '}
+                      )}
+
+                      {/* Summary */}
+                      {voiceProfile.summary && (
+                        <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                          <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-2">{agentName}&apos;s understanding of your voice</p>
+                          <p className="text-[0.72rem] text-text-secondary leading-[1.65] italic">{voiceProfile.summary}</p>
+                        </div>
+                      )}
+
+                      {/* TONE — chips */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Tone</p>
+                        <div className="flex flex-wrap gap-[6px]">
+                          {voiceProfile.tone.map((t) => (
                             <button
-                              onClick={() => voiceFileRef.current?.click()}
-                              className="underline hover:text-text-secondary transition-colors duration-150"
+                              key={t}
+                              onClick={() => setVoiceProfile((p) => p ? { ...p, tone: p.tone.filter((x) => x !== t) } : p)}
+                              className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded-full bg-background3 border border-border-md text-[0.65rem] text-text-primary transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/chip"
                             >
-                              browse files
+                              {t}
+                              <svg className="w-[7px] h-[7px] opacity-30 group-hover/chip:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
                             </button>
-                          </p>
+                          ))}
+                          <div className="inline-flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={newToneChip}
+                              onChange={(e) => setNewToneChip(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && newToneChip.trim()) {
+                                  setVoiceProfile((p) => p ? { ...p, tone: [...p.tone, newToneChip.trim()] } : p);
+                                  setNewToneChip('');
+                                }
+                              }}
+                              placeholder="add..."
+                              className="w-[60px] bg-transparent border-none outline-none text-[0.65rem] text-text-secondary placeholder:text-text-tertiary"
+                            />
+                          </div>
                         </div>
-                        <p className="text-[0.57rem] text-text-tertiary/60">Accepts .json — exported from Meta&apos;s Download Your Information</p>
-                      </>
-                    )}
-                    <input
-                      ref={voiceFileRef}
-                      type="file"
-                      accept=".json"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setVoiceFile(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </div>
+                      </div>
+
+                      {/* HOW LUNA GREETS */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-2">How {agentName} greets</p>
+                        <textarea
+                          value={voiceProfile.greeting}
+                          onChange={(e) => setVoiceProfile((p) => p ? { ...p, greeting: e.target.value } : p)}
+                          rows={2}
+                          className="w-full bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.55]"
+                          onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
+                          ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                        />
+                      </div>
+
+                      {/* HOW LUNA CLOSES */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-2">How {agentName} closes</p>
+                        <textarea
+                          value={voiceProfile.closing}
+                          onChange={(e) => setVoiceProfile((p) => p ? { ...p, closing: e.target.value } : p)}
+                          rows={2}
+                          className="w-full bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.55]"
+                          onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
+                          ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                        />
+                      </div>
+
+                      {/* HANDLING COMPLAINTS */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-2">Handling complaints</p>
+                        <textarea
+                          value={voiceProfile.complaint_handling}
+                          onChange={(e) => setVoiceProfile((p) => p ? { ...p, complaint_handling: e.target.value } : p)}
+                          placeholder="How the brand handles complaints..."
+                          rows={2}
+                          className="w-full bg-transparent border-none outline-none resize-none text-[0.72rem] text-text-secondary placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.55]"
+                          onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
+                          ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                        />
+                        {voiceProfile.complaint_example && (
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <p className="text-[0.54rem] uppercase tracking-[0.08em] text-text-tertiary mb-1.5">Example reply</p>
+                            <textarea
+                              value={voiceProfile.complaint_example}
+                              onChange={(e) => setVoiceProfile((p) => p ? { ...p, complaint_example: e.target.value } : p)}
+                              rows={2}
+                              className="w-full bg-transparent border-none outline-none resize-none text-[0.66rem] text-text-tertiary italic placeholder:text-text-tertiary focus:text-text-primary transition-colors duration-200 leading-[1.55]"
+                              onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}
+                              ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* EMOJI VIBE — pill selector */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Emoji vibe</p>
+                        <div className="flex gap-[6px]">
+                          {(['none', 'light', 'moderate', 'heavy'] as const).map((v) => (
+                            <button
+                              key={v}
+                              onClick={() => setVoiceProfile((p) => p ? { ...p, emoji_vibe: v } : p)}
+                              className={`px-3 py-[5px] rounded-full text-[0.65rem] border transition-all duration-150 capitalize ${
+                                voiceProfile.emoji_vibe === v
+                                  ? 'bg-text-primary text-background border-text-primary'
+                                  : 'bg-background3 text-text-secondary border-border hover:border-border-md'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* LANGUAGE MIX — visual bars */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Language mix</p>
+                        <div className="flex flex-col gap-3">
+                          {([
+                            { key: 'english' as const, label: 'English' },
+                            { key: 'arabic' as const, label: 'Arabic' },
+                            { key: 'franco_arabic' as const, label: 'Franco Arabic' },
+                          ]).map(({ key, label }) => (
+                            <div key={key} className="flex items-center gap-3">
+                              <span className="text-[0.65rem] text-text-secondary w-[90px] shrink-0">{label}</span>
+                              <div className="flex-1 h-[6px] rounded-full bg-background3 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-text-primary/60 transition-all duration-300"
+                                  style={{ width: `${voiceProfile.language_mix[key]}%` }}
+                                />
+                              </div>
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={voiceProfile.language_mix[key]}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                                  setVoiceProfile((p) => p ? { ...p, language_mix: { ...p.language_mix, [key]: val } } : p);
+                                }}
+                                className="w-[42px] bg-background3 border border-border rounded-[5px] px-1.5 py-[2px] text-[0.62rem] text-text-secondary text-center outline-none focus:border-border-md transition-colors duration-150"
+                              />
+                              <span className="text-[0.57rem] text-text-tertiary">%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* SIGNATURE PHRASES — chips */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Signature phrases</p>
+                        <div className="flex flex-wrap gap-[6px]">
+                          {voiceProfile.signature_phrases.map((phrase) => (
+                            <button
+                              key={phrase}
+                              onClick={() => setVoiceProfile((p) => p ? { ...p, signature_phrases: p.signature_phrases.filter((x) => x !== phrase) } : p)}
+                              className="inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded-full bg-background3 border border-border-md text-[0.65rem] text-text-primary transition-all duration-150 hover:border-red-400/50 hover:text-red-400 group/chip"
+                            >
+                              &ldquo;{phrase}&rdquo;
+                              <svg className="w-[7px] h-[7px] opacity-30 group-hover/chip:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          ))}
+                          <div className="inline-flex items-center">
+                            <input
+                              type="text"
+                              value={newPhrase}
+                              onChange={(e) => setNewPhrase(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && newPhrase.trim()) {
+                                  setVoiceProfile((p) => p ? { ...p, signature_phrases: [...p.signature_phrases, newPhrase.trim()] } : p);
+                                  setNewPhrase('');
+                                }
+                              }}
+                              placeholder="Add phrase..."
+                              className="w-[90px] bg-transparent border-none outline-none text-[0.65rem] text-text-secondary placeholder:text-text-tertiary"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FORMALITY — pill selector */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Formality</p>
+                        <div className="flex flex-wrap gap-[6px]">
+                          {([
+                            { value: 'very_casual' as const, label: 'Very casual' },
+                            { value: 'casual' as const, label: 'Casual' },
+                            { value: 'neutral' as const, label: 'Neutral' },
+                            { value: 'formal' as const, label: 'Formal' },
+                          ]).map(({ value, label }) => (
+                            <button
+                              key={value}
+                              onClick={() => setVoiceProfile((p) => p ? { ...p, formality: value } : p)}
+                              className={`px-3 py-[5px] rounded-full text-[0.65rem] border transition-all duration-150 ${
+                                voiceProfile.formality === value
+                                  ? 'bg-text-primary text-background border-text-primary'
+                                  : 'bg-background3 text-text-secondary border-border hover:border-border-md'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* MESSAGE LENGTH — pill selector */}
+                      <div className="bg-background2 border border-border rounded-[12px] px-4 py-4">
+                        <p className="text-[0.57rem] uppercase tracking-[0.08em] text-text-tertiary mb-3">Message length</p>
+                        <div className="flex gap-[6px]">
+                          {(['short', 'medium', 'long'] as const).map((v) => (
+                            <button
+                              key={v}
+                              onClick={() => setVoiceProfile((p) => p ? { ...p, message_length: v } : p)}
+                              className={`px-3 py-[5px] rounded-full text-[0.65rem] border transition-all duration-150 capitalize ${
+                                voiceProfile.message_length === v
+                                  ? 'bg-text-primary text-background border-text-primary'
+                                  : 'bg-background3 text-text-secondary border-border hover:border-border-md'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Deactivate link (for active profiles) */}
+                      {voiceProfile.is_active && (
+                        <div className="text-center pt-1">
+                          <button
+                            onClick={handleVoiceDeactivate}
+                            className="text-[0.62rem] text-text-tertiary hover:text-red-400 underline underline-offset-2 transition-colors duration-150"
+                          >
+                            Deactivate {agentName}&apos;s Voice
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
             </div>
 
-            {/* Footer — save button (not shown for Voice) */}
-            {activeDrawer !== 'voice' && (
+            {/* Footer — save button (knowledge/situations/sizing) */}
+            {activeDrawer && activeDrawer !== 'voice' && (
               <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border shrink-0">
                 <div className="flex-1 min-w-0">
                   {saved && <span className="text-[0.68rem] text-green-400">✓ Saved</span>}
@@ -1253,6 +1711,37 @@ export default function KnowledgeBasePage() {
                 >
                   {loading ? 'Saving...' : 'Save changes'}
                 </button>
+              </div>
+            )}
+
+            {/* Footer — voice profile actions */}
+            {activeDrawer === 'voice' && voiceProfile && !voiceUploading && (
+              <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border shrink-0">
+                <div className="flex-1 min-w-0">
+                  {voiceSaved && <span className="text-[0.68rem] text-green-400">✓ Saved</span>}
+                  {voiceError && <span className="text-[0.68rem] text-red-400">{voiceError}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleVoiceSave}
+                    disabled={voiceSaving}
+                    className="px-4 py-[7px] rounded-[8px] text-[0.72rem] text-text-secondary border border-border hover:bg-background3 hover:border-border-md transition-all duration-150 disabled:opacity-50"
+                  >
+                    {voiceSaving ? 'Saving...' : 'Save changes'}
+                  </button>
+                  {!voiceProfile.is_active && (
+                    <button
+                      onClick={async () => {
+                        await handleVoiceSave();
+                        await handleVoiceActivate();
+                        handleCloseDrawer();
+                      }}
+                      className="bg-btn-bg text-btn-text px-4 py-[7px] rounded-[8px] text-[0.72rem] font-medium hover:opacity-85 transition-opacity duration-200"
+                    >
+                      Activate {agentName}&apos;s Voice
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

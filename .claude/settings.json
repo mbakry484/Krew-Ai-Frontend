@@ -4,7 +4,9 @@
       "Bash(npx next *)",
       "Bash(find d:/KrewAi/Krew-Ai-Backend -type f \\\\\\(-name *order* -o -name *controller* -o -name *route* \\\\\\))",
       "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f \\\\\\(-name *overview* -o -name *dashboard* -o -name *order* \\\\\\))",
-      "Bash(ls -la d:/KrewAi/Krew-Ai-Backend/*.js)"
+      "Bash(ls -la d:/KrewAi/Krew-Ai-Backend/*.js)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx next build)",
+      "Bash(ls -la /d/KrewAi/Krew-Ai-Backend/*.js)"
     ]
   }
 }
