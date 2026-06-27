@@ -26,7 +26,8 @@
       "PowerShell(npx tsc --noEmit)",
       "Bash(ls /Users/mohamedbakry/Krew/krew-ai-backend)",
       "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/**)",
-      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/routes/**)"
+      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/routes/**)",
+      "Bash(git config *)"
     ],
     "deny": [],
     "ask": []
