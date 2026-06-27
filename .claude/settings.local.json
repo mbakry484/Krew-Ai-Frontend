@@ -23,7 +23,10 @@
       "Bash(find d:/KrewAi/Krew-Ai-Frontend -type f -name *luna*)",
       "Bash(Get-ChildItem -Path \"f:\\\\Krew-Ai-Frontend\" -Recurse -Filter \"package.json\")",
       "Bash(Select-Object -First 5)",
-      "PowerShell(npx tsc --noEmit)"
+      "PowerShell(npx tsc --noEmit)",
+      "Bash(ls /Users/mohamedbakry/Krew/krew-ai-backend)",
+      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/**)",
+      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/routes/**)"
     ],
     "deny": [],
     "ask": []
