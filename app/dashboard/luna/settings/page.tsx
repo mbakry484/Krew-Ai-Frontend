@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLoggedIn, getToken } from '@/lib/auth';
-import { connectShopify, getIntegrationStatus, getUserInfo, updateBrandDescription, disconnectIntegration } from '@/lib/api';
+import { connectShopify, getIntegrationStatus, getUserInfo, updateBrandDescription, disconnectIntegration, getProducts } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
 
@@ -71,6 +71,7 @@ function SettingsContent() {
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyStoreDomain, setShopifyStoreDomain] = useState('');
   const [shopifyShopName, setShopifyShopName] = useState('');
+  const [shopifyProductCount, setShopifyProductCount] = useState<number | null>(null);
   const [metaConnected, setMetaConnected] = useState(false);
   const [instagramUsername, setInstagramUsername] = useState('');
   const [bostaConnected, setBostaConnected] = useState(false);
@@ -132,15 +133,28 @@ function SettingsContent() {
   const checkIntegrationStatus = async () => {
     try {
       const status = await getIntegrationStatus();
-      setShopifyConnected(!!status.shopify?.linked);
+      const linked = !!status.shopify?.linked;
+      setShopifyConnected(linked);
       setShopifyStoreDomain(status.shopify?.shop_domain || '');
       setShopifyShopName(status.shopify?.shop_name || '');
       setMetaConnected(!!status.meta?.linked);
       setInstagramUsername(status.meta?.instagram_username || '');
+      if (linked) {
+        try {
+          const products = await getProducts();
+          const list = Array.isArray(products) ? products : (products?.products ?? []);
+          setShopifyProductCount(list.length);
+        } catch {
+          setShopifyProductCount(null);
+        }
+      } else {
+        setShopifyProductCount(null);
+      }
     } catch {
       setShopifyConnected(false);
       setShopifyStoreDomain('');
       setShopifyShopName('');
+      setShopifyProductCount(null);
     }
   };
 
@@ -233,6 +247,7 @@ function SettingsContent() {
         setShopifyConnected(false);
         setShopifyStoreDomain('');
         setShopifyShopName('');
+        setShopifyProductCount(null);
       }
       if (platform === 'instagram' || platform === 'all') {
         setMetaConnected(false);
@@ -251,7 +266,9 @@ function SettingsContent() {
     {
       id: 'shopify' as const,
       name: 'Shopify',
-      desc: shopifyConnected ? (shopifyShopName || shopifyStoreDomain || 'Connected') : 'Sync your product catalog, inventory, and orders.',
+      desc: shopifyConnected
+        ? [shopifyShopName || shopifyStoreDomain, shopifyProductCount !== null ? `${shopifyProductCount} products synced` : null].filter(Boolean).join(' · ')
+        : 'Sync your product catalog, inventory, and orders.',
       connected: shopifyConnected,
       onDisconnect: () => handleDisconnect('shopify'),
       logo: (
