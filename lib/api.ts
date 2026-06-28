@@ -1,4 +1,5 @@
 import { getAuthHeader, getRefreshToken, setToken, setRefreshToken, logout } from './auth';
+import { supabase } from './supabase';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
 
@@ -42,11 +43,19 @@ const apiRequest = async (
 ): Promise<any> => {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const buildHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...getAuthHeader(),
-    };
+  // Prefer the Supabase session access_token when one is active (new accounts).
+  // Fall back to the legacy krew_token in localStorage (existing accounts).
+  const buildHeaders = async (): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    } else {
+      const legacy = getAuthHeader();
+      if (legacy.Authorization) headers['Authorization'] = legacy.Authorization;
+    }
+
     if (options.headers) {
       Object.assign(headers, options.headers as Record<string, string>);
     }
@@ -54,7 +63,7 @@ const apiRequest = async (
   };
 
   try {
-    const response = await fetch(url, { ...options, headers: buildHeaders() });
+    const response = await fetch(url, { ...options, headers: await buildHeaders() });
 
     // Silently refresh on expired access token and retry once
     if (response.status === 401) {
@@ -62,7 +71,7 @@ const apiRequest = async (
       if (error.error === 'Token expired') {
         const newToken = await refreshAccessToken();
         if (newToken) {
-          const retryResponse = await fetch(url, { ...options, headers: buildHeaders() });
+          const retryResponse = await fetch(url, { ...options, headers: await buildHeaders() });
           if (retryResponse.ok) return retryResponse.json();
           // Retry also failed — fall through to error handling below
           const retryError = await retryResponse.json().catch(() => ({}));

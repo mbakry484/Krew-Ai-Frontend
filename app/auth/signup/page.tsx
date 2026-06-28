@@ -6,14 +6,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   signup,
-  checkEmail,
   saveOnboarding,
   connectShopify,
   getShopifyStatus,
   getUserInfo,
 } from '@/lib/api';
 import { getToken, isLoggedIn } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import './onboarding.css';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
 
 // =============================================================================
 // BACKEND API USAGE — unchanged
@@ -295,6 +297,10 @@ type OBState = {
   voice: '' | 'warm' | 'pro' | 'casual';
   aliveProgress: number;
   accountCreated: boolean;
+  otpSent: boolean;
+  otpCode: string;
+  otpEmail: string;
+  signupMethod: 'legacy' | 'supabase' | null;
 };
 
 const INITIAL_STATE: OBState = {
@@ -314,6 +320,10 @@ const INITIAL_STATE: OBState = {
   voice: '',
   aliveProgress: 0,
   accountCreated: false,
+  otpSent: false,
+  otpCode: '',
+  otpEmail: '',
+  signupMethod: null,
 };
 
 const STATE_KEY = 'krew_ob_state';
@@ -352,12 +362,10 @@ const StepSignup: StepDef = {
   phase: 'account',
   progressVisible: false,
   luna: () => ({ state: 'idle', line: 'Before we meet — one account.' }),
-  valid: ({ email, password, confirmPassword, ssoProvider }) =>
-    !!ssoProvider || (
-      /\S+@\S+\.\S+/.test(email || '') &&
-      (password || '').length >= 8 &&
-      password === confirmPassword
-    ),
+  valid: ({ email, password, confirmPassword }) =>
+    /\S+@\S+\.\S+/.test(email || '') &&
+    (password || '').length >= 8 &&
+    password === confirmPassword,
   hasFooter: true,
   render: (ctx) => <StepSignupForm {...ctx} />,
 };
@@ -378,8 +386,13 @@ function StepSignupForm({ state, set, signupError }: StepCtx) {
       <div className="sso-row">
         <button
           type="button"
-          className={`sso-btn ${state.ssoProvider === 'google' ? 'selected' : ''}`}
-          onClick={() => set({ ssoProvider: state.ssoProvider === 'google' ? null : 'google' })}
+          className="sso-btn"
+          onClick={async () => {
+            await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: `${window.location.origin}/auth/callback` },
+            });
+          }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="sso-icon">
             <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.3-.9 2.3-2 3v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.3z" fill="currentColor" opacity="0.9" />
@@ -388,7 +401,6 @@ function StepSignupForm({ state, set, signupError }: StepCtx) {
             <path d="M12 5.8c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 2.9 14.7 2 12 2 8 2 4.6 4.3 2.9 7.7L6.2 10.3c.8-2.5 3.1-4.5 5.8-4.5z" fill="currentColor" opacity="0.85" />
           </svg>
           <span>Continue with Google</span>
-          {state.ssoProvider === 'google' && <IconCheck size={12} sw={2.2} />}
         </button>
       </div>
       <div className="or-divider">or</div>
@@ -444,7 +456,91 @@ function StepSignupForm({ state, set, signupError }: StepCtx) {
   );
 }
 
-// Step 1 — Name + Phone
+// Step 1 — Email OTP verification (only reached via email/password signup)
+const StepOTPVerify: StepDef = {
+  id: 'otp',
+  label: 'Verify email',
+  phase: 'account',
+  progressVisible: false,
+  luna: () => ({ state: 'idle', line: 'Check your inbox — a code is waiting.' }),
+  valid: ({ otpCode }) => (otpCode || '').replace(/\D/g, '').length === 6,
+  hasFooter: true,
+  render: (ctx) => <StepOTPForm {...ctx} />,
+};
+
+function StepOTPForm({ state, set, signupError, signupLoading }: StepCtx) {
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState('');
+
+  const handleResend = async () => {
+    setResending(true);
+    setResent(false);
+    setResendError('');
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: state.otpEmail || state.email,
+    });
+    setResending(false);
+    if (error) {
+      setResendError('Could not resend — please try again in a moment.');
+    } else {
+      setResent(true);
+    }
+  };
+
+  return (
+    <div className="form-screen">
+      <div className="form-head">
+        <div className="ds-eyebrow">Account · verify email</div>
+        <h2 className="form-title ds-h1-mixed">
+          <span className="emph">Check</span>{' '}
+          <span className="rest">your inbox.</span>
+        </h2>
+        <p className="ds-body form-sub">
+          We sent a 6-digit code to <strong>{state.otpEmail || state.email}</strong>.
+          Enter it below to verify your email.
+        </p>
+      </div>
+      <div className="form-fields">
+        <label className="field">
+          <span className="field-lbl">6-digit code</span>
+          <input
+            className="field-input"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            placeholder="123456"
+            autoFocus
+            value={state.otpCode || ''}
+            onChange={(e) => set({ otpCode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+          />
+        </label>
+      </div>
+      {signupError && <div className="signup-error">{signupError}</div>}
+      <div className="signup-foot">
+        <span className="ds-caption">
+          Didn&apos;t get it?{' '}
+          <button
+            type="button"
+            disabled={resending || signupLoading}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'inherit', textDecoration: 'underline', padding: 0, fontSize: 'inherit',
+            }}
+            onClick={handleResend}
+          >
+            {resending ? 'Sending…' : resent ? 'Code resent ✓' : 'Resend code'}
+          </button>
+          {resendError && <span style={{ color: '#f87171', marginLeft: 8 }}>{resendError}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Step 2 — Name + Phone
 const StepNamePhone: StepDef = {
   id: 'name',
   label: 'About you',
@@ -911,6 +1007,7 @@ function AliveScreen({ state, set }: { state: OBState; set: (patch: Partial<OBSt
 
 const ALL_STEPS: StepDef[] = [
   StepSignup,
+  StepOTPVerify,  // only entered via email/password; Google OAuth bypasses this via /auth/callback
   StepNamePhone,
   StepHook,
   StepBrand,
@@ -946,43 +1043,61 @@ function SignupFlow() {
 
   const [finalLoading, setFinalLoading] = useState(false);
 
-  // Restore persisted state on mount; auto-skip account steps if already signed in
+  // Restore persisted state on mount; auto-skip account steps if already signed in.
+  // Also handles the ?step= redirect from /auth/callback (Google OAuth new-user flow).
   useEffect(() => {
-    let restoredState = INITIAL_STATE;
-    let restoredIdx = 0;
-    try {
-      const rawState = localStorage.getItem(STATE_KEY);
-      const rawIdx = localStorage.getItem(IDX_KEY);
-      if (rawState) restoredState = { ...INITIAL_STATE, ...JSON.parse(rawState) };
-      if (rawIdx) {
-        const n = parseInt(rawIdx, 10);
-        if (Number.isFinite(n) && n >= 0 && n < ALL_STEPS.length) restoredIdx = n;
-      }
-    } catch { /* ignore */ }
-
-    // If a token is already present, the Krew account exists — skip account steps.
-    if (isLoggedIn()) {
-      restoredState = { ...restoredState, accountCreated: true };
-      // Hydrate brand/email from user_info if missing
+    (async () => {
+      let restoredState = INITIAL_STATE;
+      let restoredIdx = 0;
       try {
-        const ui = localStorage.getItem('user_info');
-        if (ui) {
-          const parsed = JSON.parse(ui);
-          if (!restoredState.brand && parsed.business_name) restoredState.brand = parsed.business_name;
-          if (!restoredState.email && parsed.email) restoredState.email = parsed.email;
-          if (!restoredState.fullName && (parsed.first_name || parsed.last_name)) {
-            restoredState.fullName = `${parsed.first_name || ''} ${parsed.last_name || ''}`.trim();
-          }
+        const rawState = localStorage.getItem(STATE_KEY);
+        const rawIdx = localStorage.getItem(IDX_KEY);
+        if (rawState) restoredState = { ...INITIAL_STATE, ...JSON.parse(rawState) };
+        if (rawIdx) {
+          const n = parseInt(rawIdx, 10);
+          if (Number.isFinite(n) && n >= 0 && n < ALL_STEPS.length) restoredIdx = n;
         }
       } catch { /* ignore */ }
-      // Jump past Signup, NamePhone, Hook to Brand at minimum
-      const brandIdx = ALL_STEPS.findIndex(s => s.id === 'brand');
-      if (restoredIdx < brandIdx) restoredIdx = brandIdx;
-    }
 
-    setState(restoredState);
-    setIdx(restoredIdx);
-  }, []);
+      // Check for an active Supabase session (new accounts) or legacy JWT (existing accounts).
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (isLoggedIn() || session) {
+        restoredState = { ...restoredState, accountCreated: true };
+        if (session) {
+          restoredState.signupMethod = 'supabase';
+          if (!restoredState.email && session.user?.email) {
+            restoredState.email = session.user.email;
+          }
+        }
+        // Hydrate name/brand from user_info cache if available
+        try {
+          const ui = localStorage.getItem('user_info');
+          if (ui) {
+            const parsed = JSON.parse(ui);
+            if (!restoredState.brand && parsed.business_name) restoredState.brand = parsed.business_name;
+            if (!restoredState.email && parsed.email) restoredState.email = parsed.email;
+            if (!restoredState.fullName && (parsed.first_name || parsed.last_name)) {
+              restoredState.fullName = `${parsed.first_name || ''} ${parsed.last_name || ''}`.trim();
+            }
+          }
+        } catch { /* ignore */ }
+        // Jump past all account steps (Signup, OTP, NamePhone, Hook) to Brand at minimum
+        const brandIdx = ALL_STEPS.findIndex(s => s.id === 'brand');
+        if (restoredIdx < brandIdx) restoredIdx = brandIdx;
+      }
+
+      // Honor ?step= param written by /auth/callback (overrides restored index)
+      const stepParam = searchParams.get('step');
+      if (stepParam) {
+        const paramIdx = ALL_STEPS.findIndex(s => s.id === stepParam);
+        if (paramIdx >= 0) restoredIdx = paramIdx;
+      }
+
+      setState(restoredState);
+      setIdx(restoredIdx);
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist on change
   useEffect(() => {
@@ -1023,7 +1138,49 @@ function SignupFlow() {
     };
   };
 
-  // Signup API — called after Brand step
+  // ── Supabase path: provision user + brand rows in our DB after OTP/OAuth ──────
+  const ensureSupabaseUser = async (): Promise<boolean> => {
+    if (state.accountCreated) return true;
+    setSignupError('');
+    setSignupLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setSignupError('Session expired — please start over.');
+        return false;
+      }
+      const { first_name, last_name } = splitName(state.fullName);
+      const res = await fetch(`${API_BASE_URL}/auth/supabase/ensure-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ first_name, last_name, business_name: state.brand }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSignupError(data.error || 'Failed to create account. Please try again.');
+        return false;
+      }
+      // Persist for backward-compat with existing dashboard checks
+      localStorage.setItem('user_info', JSON.stringify({
+        first_name,
+        last_name,
+        business_name: state.brand,
+        email: session.user.email,
+      }));
+      set({ accountCreated: true });
+      return true;
+    } catch {
+      setSignupError('Failed to create account. Please try again.');
+      return false;
+    } finally {
+      setSignupLoading(false);
+    }
+  };
+
+  // ── Legacy path: kept for rollback / existing accounts without Supabase Auth ──
   const submitSignup = async (): Promise<boolean> => {
     if (state.accountCreated || signupInFlight.current) return true;
     signupInFlight.current = true;
@@ -1154,7 +1311,12 @@ function SignupFlow() {
     setConnectError('');
     setConnecting(true);
     try {
-      const token = getToken();
+      // Resolve bearer token from legacy localStorage or Supabase session
+      let token = getToken();
+      if (!token) {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token ?? null;
+      }
       if (!token) throw new Error('You need to finish signing up first.');
       const userInfo = await getUserInfo();
       const brandId = userInfo?.user?.brand_id || userInfo?.brand_id;
@@ -1211,25 +1373,68 @@ function SignupFlow() {
     const current = ALL_STEPS[idx];
     if (!current.valid(state)) return;
 
-    // At the signup step — check email availability before proceeding
-    if (current.id === 'signup' && !state.ssoProvider) {
+    // ── Signup step: initiate Supabase email+password signup, send OTP ──────────
+    if (current.id === 'signup') {
       setSignupLoading(true);
       try {
-        const { exists } = await checkEmail(state.email);
-        if (exists) {
-          setSignupError('An account with this email already exists. Please log in.');
+        const { error } = await supabase.auth.signUp({
+          email: state.email,
+          password: state.password,
+        });
+        if (error) {
+          setSignupError(
+            error.message.toLowerCase().includes('already registered')
+              ? 'An account with this email already exists. Please log in.'
+              : error.message
+          );
           return;
         }
+        set({ otpSent: true, otpEmail: state.email, signupMethod: 'supabase' });
+        setIdx(i => i + 1); // advance to OTP step
+        return;
       } catch {
-        // If the check fails, allow continuing — signup itself will catch duplicates
+        setSignupError('Unable to start signup. Please try again.');
+        return;
       } finally {
         setSignupLoading(false);
       }
     }
 
-    // After Brand step — create the Krew account
+    // ── OTP step: verify the 6-digit code ────────────────────────────────────────
+    if (current.id === 'otp') {
+      setSignupLoading(true);
+      setSignupError('');
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          email: state.otpEmail || state.email,
+          token: state.otpCode,
+          type: 'email',
+        });
+        if (error) {
+          const msg = error.message.toLowerCase();
+          setSignupError(
+            msg.includes('expired')
+              ? 'Code expired — use the resend button to get a new one.'
+              : msg.includes('invalid') || msg.includes('otp')
+              ? 'Incorrect code. Double-check and try again.'
+              : error.message
+          );
+          return;
+        }
+        // OTP accepted; Supabase session is now active — fall through to advance step
+      } catch {
+        setSignupError('Verification failed. Please try again.');
+        return;
+      } finally {
+        setSignupLoading(false);
+      }
+    }
+
+    // ── Brand step: create user + brand rows in our DB ────────────────────────────
     if (current.id === 'brand' && !state.accountCreated) {
-      const ok = await submitSignup();
+      const ok = state.signupMethod === 'supabase'
+        ? await ensureSupabaseUser()
+        : await submitSignup(); // legacy path (kept for rollback)
       if (!ok) return;
     }
 
