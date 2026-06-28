@@ -1061,15 +1061,31 @@ function SignupFlow() {
 
       // Check for an active Supabase session (new accounts) or legacy JWT (existing accounts).
       const { data: { session } } = await supabase.auth.getSession();
+      // Read ?step= early so we can use it inside the auth block below
+      const stepParam = searchParams.get('step');
 
       if (isLoggedIn() || session) {
-        restoredState = { ...restoredState, accountCreated: true };
         if (session) {
           restoredState.signupMethod = 'supabase';
           if (!restoredState.email && session.user?.email) {
             restoredState.email = session.user.email;
           }
+          // Pre-fill name from Google/OAuth metadata so ensureSupabaseUser has it at brand step
+          if (!restoredState.fullName) {
+            const meta = session.user?.user_metadata || {};
+            const oauthName = (meta.full_name || meta.name || '') as string;
+            if (oauthName) restoredState.fullName = oauthName;
+          }
         }
+
+        // A fresh OAuth user arrives via /auth/callback with ?step=brand.
+        // Don't mark accountCreated yet — ensureSupabaseUser must run at the brand
+        // step so the brand name from the form is sent to the backend.
+        const isNewOAuthUser = stepParam === 'brand' && !restoredState.accountCreated;
+        if (!isNewOAuthUser) {
+          restoredState = { ...restoredState, accountCreated: true };
+        }
+
         // Hydrate name/brand from user_info cache if available
         try {
           const ui = localStorage.getItem('user_info');
@@ -1088,7 +1104,6 @@ function SignupFlow() {
       }
 
       // Honor ?step= param written by /auth/callback (overrides restored index)
-      const stepParam = searchParams.get('step');
       if (stepParam) {
         const paramIdx = ALL_STEPS.findIndex(s => s.id === stepParam);
         if (paramIdx >= 0) restoredIdx = paramIdx;
