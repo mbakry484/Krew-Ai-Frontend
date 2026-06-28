@@ -1079,10 +1079,13 @@ function SignupFlow() {
         }
 
         // A fresh OAuth user arrives via /auth/callback with ?step=brand.
-        // Don't mark accountCreated yet — ensureSupabaseUser must run at the brand
-        // step so the brand name from the form is sent to the backend.
-        const isNewOAuthUser = stepParam === 'brand' && !restoredState.accountCreated;
-        if (!isNewOAuthUser) {
+        // Force accountCreated=false regardless of stale localStorage — ensureSupabaseUser
+        // MUST run at the brand step to write the brand name and user_info to the backend.
+        // ensure-user is idempotent so calling it twice is safe.
+        const isNewOAuthUser = stepParam === 'brand' && !!session;
+        if (isNewOAuthUser) {
+          restoredState = { ...restoredState, accountCreated: false };
+        } else {
           restoredState = { ...restoredState, accountCreated: true };
         }
 
