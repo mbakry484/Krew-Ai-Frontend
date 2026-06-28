@@ -301,7 +301,7 @@ export default function PricingPage() {
 
             <div className="flex gap-[0.6rem] mt-6">
               <Link
-                href="/auth/signup"
+                href="/early-access"
                 className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200"
               >
                 {displayedTier.key === 'obsidian' ? 'Talk to us' : 'Start free trial'}
@@ -399,7 +399,7 @@ export default function PricingPage() {
           Usage-based. No feature locks. Move between tiers whenever your volume changes.
         </p>
         <div className="flex justify-center gap-[0.7rem] flex-wrap">
-          <Link href="/auth/signup" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
+          <Link href="/early-access" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
             Start free trial
           </Link>
           <Link href="/faq" className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">

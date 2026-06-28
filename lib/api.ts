@@ -174,6 +174,9 @@ export const saveOnboarding = async (data: {
   dmVolume?: string;
   painPoint?: string;
   brandDescription?: string;
+  // Chosen during the "Name your agent" onboarding step. Backend should store
+  // this as the per-brand `agent_name`. See AGENT_NAME_INTEGRATION.md.
+  agentName?: string;
 }) => {
   const payload: Record<string, string> = {};
   if (data.businessType) payload.business_type = data.businessType;
@@ -181,6 +184,7 @@ export const saveOnboarding = async (data: {
   if (data.dmVolume) payload.dm_volume = data.dmVolume;
   if (data.painPoint) payload.pain_point = data.painPoint;
   if (data.brandDescription) payload.brand_description = data.brandDescription;
+  if (data.agentName) payload.agent_name = data.agentName;
 
   return apiRequest('/auth/onboarding', {
     method: 'POST',

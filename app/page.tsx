@@ -198,7 +198,7 @@ export default function LandingPage() {
                 style={{ opacity: heroReady ? undefined : 0, animationDelay: '220ms' }}
               >
                 <Link
-                  href="/auth/signup"
+                  href="/early-access"
                   className="bg-btn-bg text-btn-text border-none rounded-[8px] px-6 py-[10px] text-[0.82rem] font-medium hover:opacity-85 transition-opacity duration-200"
                 >
                   Start with Luna
@@ -822,7 +822,7 @@ export default function LandingPage() {
             We're onboarding select brands into Luna now. Be among the first to turn your inbox into an operation.
           </p>
           <div className="flex justify-center gap-[0.7rem]">
-            <Link href="/auth/signup" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
+            <Link href="/early-access" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
               Request access
             </Link>
             <button className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
@@ -873,7 +873,7 @@ export default function LandingPage() {
               <div className="text-[0.62rem] uppercase tracking-[0.12em] text-text-tertiary mb-1">Support</div>
               <a href="mailto:support@mykrew.co" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">support@mykrew.co</a>
               <a href="mailto:privacy@mykrew.co" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">privacy@mykrew.co</a>
-              <Link href="/auth/signup" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">Get early access</Link>
+              <Link href="/early-access" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">Get early access</Link>
             </div>
 
           </div>
