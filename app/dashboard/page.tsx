@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import { getUserInfo } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -65,27 +66,39 @@ export default function MyKrewDashboard() {
   const [userInfo, setUserInfo] = useState({ first_name: '', last_name: '', email: '' });
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      router.push('/auth/login');
-      return;
-    }
-    const storedUser = localStorage.getItem('user_info');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setUserInfo(parsed);
-      // If first_name is missing, fetch from API
-      if (!parsed.first_name) {
+    (async () => {
+      // Check legacy token first, then fall back to Supabase session.
+      // The Supabase onAuthStateChange listener (lib/supabase.ts) mirrors the
+      // session token into krew_token, but it fires asynchronously on first load —
+      // so for fresh OAuth redirects we also check the session directly.
+      if (!isLoggedIn()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/auth/login');
+          return;
+        }
+        // Session exists but krew_token not yet set — write it now
+        localStorage.setItem('krew_token', session.access_token);
+      }
+
+      const storedUser = localStorage.getItem('user_info');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        setUserInfo(parsed);
+        // If first_name is missing, fetch from API
+        if (!parsed.first_name) {
+          getUserInfo().then(res => {
+            const user = res?.user ?? res;
+            if (user?.first_name) setUserInfo(user);
+          }).catch(() => {});
+        }
+      } else {
         getUserInfo().then(res => {
           const user = res?.user ?? res;
           if (user?.first_name) setUserInfo(user);
         }).catch(() => {});
       }
-    } else {
-      getUserInfo().then(res => {
-        const user = res?.user ?? res;
-        if (user?.first_name) setUserInfo(user);
-      }).catch(() => {});
-    }
+    })();
   }, [router]);
 
   const getGreeting = () => {
