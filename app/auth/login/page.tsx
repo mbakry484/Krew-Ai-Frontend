@@ -39,12 +39,12 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   // ── Google OAuth ──────────────────────────────────────────────────────────────
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  };
+  // const handleGoogleLogin = async () => {
+  //   await supabase.auth.signInWithOAuth({
+  //     provider: 'google',
+  //     options: { redirectTo: `${window.location.origin}/auth/callback` },
+  //   });
+  // };
 
   // ── Email + password login ────────────────────────────────────────────────────
   // Strategy: try Supabase signInWithPassword first (new accounts).
@@ -143,8 +143,8 @@ function LoginForm() {
                     </p>
                   </div>
 
-                  {/* Google SSO */}
-                  <div className="sso-row">
+                  {/* Google SSO — uncomment when Google login is re-enabled */}
+                  {/* <div className="sso-row">
                     <button
                       type="button"
                       className="sso-btn"
@@ -160,7 +160,7 @@ function LoginForm() {
                       <span>Continue with Google</span>
                     </button>
                   </div>
-                  <div className="or-divider">or</div>
+                  <div className="or-divider">or</div> */}
 
                   <form
                     id="login-form"
