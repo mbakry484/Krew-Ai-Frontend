@@ -56,9 +56,23 @@ function CallbackHandler() {
 
     supabase.auth.exchangeCodeForSession(code).then(async ({ data: { session }, error }) => {
       if (error || !session) {
+        // "PKCE code verifier not found" is thrown client-side before the code
+        // is sent to Supabase — the code is still valid. Auto-reload once so the
+        // browser client has a chance to fully initialise its storage.
+        if (error?.message?.toLowerCase().includes('code verifier') ||
+            error?.message?.toLowerCase().includes('pkce')) {
+          const retried = sessionStorage.getItem('cb_pkce_retry');
+          if (!retried) {
+            sessionStorage.setItem('cb_pkce_retry', '1');
+            window.location.reload();
+            return;
+          }
+          sessionStorage.removeItem('cb_pkce_retry');
+        }
         setErrorMsg(error?.message ?? 'Authentication failed. Please try again.');
         return;
       }
+      sessionStorage.removeItem('cb_pkce_retry');
       await handleSession(session.access_token);
     });
 
