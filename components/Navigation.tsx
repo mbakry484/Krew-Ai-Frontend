@@ -306,7 +306,7 @@ export default function Navigation() {
                 Log in
               </Link>
               <Link
-                href="/auth/signup"
+                href="/early-access"
                 className="text-[0.75rem] px-[14px] py-[6px] rounded-[7px] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
               >
                 Get early access
@@ -512,7 +512,7 @@ export default function Navigation() {
                 Log in
               </Link>
               <Link
-                href="/auth/signup"
+                href="/early-access"
                 onClick={() => setMobileOpen(false)}
                 className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
               >

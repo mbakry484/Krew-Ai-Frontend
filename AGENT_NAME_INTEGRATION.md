@@ -85,6 +85,84 @@ Suggested API surface (to be designed by backend — **not implemented here**):
 
 ---
 
+## 3b. Onboarding — naming the agent (NEW)
+
+The signup/onboarding flow now includes a dedicated **"Name your agent"** step
+where the user types the name their customers will see. This is the *capture*
+seam that produces the value section 3 describes — previously the name had no UI
+to set it at all.
+
+### Where it lives (frontend)
+
+- **File:** [`app/auth/signup/page.tsx`](app/auth/signup/page.tsx)
+- **Step def:** `StepName` (`id: 'agent'`), inserted in `ALL_STEPS` immediately
+  **after** the brand/store-name step (`StepBrand`) and before the Instagram
+  step. It is a `progressVisible` step, so it counts in the top-right progress
+  counter (the flow is now 4 visible steps: Brand → Name → Instagram → Voice).
+- **State:** `OBState.agentName` (added to `INITIAL_STATE`, persisted in the
+  existing `localStorage[krew_ob_state]` scratch, and re-hydrated from
+  `user_info.agent_name` for returning/logged-in users).
+- **Validation (frontend):** non-empty, **≥ 2 chars** after trim; input is
+  capped at `AGENT_NAME_MAX = 24` to match the documented backend length cap, and
+  collapses runs of whitespace. `AGENT_NAME_FALLBACK = 'Luna'` is used only for
+  the *preview* before the user types — it is **not** auto-saved.
+
+### Live Instagram introduction preview (UX)
+
+Below the input is a floating Instagram-DM mockup (`AgentNamePreview`) that
+updates **as the user types**. It is framed as a **contextual introduction**, not
+an auto-greeting — a customer asks who they're talking to, and she answers
+naturally:
+
+> _customer:_ wait, who am I talking to? 😄
+> **{agentName}:** hey! i'm **{agentName}**, part of the **{storeName}** team 😊
+> what can i help you with?
+
+⚠️ **Important framing (per product):** the agent does **not** prepend
+"I'm {name} from {brand}" to every message — that would be misleading. The name
+is part of her **identity/personality**; she only introduces herself when it's
+natural (e.g. the customer asks). When the system prompt is wired (section 4),
+inject the name as identity, **not** as a forced per-message preamble. The
+preview copy and the step subtext both reflect this.
+
+- `{agentName}` comes from this step; `{storeName}` is pulled from the brand step
+  (`state.brand`), falling back to "your store".
+- The name/brand tokens re-animate on every change (React `key` → `agentTokenPop`
+  keyframe); the card levitates gently (`agentLevitate`) and respects
+  `prefers-reduced-motion`.
+- Styles are scoped in [`app/auth/signup/onboarding.css`](app/auth/signup/onboarding.css)
+  under the "Name your agent" section and reuse the existing `.dm-*`/`.bubble`
+  Instagram-preview primitives, so it matches the Krew onboarding aesthetic.
+
+### How the value is saved today (and what the backend must do)
+
+On the final onboarding step, `submitOnboarding()`:
+
+1. **Writes `agent_name` into `localStorage.user_info`** so the display layer
+   (`AgentNameProvider` / sidebar / page copy) can read it client-side
+   immediately. ⚠️ This is a client-only stopgap, **not** durable storage.
+2. **Sends it to the backend** via `saveOnboarding({ agentName })` →
+   [`lib/api.ts`](lib/api.ts) maps it to `agent_name` in the
+   `POST /auth/onboarding` payload.
+
+**Backend TODO:**
+
+- `POST /auth/onboarding` must **accept and persist** `agent_name` as the
+  per-brand agent name (the same field described in sections 3–4 — store it once,
+  one value per store). Apply the same validation: trim, non-empty → else fall
+  back to `"Luna"`, recommended length **1–24**, reject control characters.
+- `GET /auth/me` (and/or store settings) should **return** `agent_name` so
+  `AgentNameProvider` can be wired off the real value instead of the localStorage
+  stopgap (see section 2 for the provider seam).
+- The **system-prompt injection** of this name is still the separate, careful
+  task described in section 4 — capturing the name here does **not** wire it into
+  the prompt.
+
+> No backend, DB, route, or system-prompt code was implemented for this step —
+> the frontend captures + sends the value and documents the contract here.
+
+---
+
 ## 4. System-prompt injection — SEPARATE, CAREFUL TASK
 
 The name must **also** be injected into the agent's system prompt so the model

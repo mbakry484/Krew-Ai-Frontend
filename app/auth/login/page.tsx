@@ -137,8 +137,8 @@ function LoginForm() {
                     </h2>
                     <p className="ds-body form-sub">
                       Don&apos;t have an account?{' '}
-                      <Link href="/auth/signup" style={{ color: 'var(--text-primary)', fontWeight: 500, textDecoration: 'none' }}>
-                        Sign up free
+                      <Link href="/early-access" style={{ color: 'var(--text-primary)', fontWeight: 500, textDecoration: 'none' }}>
+                        Join the waitlist
                       </Link>
                     </p>
                   </div>

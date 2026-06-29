@@ -111,6 +111,20 @@ body {
   animation: slideUp 0.3s ease-out;
 }
 
+/* Reports page — modal / panel motion (gated behind motion-safe in JSX) */
+@keyframes reportModalIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985) }
+  to   { opacity: 1; transform: translateY(0)    scale(1) }
+}
+@keyframes reportSlideIn {
+  from { opacity: 0; transform: translateX(24px) }
+  to   { opacity: 1; transform: translateX(0) }
+}
+@keyframes reportFade {
+  from { opacity: 0; transform: translateY(4px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
 /* Select dropdown styling */
 select {
   background-color: var(--input-bg);

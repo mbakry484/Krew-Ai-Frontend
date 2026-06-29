@@ -289,6 +289,7 @@ type OBState = {
   phone: string;
   phoneCode: string;
   brand: string;
+  agentName: string;
   url: string;
   connected: boolean;
   scanning: boolean;
@@ -312,6 +313,7 @@ const INITIAL_STATE: OBState = {
   phone: '',
   phoneCode: '+971',
   brand: '',
+  agentName: '',
   url: '',
   connected: false,
   scanning: false,
@@ -674,6 +676,101 @@ const StepBrand: StepDef = {
   ),
 };
 
+// Step 3b — Name your agent (with live Instagram greeting preview)
+// -----------------------------------------------------------------------------
+// Default name used in the preview before the user has typed anything, so the
+// floating greeting never reads as broken. The REAL chosen name lives in
+// state.agentName; see ONBOARDING_AGENT_NAME below + AGENT_NAME_INTEGRATION.md.
+const AGENT_NAME_FALLBACK = 'Luna';
+const AGENT_NAME_MAX = 24; // matches the documented backend length cap
+
+function AgentNamePreview({ name, brand }: { name: string; brand: string }) {
+  const trimmed = (name || '').trim();
+  const displayName = trimmed || AGENT_NAME_FALLBACK;
+  const brandName = (brand || '').trim() || 'your store';
+  const initial = ((brand || '').trim()[0] || 'N').toUpperCase();
+
+  return (
+    <div className="agent-preview" aria-live="polite">
+      <span className="agent-preview-tag">When a customer asks who they&apos;re talking to</span>
+      <div className="agent-dm-float">
+        <div className="agent-dm-glow" aria-hidden="true" />
+        <div className="dm-head">
+          <div className="dm-av ig-ring">
+            <div className="dm-av-inner">{initial}</div>
+          </div>
+          <div className="dm-head-text">
+            <div className="dm-name">{brand?.trim() || 'Your store'}</div>
+            <div className="dm-sub">Instagram · active now</div>
+          </div>
+          <span className="agent-online-dot" aria-hidden="true" />
+        </div>
+        <div className="dm-body">
+          <div className="bubble b-in">wait, who am I talking to? 😄</div>
+          <div className="bubble b-out agent-greet">
+            hey! i&apos;m{' '}
+            <span
+              className={`agent-name-token${trimmed ? '' : ' is-ghost'}`}
+              key={displayName}
+            >
+              {displayName}
+            </span>
+            , part of the{' '}
+            <span className="agent-brand-token" key={brandName}>
+              {brandName}
+            </span>{' '}
+            team 😊 what can i help you with?
+          </div>
+          <div className="dm-meta">{displayName} · replies in ~0s</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const StepName: StepDef = {
+  id: 'agent',
+  label: 'Name',
+  phase: 'luna',
+  progressVisible: true,
+  luna: ({ agentName }) => {
+    const n = (agentName || '').trim();
+    return n
+      ? { state: 'alive', line: `${n}. That's me from now on.` }
+      : { state: 'idle', line: 'One more thing — what will you call me?' };
+  },
+  valid: ({ agentName }) => (agentName || '').trim().length >= 2,
+  hasFooter: true,
+  render: ({ state, set }) => (
+    <div className="form-screen agent-screen">
+      <div className="form-head">
+        <div className="ds-eyebrow">Step 02 — Name your agent</div>
+        <h2 className="form-title ds-h1-mixed">
+          <span className="emph">Give me</span> <span className="rest">a name.</span>
+        </h2>
+        <p className="ds-body form-sub">
+          It becomes part of who she is. She won&apos;t announce it every message —
+          just introduces herself naturally when a customer asks. Make it yours.
+        </p>
+      </div>
+      <div className="form-fields agent-fields">
+        <label className="field">
+          <span className="field-lbl">Agent name</span>
+          <input
+            className="field-input"
+            placeholder={AGENT_NAME_FALLBACK}
+            value={state.agentName}
+            maxLength={AGENT_NAME_MAX}
+            autoFocus
+            onChange={(e) => set({ agentName: e.target.value.replace(/\s{2,}/g, ' ') })}
+          />
+        </label>
+      </div>
+      <AgentNamePreview name={state.agentName} brand={state.brand} />
+    </div>
+  ),
+};
+
 // Step 4 — Connect Shopify (real OAuth)
 const StepConnect: StepDef = {
   id: 'connect',
@@ -1011,6 +1108,7 @@ const ALL_STEPS: StepDef[] = [
   StepNamePhone,
   StepHook,
   StepBrand,
+  StepName,
   StepChannels,
   StepVoice,
   StepAlive,
@@ -1251,8 +1349,25 @@ function SignupFlow() {
     const brandDescription = selected
       ? `${state.brand ? state.brand + ' — ' : ''}${selected.brandDescription}`
       : state.brand || '';
+    const agentName = (state.agentName || '').trim();
+
+    // Persist the chosen agent name into user_info so the display layer
+    // (AgentNameProvider, sidebar, etc.) can read it client-side immediately.
+    // Backend persistence of `agent_name` is still required — see
+    // AGENT_NAME_INTEGRATION.md ("Onboarding — naming the agent").
+    if (agentName) {
+      try {
+        const raw = localStorage.getItem('user_info');
+        const ui = raw ? JSON.parse(raw) : {};
+        ui.agent_name = agentName;
+        localStorage.setItem('user_info', JSON.stringify(ui));
+      } catch { /* ignore */ }
+    }
+
     try {
-      await saveOnboarding({ brandDescription });
+      // NOTE: `agentName` is sent for the backend to store as the per-brand
+      // `agent_name`. The endpoint must add this field — see docs above.
+      await saveOnboarding({ brandDescription, agentName: agentName || undefined });
     } catch {
       /* best-effort */
     }
