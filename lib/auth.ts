@@ -45,6 +45,16 @@ export const getAuthHeader = (): { Authorization?: string } => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+// Returns the active access token, preferring the Supabase session (new accounts)
+// and falling back to the legacy krew_token (existing accounts). Use this for
+// redirect flows (e.g. /auth/instagram) that pass the token as a query param,
+// so Supabase-auth accounts don't send a null/legacy token.
+export const getAccessToken = async (): Promise<string | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) return session.access_token;
+  return getToken();
+};
+
 // ── Logout ────────────────────────────────────────────────────────────────────
 // Revokes the legacy refresh token on the server, clears localStorage, and
 // signs out of Supabase so both session types are invalidated together.

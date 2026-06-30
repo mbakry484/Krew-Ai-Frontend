@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { isLoggedIn, getToken } from '@/lib/auth';
+import { isLoggedIn, getAccessToken } from '@/lib/auth';
 import { connectShopify, getIntegrationStatus, getUserInfo, updateBrandDescription, disconnectIntegration, getProducts } from '@/lib/api';
 import LunaSidebar from '@/components/LunaSidebar';
 import LunaTopBarActions from '@/components/LunaTopBarActions';
@@ -184,11 +184,12 @@ function SettingsContent() {
   const handleInstagramConnect = async () => {
     setFormLoading(true);
     try {
-      const token = getToken();
+      const token = await getAccessToken();
+      if (!token) throw new Error('You are not signed in. Please log in again.');
       const userInfo = await getUserInfo();
       const brandId = userInfo.user?.brand_id || userInfo.brand_id;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
-      window.location.href = `${apiUrl}/auth/instagram?brand_id=${brandId}&token=${token}`;
+      window.location.href = `${apiUrl}/auth/instagram?brand_id=${brandId}&token=${encodeURIComponent(token)}`;
     } catch (err: any) {
       showToast(err.message || 'Failed to start Instagram connection', 'error');
       setFormLoading(false);
