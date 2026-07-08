@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { isLoggedIn, logout } from '@/lib/auth';
+import Button from './Button';
 
 // ─── Shared panel animation classes ──────────────────────────────────────────
 const panelVisible  = 'opacity-100 pointer-events-auto translate-y-0';
@@ -298,19 +299,13 @@ export default function Navigation() {
 
           {/* Auth buttons — desktop only */}
           {!isAuthenticated ? (
-            <div className="hidden lg:flex gap-[0.6rem]">
-              <Link
-                href="/auth/login"
-                className="text-[0.75rem] px-[14px] py-[6px] rounded-[7px] text-text-secondary border border-border hover:border-border-md hover:text-text-primary transition-all duration-200"
-              >
+            <div className="hidden lg:flex" style={{ gap: 'var(--btn-gap)' }}>
+              <Button href="/auth/login" variant="secondary" size="sm">
                 Log in
-              </Link>
-              <Link
-                href="/early-access"
-                className="text-[0.75rem] px-[14px] py-[6px] rounded-[7px] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
-              >
+              </Button>
+              <Button href="/early-access" variant="primary" size="sm">
                 Get early access
-              </Link>
+              </Button>
             </div>
           ) : (
             <div className="relative hidden lg:block">
@@ -504,20 +499,24 @@ export default function Navigation() {
             </>
           ) : (
             <div className="flex flex-col gap-2 px-1 pb-1">
-              <Link
+              <Button
                 href="/auth/login"
+                variant="secondary"
+                size="sm"
+                className="w-full"
                 onClick={() => setMobileOpen(false)}
-                className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] text-text-secondary border border-border hover:border-border-md hover:text-text-primary transition-all duration-200"
               >
                 Log in
-              </Link>
-              <Link
+              </Button>
+              <Button
                 href="/early-access"
+                variant="primary"
+                size="sm"
+                className="w-full"
                 onClick={() => setMobileOpen(false)}
-                className="block text-center px-4 py-[9px] rounded-[8px] text-[0.78rem] bg-btn-bg text-btn-text font-medium hover:opacity-85 transition-opacity duration-200"
               >
                 Get early access
-              </Link>
+              </Button>
             </div>
           )}
         </div>

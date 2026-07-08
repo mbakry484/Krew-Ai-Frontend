@@ -543,6 +543,68 @@ export const reanalyzeVoice = async (): Promise<{ job_id: string }> => {
   throw new Error('Re-analysis requires re-uploading the file.');
 };
 
+// ── Ivy (Financial Visibility) ───────────────────────────────────────────────
+// Only Capitals + Expenses are wired to the backend; the bootstrap also returns
+// dummy shapes for revenue/inventory/target so the rest of the dashboard renders.
+
+export const getIvyBootstrap = async () => apiRequest('/ivy', { method: 'GET' });
+
+export const createIvyCapital = async (body: {
+  name: string;
+  initial_amount: number;
+  color: string;
+}) => apiRequest('/ivy/capitals', { method: 'POST', body: JSON.stringify(body) });
+
+export const updateIvyCapital = async (
+  id: string,
+  body: { name: string; initial_amount: number; color: string }
+) => apiRequest(`/ivy/capitals/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+
+export const deleteIvyCapital = async (id: string) =>
+  apiRequest(`/ivy/capitals/${id}`, { method: 'DELETE' });
+
+export const createIvyExpense = async (body: {
+  amount: number;
+  category: string;
+  capital_id: string;
+  source: string;
+  note: string;
+  spent_at: string;
+}) => apiRequest('/ivy/expenses', { method: 'POST', body: JSON.stringify(body) });
+
+// ── Team members (Ivy Telegram expense agent) ────────────────────────────────
+// A brand owner adds team members (e.g. media buyers) and generates a single-use
+// Telegram deep link per member. The owner forwards the link; when the member
+// taps it the backend binds their Telegram chat to this brand + role. The phone
+// field is a display label only — it never authenticates anyone.
+
+export interface BrandMember {
+  id: string;
+  brand_id: string;
+  name: string;
+  role: 'owner' | 'media_buyer';
+  phone: string | null;
+  created_at: string;
+}
+
+export const getMembers = async (): Promise<BrandMember[]> =>
+  apiRequest('/members', { method: 'GET' });
+
+export const createMember = async (body: {
+  name: string;
+  role: 'owner' | 'media_buyer';
+  phone?: string;
+}): Promise<BrandMember> =>
+  apiRequest('/members', { method: 'POST', body: JSON.stringify(body) });
+
+export const deleteMember = async (id: string): Promise<{ success: boolean }> =>
+  apiRequest(`/members/${id}`, { method: 'DELETE' });
+
+export const generateMemberTelegramLink = async (
+  id: string
+): Promise<{ link: string; expires_at: string }> =>
+  apiRequest(`/members/${id}/telegram-link`, { method: 'POST', body: '{}' });
+
 // Overview stats (aggregated from orders, exchanges, refunds, conversations)
 export const getOverviewStats = async () => {
   const [orderStats, exchangeRefunds, conversations] = await Promise.all([

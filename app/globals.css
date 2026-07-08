@@ -54,6 +54,601 @@
   --overlay-bg: rgba(255,255,255,0.85);
 }
 
+/* ── Ivy agent accent — teal, from the Krew agent identity system
+      (Luna = magenta, Ivy = teal; colorway hue 152 on the My Krew cards).
+      Used ONLY where Luna's dashboard uses her accent: status toggle,
+      progress fills, sparklines. Everything else stays on the shared tokens. ── */
+[data-theme="dark"] {
+  --ivy-accent: #2dd4bf;
+  --ivy-accent-soft: rgba(45, 212, 191, 0.13);
+  --ivy-accent-border: rgba(45, 212, 191, 0.4);
+}
+
+[data-theme="light"] {
+  --ivy-accent: #0d9488;
+  --ivy-accent-soft: rgba(13, 148, 136, 0.1);
+  --ivy-accent-border: rgba(13, 148, 136, 0.38);
+}
+
+/* ── Design tokens — shared across themes (button + hero rhythm) ── */
+:root {
+  /* Capsule button — default (md) size */
+  --radius-pill: 9999px;
+  --btn-padding-y: 0.7rem;
+  --btn-padding-x: 1.5rem;
+  --btn-gap: 0.6rem;          /* gap between adjacent buttons */
+  --btn-inner-gap: 0.5rem;    /* gap between label and icon inside a button */
+  --btn-font-size: 0.82rem;
+  --btn-hover-scale: 1.02;
+  --btn-transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Capsule button — compact (sm) size, e.g. navbar */
+  --btn-padding-y-sm: 0.4rem;
+  --btn-padding-x-sm: 0.9rem;
+  --btn-font-size-sm: 0.75rem;
+
+  /* Hero vertical rhythm — tight, deliberate stack */
+  --space-hero-eyebrow: 1.1rem;   /* eyebrow  → headline */
+  --space-hero-headline: 1.4rem;  /* headline → subhead  */
+  --space-hero-subhead: 2rem;     /* subhead  → buttons  */
+}
+
+/* ── Reusable capsule Button (see components/Button.tsx) ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-inner-gap);
+  border-radius: var(--radius-pill);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition:
+    transform var(--btn-transition),
+    opacity var(--btn-transition),
+    filter var(--btn-transition),
+    background var(--btn-transition),
+    border-color var(--btn-transition),
+    color var(--btn-transition);
+}
+.btn:hover { transform: scale(var(--btn-hover-scale)); }
+.btn:active { transform: scale(0.99); }
+.btn:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.btn-sm {
+  padding: var(--btn-padding-y-sm) var(--btn-padding-x-sm);
+  font-size: var(--btn-font-size-sm);
+}
+
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+.btn-primary:hover { filter: brightness(0.92); }
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border-md);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: filter var(--btn-transition), color var(--btn-transition), border-color var(--btn-transition); }
+  .btn:hover, .btn:active { transform: none; }
+}
+
+/* Hero CTA row — buttons side by side, full-width stack on small screens */
+.hero-cta-row {
+  display: flex;
+  gap: var(--btn-gap);
+  flex-wrap: wrap;
+  align-items: center;
+}
+@media (max-width: 480px) {
+  .hero-cta-row { flex-direction: column; align-items: stretch; }
+  .hero-cta-row .btn { width: 100%; }
+}
+
+/* ── Agent card aura — full-card color wash + glowing rotating shape ─────── */
+/* Rendered behind card content by components/AgentCardAura.tsx. The component
+   sets --aura-hue / --aura-sat (colorway), --aura-x / --aura-y (anchor corner)
+   and --aura-delay (per-card desync); status, hover, theme and reduced-motion
+   are all resolved here in CSS. */
+.agent-aura {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+
+  /* Live defaults. Light mode raises --aura-l and drops --aura-alpha so the
+     same colorway reads as a clean pastel on a white card. */
+  --aura-alpha: 1;
+  --aura-sat-eff: var(--aura-sat);
+  --aura-l: 60%;
+}
+
+/* SOON: desaturated, faint, frozen. */
+.agent-aura[data-status="soon"] {
+  --aura-alpha: 0.4;
+  --aura-sat-eff: calc(var(--aura-sat) * 0.45);
+}
+.agent-aura[data-status="soon"] .agent-aura-orb,
+.agent-aura[data-status="soon"] .agent-aura-blob,
+.agent-aura[data-status="soon"] .agent-aura-ring,
+.agent-aura[data-status="soon"] .agent-aura-wash {
+  animation-play-state: paused;
+}
+
+/* Wash — tints the whole card from the colorway corner, with a faint
+   hue-shifted answer from the opposite corner so the field feels lit. */
+.agent-aura-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(130% 130% at var(--aura-x) var(--aura-y),
+      hsl(var(--aura-hue) var(--aura-sat-eff) var(--aura-l) / calc(0.34 * var(--aura-alpha))) 0%,
+      hsl(var(--aura-hue) var(--aura-sat-eff) var(--aura-l) / calc(0.10 * var(--aura-alpha))) 48%,
+      transparent 82%),
+    radial-gradient(100% 100% at calc(100% - var(--aura-x)) calc(100% - var(--aura-y)),
+      hsl(calc(var(--aura-hue) + 36) var(--aura-sat-eff) var(--aura-l) / calc(0.10 * var(--aura-alpha))) 0%,
+      transparent 70%);
+}
+
+/* Breathing — live only, opacity only, barely perceptible. */
+.agent-aura[data-status="live"] .agent-aura-wash {
+  animation: aura-breathe 7s ease-in-out infinite alternate;
+}
+
+@keyframes aura-breathe {
+  from { opacity: 0.82; }
+  to   { opacity: 1; }
+}
+
+/* Orb — positions the glowing shape at the colorway corner and drifts it.
+   The centering translate lives in both the base transform (reduced-motion
+   fallback) and the drift keyframes. Hover scales via the individual `scale`
+   property so it composes with the animated transform. */
+.agent-aura-orb {
+  position: absolute;
+  left: var(--aura-x);
+  top: var(--aura-y);
+  width: clamp(220px, 68%, 340px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  animation: aura-drift 16s ease-in-out infinite alternate;
+  animation-delay: var(--aura-delay, 0s);
+  transition: scale 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Blob — soft glowing mass; the irregular radius + rotation reads as a slow
+   organic morph once blurred. */
+.agent-aura-blob {
+  position: absolute;
+  inset: 6%;
+  border-radius: 42% 58% 55% 45% / 55% 45% 62% 38%;
+  background: conic-gradient(from 40deg,
+    hsl(var(--aura-hue) var(--aura-sat-eff) 66% / 0.50),
+    hsl(calc(var(--aura-hue) + 45) var(--aura-sat-eff) 60% / 0.26),
+    hsl(var(--aura-hue) var(--aura-sat-eff) 74% / 0.55),
+    hsl(calc(var(--aura-hue) - 25) var(--aura-sat-eff) 58% / 0.28),
+    hsl(var(--aura-hue) var(--aura-sat-eff) 66% / 0.50));
+  filter: blur(38px);
+  opacity: var(--aura-alpha);
+  animation: aura-spin 28s linear infinite;
+  animation-delay: var(--aura-delay, 0s);
+  will-change: transform;
+}
+
+/* Ring — a crisper counter-rotating light edge inside the blob, echoing the
+   glassy shapes in the reference tiles. */
+.agent-aura-ring {
+  position: absolute;
+  inset: 22%;
+  border-radius: 46% 54% 50% 50% / 52% 48% 58% 42%;
+  border: 1px solid hsl(var(--aura-hue) var(--aura-sat-eff) 80% / calc(0.50 * var(--aura-alpha)));
+  box-shadow:
+    0 0 22px hsl(var(--aura-hue) var(--aura-sat-eff) 65% / calc(0.35 * var(--aura-alpha))),
+    inset 0 0 22px hsl(var(--aura-hue) var(--aura-sat-eff) 65% / calc(0.22 * var(--aura-alpha)));
+  filter: blur(0.5px);
+  animation: aura-spin-rev 20s linear infinite;
+  animation-delay: var(--aura-delay, 0s);
+}
+
+@keyframes aura-spin     { from { transform: rotate(0deg);  } to { transform: rotate(360deg);  } }
+@keyframes aura-spin-rev { from { transform: rotate(0deg);  } to { transform: rotate(-360deg); } }
+@keyframes aura-drift {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to   { transform: translate(calc(-50% + 16px), calc(-50% - 12px)) scale(1.06); }
+}
+
+/* Hover — live cards only: the glow swells toward the content. */
+.agent-card-with-aura:hover .agent-aura[data-status="live"] .agent-aura-orb {
+  scale: 1.14;
+}
+
+/* Light mode — lift lightness, drop alpha: pastel tile instead of dark glow. */
+[data-theme="light"] .agent-aura {
+  --aura-alpha: 0.8;
+  --aura-l: 72%;
+}
+[data-theme="light"] .agent-aura-blob {
+  filter: blur(44px) saturate(1.1);
+}
+[data-theme="light"] .agent-aura-ring {
+  border-color: hsl(var(--aura-hue) var(--aura-sat-eff) 55% / calc(0.35 * var(--aura-alpha)));
+}
+
+/* Reduced motion — hold everything static at rest. */
+@media (prefers-reduced-motion: reduce) {
+  .agent-aura-wash,
+  .agent-aura-orb,
+  .agent-aura-blob,
+  .agent-aura-ring {
+    animation: none !important;
+    transition: none !important;
+  }
+  .agent-card-with-aura:hover .agent-aura .agent-aura-orb {
+    scale: none;
+  }
+}
+
+/* ── Aura field — hero-surface light field (components/AuraSystem.tsx) ────── */
+/* Same light language as the agent cards, generalized for dashboard heroes.
+   The component sets --aura-hue/--aura-sat/--aura-x/--aura-y/--aura-delay and
+   --field-intensity. Reuses the aura-spin/aura-breathe keyframes above. */
+.aura-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  --field-l: 60%;
+  --field-a: var(--field-intensity, 1);
+}
+
+.aura-field-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 120% at var(--aura-x) var(--aura-y),
+      hsl(var(--aura-hue) var(--aura-sat) var(--field-l) / calc(0.22 * var(--field-a))) 0%,
+      hsl(var(--aura-hue) var(--aura-sat) var(--field-l) / calc(0.07 * var(--field-a))) 50%,
+      transparent 85%);
+  animation: aura-breathe 8s ease-in-out infinite alternate;
+}
+
+/* Orb — carries the visible wander across the surface; the blob spins inside
+   it and the optional glass lens floats on top. */
+.aura-field-orb {
+  position: absolute;
+  left: var(--aura-x);
+  top: var(--aura-y);
+  width: clamp(260px, 55%, 460px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  animation: field-wander 26s ease-in-out infinite;
+  animation-delay: var(--aura-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes field-wander {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  25%      { transform: translate(calc(-50% + 90px), calc(-50% - 45px)) scale(1.07); }
+  50%      { transform: translate(calc(-50% + 150px), calc(-50% + 25px)) scale(0.96); }
+  75%      { transform: translate(calc(-50% - 60px), calc(-50% + 55px)) scale(1.04); }
+}
+
+.aura-field-blob {
+  position: absolute;
+  inset: 0;
+  border-radius: 42% 58% 55% 45% / 55% 45% 62% 38%;
+  background: conic-gradient(from 40deg,
+    hsl(var(--aura-hue) var(--aura-sat) 66% / 0.34),
+    hsl(calc(var(--aura-hue) + 45) var(--aura-sat) 60% / 0.17),
+    hsl(var(--aura-hue) var(--aura-sat) 74% / 0.38),
+    hsl(calc(var(--aura-hue) - 25) var(--aura-sat) 58% / 0.19),
+    hsl(var(--aura-hue) var(--aura-sat) 66% / 0.34));
+  filter: blur(40px);
+  opacity: var(--field-a);
+  animation: aura-spin 30s linear infinite;
+  animation-delay: var(--aura-delay, 0s);
+  will-change: transform;
+}
+
+/* Glass lens — a translucent disc drifting over the light: hairline highlight,
+   soft inner glow, and a backdrop blur that bends the aura under it. */
+.aura-field-lens {
+  position: absolute;
+  inset: 24%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: radial-gradient(120% 120% at 30% 24%,
+    rgba(255, 255, 255, 0.13) 0%,
+    rgba(255, 255, 255, 0.03) 45%,
+    transparent 72%);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.16),
+    inset 0 -14px 28px hsl(var(--aura-hue) var(--aura-sat) 60% / 0.1),
+    0 20px 44px rgba(0, 0, 0, 0.16);
+  opacity: var(--field-a);
+  animation: lens-float 13s ease-in-out infinite alternate;
+  animation-delay: var(--aura-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes lens-float {
+  from { transform: translate(-7%, 5%) scale(0.98); }
+  to   { transform: translate(9%, -7%) scale(1.04); }
+}
+
+[data-theme="light"] .aura-field-lens {
+  border-color: rgba(0, 0, 0, 0.05);
+  background: radial-gradient(120% 120% at 30% 24%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 45%,
+    transparent 72%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.7),
+    inset 0 -14px 28px hsl(var(--aura-hue) var(--aura-sat) 55% / 0.08),
+    0 20px 44px rgba(0, 0, 0, 0.07);
+}
+
+/* Alert bloom — warm light bleeding in from the opposite corner. Hue 0 at low
+   alpha lands on the shared #e07070 negative-state family. */
+.aura-field-alert {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 90% at calc(100% - var(--aura-x)) calc(100% - var(--aura-y)),
+    hsl(0 55% 60% / calc(0.14 * var(--field-a))) 0%,
+    transparent 60%);
+  animation: aura-breathe 5s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .aura-field {
+  --field-l: 72%;
+  --field-a: calc(var(--field-intensity, 1) * 0.8);
+}
+
+/* ── Enter choreography — direct children rise in, staggered once ─────────── */
+.krew-stagger > * {
+  animation: krew-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.krew-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.krew-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.krew-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.krew-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.krew-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.krew-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.krew-stagger > *:nth-child(n+7) { animation-delay: 360ms; }
+
+@keyframes krew-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Draw-on strokes — set pathLength={1} on the SVG path ─────────────────── */
+.krew-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: krew-draw-on 1.1s 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes krew-draw-on {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .krew-stagger > * { animation: none; }
+  .krew-draw { animation: none; stroke-dashoffset: 0; }
+  .aura-field-wash, .aura-field-orb, .aura-field-blob, .aura-field-lens, .aura-field-alert { animation: none !important; }
+}
+
+/* ── Visa-style capital card (app/dashboard/ivy/components/CapitalCard.tsx) ─ */
+/* Moved from the Capital page so the card renders anywhere (overview echo,
+   modal preview). data-size="sm" is the compact dashboard-echo variant. */
+.cap-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1.62 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--card-bg);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.24),
+    0 8px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
+  transition: transform 0.4s cubic-bezier(0.2, 0.85, 0.25, 1), box-shadow 0.4s ease;
+  outline: none;
+}
+.cap-card[data-dark='true'] { color: #1b1d1f; }
+.cap-card[data-interactive='true'] { cursor: pointer; }
+.cap-card[data-interactive='true']:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 34px 66px rgba(0, 0, 0, 0.3),
+    0 12px 22px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+.cap-card[data-interactive='true']:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4px var(--text-primary);
+}
+.cap-card-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 8%, rgba(255, 255, 255, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 92% 96%, rgba(0, 0, 0, 0.26) 0%, transparent 60%);
+  mix-blend-mode: screen;
+}
+.cap-card[data-dark='true'] .cap-card-sheen { mix-blend-mode: normal; }
+.cap-card-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 1.15rem 1.3rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.cap-card-badge {
+  font-size: 0.54rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+}
+.cap-card-name {
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cap-card-digits {
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  margin-top: 4px;
+  opacity: 0.62;
+  font-variant-numeric: tabular-nums;
+}
+.cap-card-balance {
+  font-size: 1.75rem;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.cap-card[data-dark='true'] .cap-card-balance { text-shadow: 0 1px 2px rgba(255, 255, 255, 0.28); }
+.cap-card-sub { font-size: 0.62rem; opacity: 0.62; margin-top: 4px; }
+.cap-card-spend { display: flex; flex-direction: column; align-items: flex-end; }
+.cap-card-spend-num { font-size: 0.9rem; font-weight: 300; letter-spacing: -0.02em; }
+.cap-card-spend-lbl { font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.6; }
+.cap-card-bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.22);
+}
+.cap-card-bar > span {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  transition: width 0.5s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.cap-card[data-dark='true'] .cap-card-bar > span { background: rgba(0, 0, 0, 0.6); }
+
+/* Compact echo variant — the card on the overview hero. */
+.cap-card[data-size='sm'] .cap-card-inner { padding: 0.85rem 1rem 0.9rem; }
+.cap-card[data-size='sm'] .cap-card-name { font-size: 0.78rem; }
+.cap-card[data-size='sm'] .cap-card-digits { font-size: 0.56rem; margin-top: 2px; }
+.cap-card[data-size='sm'] .cap-card-balance { font-size: 1.25rem; }
+.cap-card[data-size='sm'] .cap-card-sub { font-size: 0.56rem; margin-top: 3px; }
+.cap-card[data-size='sm'] .cap-card-spend-num { font-size: 0.78rem; }
+.cap-card[data-size='sm'] .cap-card-badge { font-size: 0.48rem; padding: 2px 7px; }
+
+/* ── The Mint — a freshly created card materializes ───────────────────────── */
+/* 3D tilt-in with a light sweep across the metal once it lands. Applied to the
+   pool unit via data-minted (cleared after the animation ends). */
+.cap-unit[data-minted='true'] .cap-card {
+  animation: cap-mint 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cap-unit[data-minted='true'] .cap-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.5) 47%,
+    rgba(255, 255, 255, 0.12) 53%,
+    transparent 70%);
+  transform: translateX(-130%);
+  animation: cap-shine 0.9s 0.55s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes cap-mint {
+  0%   { opacity: 0; transform: perspective(900px) rotateY(32deg) rotateX(7deg) scale(0.86) translateY(20px); }
+  60%  { opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes cap-shine {
+  to { transform: translateX(130%); }
+}
+
+/* ── Color swatch picker ── */
+.cap-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.cap-swatch:hover { transform: scale(1.08); }
+.cap-swatch[data-active='true'] {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-primary);
+  transform: scale(1.08);
+}
+
+/* ── Deductions accordion (height animation via grid rows) ── */
+.cap-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cap-panel[data-open='true'] { grid-template-rows: 1fr; }
+.cap-panel-inner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.cap-panel[data-open='true'] .cap-panel-inner { opacity: 1; }
+
+/* ── Capital grid entrance ── */
+.cap-unit { animation: capUnitIn 0.5s cubic-bezier(0.2, 0.85, 0.25, 1) both; }
+@keyframes capUnitIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cap-unit, .cap-unit[data-minted='true'] .cap-card { animation: none; }
+  .cap-unit[data-minted='true'] .cap-card::after { animation: none; opacity: 0; }
+  .cap-card, .cap-card-bar > span, .cap-panel { transition: none; }
+}
+
 html {
   font-size: 15px;
 }

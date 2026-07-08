@@ -4,6 +4,8 @@ Base URL: `http://localhost:3000` (Development)
 
 All endpoints are prefixed with `/api`. Auth uses a bearer token in the `Authorization: Bearer <token>` header (stored in localStorage under `auth_token` — see `lib/auth.ts`).
 
+> **Ivy (Financial Visibility)** has its own dedicated guide — schema, business rules, API surface, and the mock→live wiring path: see **[`IVY_INTEGRATION.md`](./IVY_INTEGRATION.md)**. This file covers Luna and shared endpoints.
+
 ---
 
 ## Table of Contents

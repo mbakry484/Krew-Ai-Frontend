@@ -1,38 +1,11 @@
-'use client';
+import Button from '@/components/Button';
 
-import { Fragment, useEffect, useRef, useState } from 'react';
-
-// ─── Intersection-observer hook ───────────────────────────────────────────────
-function useInView(threshold = 0.12) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, visible };
-}
-
-// ─── Generic scroll-fade wrapper ──────────────────────────────────────────────
-function Reveal({ children, delay = 0, className = '' }: {
-  children: React.ReactNode; delay?: number; className?: string;
-}) {
-  const { ref, visible } = useInView();
+// ─── Shared primitives ────────────────────────────────────────────────────────
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div ref={ref} className={className} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(22px)',
-      transition: `opacity 0.65s ease-out ${delay}ms, transform 0.65s ease-out ${delay}ms`,
-      willChange: 'opacity, transform',
-    }}>
+    <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[18px]">
       {children}
-    </div>
+    </p>
   );
 }
 
@@ -40,488 +13,184 @@ function Divider() {
   return <div className="h-[0.5px] bg-border" />;
 }
 
-// ─── Hero headline — words stagger in on load ─────────────────────────────────
-const HEADLINE_WORDS: Array<{ text: string; bold?: boolean }> = [
-  { text: 'Built' },
-  { text: 'for' },
-  { text: 'founders', bold: true },
-  { text: "who've" },
-  { text: 'been' },
-  { text: 'running' },
-  { text: 'their' },
-  { text: 'brands' },
-  { text: 'on' },
-  { text: 'group' },
-  { text: 'chats,' },
-  { text: 'late' },
-  { text: 'nights,' },
-  { text: 'and' },
-  { text: 'sheer' },
-  { text: 'will.' },
+// ─── Roster data (Section 5) ──────────────────────────────────────────────────
+const ROSTER: Array<{ name: string; role: string; status: string; live: boolean }> = [
+  { name: 'Luna', role: 'Customer Operations',    status: 'Live', live: true  },
+  { name: 'Ivy',  role: 'Financial Visibility',   status: 'Soon', live: false },
+  { name: '—',    role: 'Performance Reporting',  status: 'Soon', live: false },
+  { name: '—',    role: 'Marketing Intelligence', status: 'Soon', live: false },
 ];
 
-function AnimatedHeadline() {
-  const [triggered, setTriggered] = useState(false);
-  useEffect(() => {
-    setTriggered(true);
-  }, []);
-
-  return (
-    <h1 className="text-[clamp(2.6rem,4.8vw,5rem)] leading-[1.04] tracking-[-0.04em] text-text-primary mb-9">
-      {HEADLINE_WORDS.map((w, i) => (
-        <Fragment key={i}>
-          <span
-            style={{
-              display: 'inline-block',
-              fontWeight: w.bold ? 700 : 300,
-              opacity: triggered ? 1 : 0,
-              transform: triggered ? 'translateY(0)' : 'translateY(10px)',
-              transition: `opacity 250ms ease-out ${i * 70}ms, transform 250ms ease-out ${i * 70}ms`,
-              willChange: 'opacity, transform',
-            }}
-          >
-            {w.text}
-          </span>
-          {i < HEADLINE_WORDS.length - 1 && ' '}
-        </Fragment>
-      ))}
-    </h1>
-  );
-}
-
-// ─── "Krew is for" cycling text ───────────────────────────────────────────────
-const KREW_IS_FOR_PHRASES = [
-  'founders who answer DMs at 1am',
-  "brands that run on one person's will",
-  'operators who refuse to stay reactive',
-  'stores that deserve a real team',
-  'builders who are done doing it all manually',
+// ─── The Belief tenets (Section 4) ────────────────────────────────────────────
+const TENETS: Array<{ num: string; text: string }> = [
+  { num: '01', text: "The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents." },
+  { num: '02', text: "Doing everything by hand isn't dedication. It's what's holding your brand back." },
+  { num: '03', text: 'You shouldn’t need to hire a team to run your store. You should get one from day one.' },
 ];
-
-function KrewIsFor() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [exitingIndex, setExitingIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    const advanceTimer = window.setTimeout(() => {
-      setExitingIndex(currentIndex);
-      setCurrentIndex((i) => (i + 1) % KREW_IS_FOR_PHRASES.length);
-    }, 2200);
-    return () => window.clearTimeout(advanceTimer);
-  }, [currentIndex]);
-
-  return (
-    <section className="bg-background py-[120px] px-8">
-      <div className="max-w-[1100px] mx-auto">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
-            Krew is for —
-          </p>
-        </Reveal>
-        <Reveal delay={80}>
-          <div style={{ display: 'grid', width: '100%' }}>
-            {KREW_IS_FOR_PHRASES.map((phrase, i) => {
-              const isActive = i === currentIndex && exitingIndex !== i;
-              const isExiting = i === exitingIndex;
-              let opacity = 0;
-              let transform = 'translateY(16px)';
-              let transition = 'none';
-              if (isActive) {
-                opacity = 1;
-                transform = 'translateY(0)';
-                transition = 'opacity 250ms ease-out, transform 250ms ease-out';
-              } else if (isExiting) {
-                opacity = 0;
-                transform = 'translateY(-16px)';
-                transition = 'opacity 200ms ease-out, transform 200ms ease-out';
-              }
-              return (
-                <span
-                  key={i}
-                  style={{
-                    gridColumn: 1,
-                    gridRow: 1,
-                    fontSize: 'clamp(2.6rem, 4.8vw, 5rem)',
-                    lineHeight: 1.04,
-                    letterSpacing: '-0.04em',
-                    fontWeight: 700,
-                    color: 'var(--text-primary)',
-                    opacity,
-                    transform,
-                    transition,
-                    willChange: 'opacity, transform',
-                  }}
-                >
-                  {phrase}
-                </span>
-              );
-            })}
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-// ─── Wove arc navigator (Fix 2 — controlled by scroll, no timer) ──────────────
-const PROBLEMS = [
-  {
-    num: '01',
-    heading: 'Answering the same DMs at midnight.',
-    sub: 'The same questions, every day. Each one pulls a founder away from the work that actually builds the brand.',
-  },
-  {
-    num: '02',
-    heading: 'Chasing order updates manually.',
-    sub: 'Customers expect instant answers. Every delay is a lost order or a damaged relationship.',
-  },
-  {
-    num: '03',
-    heading: 'Logging returns and refund requests by hand.',
-    sub: 'Spreadsheets. Screenshots in group chats. The operational layer consumes everything from the inside.',
-  },
-  {
-    num: '04',
-    heading: "We're changing that.",
-    sub: "Krew replaces the busywork with agents that run 24/7 — always on, always accurate.",
-    payoff: true,
-  },
-];
-
-const ARC_H     = 480;
-const ARC_W     = 520;
-const CIRCLE_R  = 560;
-const CIRCLE_CX = ARC_W + 180;
-const CIRCLE_CY = ARC_H / 2;
-const STEP      = 112;
-
-function arcX(y: number): number {
-  const dy   = y - CIRCLE_CY;
-  const disc = CIRCLE_R * CIRCLE_R - dy * dy;
-  return CIRCLE_CX - Math.sqrt(Math.max(0, disc));
-}
-
-function WoveArc({ active, visible }: { active: number; visible: boolean }) {
-  const arcPathD = Array.from({ length: 41 }, (_, idx) => {
-    const y = (ARC_H * idx) / 40;
-    return `${idx === 0 ? 'M' : 'L'} ${arcX(y).toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' ');
-
-  return (
-    <div style={{ position: 'relative', width: ARC_W, height: ARC_H, overflow: 'hidden', flexShrink: 0 }}>
-      {/* Thin arc structural line */}
-      <svg
-        viewBox={`0 0 ${ARC_W} ${ARC_H}`}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}
-        aria-hidden
-      >
-        <path d={arcPathD} fill="none" stroke="var(--border)" strokeWidth="0.5" opacity="0.28" />
-      </svg>
-
-      {/* Items */}
-      {PROBLEMS.map((item, i) => {
-        const dist     = i - active;
-        const absDist  = Math.abs(dist);
-        const itemY    = CIRCLE_CY + dist * STEP;
-        const itemX    = arcX(itemY);
-        const onScreen = itemY >= -80 && itemY <= ARC_H + 80;
-
-        const numSize   = absDist === 0 ? 72 : absDist === 1 ? 46 : 34;
-        const numWeight = absDist === 0 ? 500 : 300;
-        const itemOpacity = !visible ? 0 : !onScreen ? 0 : absDist === 0 ? 1 : absDist === 1 ? 0.28 : 0.12;
-        const isActive  = absDist === 0;
-
-        // Anchor: number vertically centered at itemY
-        const translateX = (itemX - 10).toFixed(1);
-        const translateY = (itemY - numSize / 2).toFixed(1);
-
-        return (
-          <div
-            key={item.num}
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              transform: `translate(${translateX}px, ${translateY}px)`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              opacity: itemOpacity,
-              transition: 'transform 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.45s ease',
-              pointerEvents: 'none',
-            }}
-          >
-            {/* Indicator dot */}
-            <span style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: 'var(--text-primary)',
-              flexShrink: 0,
-              opacity: isActive ? 1 : 0,
-              transition: isActive ? 'opacity 0.3s ease 0.4s' : 'opacity 0.15s ease',
-            }} />
-
-            {/* Number */}
-            <span style={{
-              fontSize: numSize,
-              fontWeight: numWeight,
-              lineHeight: 1,
-              letterSpacing: '-0.03em',
-              fontVariantNumeric: 'tabular-nums',
-              flexShrink: 0,
-              color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-              transition: 'font-size 0.55s cubic-bezier(0.4,0,0.2,1), color 0.4s ease',
-            }}>
-              {item.num}
-            </span>
-
-            {/* Label — to the right of the number, fades in when active */}
-            <div style={{
-              maxWidth: 220,
-              opacity: isActive ? 1 : 0,
-              transition: isActive ? 'opacity 0.4s ease 0.45s' : 'opacity 0.15s ease',
-            }}>
-              <p style={{
-                margin: 0,
-                fontSize: item.payoff ? '1.15rem' : '1rem',
-                fontWeight: item.payoff ? 600 : 500,
-                color: 'var(--text-primary)',
-                lineHeight: 1.3,
-                letterSpacing: '-0.02em',
-                marginBottom: 8,
-                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-              }}>
-                {item.heading}
-              </p>
-              <p style={{
-                margin: 0,
-                fontSize: '0.82rem',
-                fontWeight: 300,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.7,
-                fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-              }}>
-                {item.sub}
-              </p>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Progress indicator */}
-      <div style={{
-        position: 'absolute',
-        bottom: 18,
-        left: arcX(ARC_H - 18) + 4,
-        display: 'flex',
-        gap: 5,
-        opacity: visible ? 1 : 0,
-        transition: 'opacity 0.4s ease 0.3s',
-      }}>
-        {PROBLEMS.map((_, i) => (
-          <span key={i} style={{
-            height: 4,
-            width: i === active ? 20 : 4,
-            borderRadius: 2,
-            background: i === active ? 'var(--text-primary)' : 'var(--border-md, rgba(128,128,128,0.28))',
-            transition: 'width 0.35s cubic-bezier(0.4,0,0.2,1), background 0.3s ease',
-            display: 'block',
-          }} />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VisionPage() {
-  const [problemActive, setProblemActive]   = useState(0);
-  const [problemVisible, setProblemVisible] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const el = wrapRef.current;
-      if (!el) return;
-      const rect          = el.getBoundingClientRect();
-      const scrollable    = rect.height - window.innerHeight;
-      if (scrollable <= 0) return;
-      const scrolledPast  = -rect.top;
-      const progress      = Math.max(0, Math.min(1, scrolledPast / scrollable));
-      setProblemActive(Math.min(3, Math.floor(progress * 4)));
-      // Mark visible once we've started scrolling into the section
-      if (scrolledPast > -window.innerHeight * 0.5) setProblemVisible(true);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // run once on mount in case section is already in view
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
 
-      {/* ── HERO ── */}
-      <section className="pt-36 pb-28 px-8 max-w-[1100px] mx-auto text-center">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
-            Krew — Our Vision
+      {/* ── SECTION 1 — THE DECLARATION (hero) ── */}
+      <section className="pt-32 md:pt-40 pb-24 md:pb-28 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <Eyebrow>Krew — A New Operating Model for Brands</Eyebrow>
+          <h1 className="text-[clamp(2.6rem,7vw,5.5rem)] font-bold tracking-[-0.04em] leading-[1.02] text-text-primary">
+            Founders should build.<br />
+            Agents should operate.
+          </h1>
+          <p className="mt-8 text-[clamp(0.95rem,1.4vw,1.15rem)] text-text-secondary font-light leading-[1.7] max-w-[560px]">
+            Krew gives every brand an AI-powered operations team — so the people who start
+            companies can go back to building them.
           </p>
-        </Reveal>
-        <AnimatedHeadline />
-        <Reveal delay={150}>
-          <p className="text-[0.9rem] text-text-secondary font-light leading-[1.9] max-w-[400px] mx-auto">
-            Krew builds AI agents that take over the operational work behind running a brand —
-            so founders can focus on what actually matters.
-          </p>
-        </Reveal>
+        </div>
       </section>
 
       <Divider />
 
-      {/* ── SECTION 1 — THE PROBLEM (scroll-jacked) ── */}
-      <section>
-        {/* Section label — scrolls normally above the sticky panel */}
-        <div className="px-8 max-w-[1100px] mx-auto pt-28 pb-10">
-          <Reveal>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
-              The problem we solve
+      {/* ── SECTION 2 — THE OLD WAY ── */}
+      <section className="py-24 md:py-28 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <Eyebrow>The Old Way</Eyebrow>
+          <div className="max-w-[680px] space-y-6 text-[clamp(1.15rem,2vw,1.7rem)] font-light tracking-[-0.02em] leading-[1.45] text-text-secondary">
+            <p>For a decade, running a brand meant becoming its back office.</p>
+            <p>
+              Answering the same DM at midnight. Chasing orders by hand. Logging refunds in a
+              spreadsheet nobody asked for.
             </p>
-          </Reveal>
-        </div>
-
-        {/* 400vh tall wrapper drives the scroll */}
-        <div ref={wrapRef} style={{ height: '400vh', position: 'relative' }}>
-          {/* Sticky panel — 100vh, centered content */}
-          <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
-            <div
-              className="flex items-center h-full px-8 max-w-[1100px] mx-auto max-md:flex-col max-md:justify-center"
-            >
-              {/* Left — sticky headline (naturally stays put since it's inside the sticky panel) */}
-              <div className="md:w-[45%] shrink-0">
-                <h2 className="text-[clamp(1.4rem,2.4vw,2.2rem)] font-bold tracking-[-0.03em] leading-[1.2] text-text-primary">
-                  For too long, brand owners have been buried in the work of running their brand.
-                </h2>
-              </div>
-
-              {/* Right — arc navigator, controlled by scroll */}
-              <div className="md:w-[55%] hidden md:flex items-center justify-center">
-                <WoveArc active={problemActive} visible={problemVisible} />
-              </div>
-            </div>
+            <p>
+              The operator got buried under the operation. Founders stopped building the thing —
+              and spent their days running it.
+            </p>
           </div>
         </div>
       </section>
 
       <Divider />
 
-      {/* ── WHO IS KREW FOR — cycling text ── */}
-      <KrewIsFor />
-
-      <Divider />
-
-      {/* ── SECTION 2 — EDITORIAL QUOTE ── */}
-      <section className="py-28 px-8 max-w-[1100px] mx-auto">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
-            What we believe
-          </p>
-        </Reveal>
-        <Reveal delay={80}>
-          <blockquote className="text-[clamp(1.4rem,2.8vw,2.65rem)] font-light tracking-[-0.025em] leading-[1.38] text-text-primary max-w-[860px]">
-            "The best-run brands shouldn't require a team of ten to operate.
-            They should require the right agents."
-          </blockquote>
-        </Reveal>
-      </section>
-
-      <Divider />
-
-      {/* ── SECTION 3 — MISSION + VISION ── */}
-      <section className="py-28 px-8 max-w-[1100px] mx-auto">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">
-            Mission &amp; Vision
-          </p>
-        </Reveal>
-        <div className="grid md:grid-cols-2 gap-x-20 gap-y-16 items-start">
-          <Reveal>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Mission</p>
-              <p className="text-[0.87rem] text-text-secondary font-light leading-[1.95]">
-                Krew's mission is to give every MENA brand owner an AI-powered operations team —
-                starting with customer support, and expanding across every repetitive task that slows growth.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={150}>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Vision</p>
-              <p className="text-[0.87rem] text-text-secondary font-light leading-[1.95]">
-                We envision a future where founders spend zero time on operational busywork.
-                Where Luna handles your DMs, Ivy manages your finances, and your Krew runs in
-                the background — always on, always accurate.
-              </p>
-            </div>
-          </Reveal>
+      {/* ── SECTION 3 — THE TURN ── */}
+      <section className="py-36 md:py-44 px-8">
+        <div className="max-w-[1100px] mx-auto text-center">
+          <h2 className="text-[clamp(3rem,9vw,7rem)] font-bold tracking-[-0.045em] leading-[1] text-text-primary">
+            That era is ending.
+          </h2>
         </div>
       </section>
 
       <Divider />
 
-      {/* ── SECTION 4 — KREW AGENTS ROSTER ── */}
-      <section className="py-28 px-8 max-w-[1100px] mx-auto">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">The Krew</p>
-        </Reveal>
-        <Reveal delay={60}>
-          <h2 className="text-[clamp(1.5rem,3vw,2.8rem)] font-light tracking-[-0.03em] leading-[1.2] text-text-primary mb-3 max-w-[580px]">
+      {/* ── SECTION 4 — THE BELIEF ── */}
+      <section className="py-24 md:py-28 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <Eyebrow>What We Believe</Eyebrow>
+          <div className="mt-4 border-t border-border">
+            {TENETS.map((tenet) => (
+              <div
+                key={tenet.num}
+                className="flex flex-col gap-3 md:flex-row md:gap-10 py-8 border-b border-border"
+              >
+                <span className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary pt-1 md:w-[60px] shrink-0 tabular-nums">
+                  {tenet.num}
+                </span>
+                <p className="text-[clamp(1.25rem,2.4vw,2rem)] font-bold tracking-[-0.025em] leading-[1.3] text-text-primary max-w-[760px]">
+                  {tenet.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Divider />
+
+      {/* ── SECTION 5 — THE KREW (roster) ── */}
+      <section className="py-24 md:py-28 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <Eyebrow>The Krew</Eyebrow>
+          <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-light tracking-[-0.03em] leading-[1.15] text-text-primary max-w-[620px]">
             One platform.<br />A growing family of agents.
           </h2>
-        </Reveal>
-        <Reveal delay={120}>
-          <p className="text-[0.84rem] text-text-secondary font-light leading-[1.9] max-w-[460px] mb-14">
-            Luna is the first product under Krew. A pipeline of named, specialized agents is
-            being built — each one covering a distinct layer of brand operations.
+          <p className="mt-6 text-[clamp(0.9rem,1.3vw,1.05rem)] text-text-secondary font-light leading-[1.8] max-w-[520px]">
+            Luna is the first. A named, specialized team is being built behind her — each agent
+            owning a distinct layer of how a brand runs.
           </p>
-        </Reveal>
-        <div className="border-t border-border">
-          {[
-            { name: 'Luna', role: 'Customer Operations',    status: 'Live', live: true  },
-            { name: 'Ivy',  role: 'Financial Visibility',   status: 'Soon', live: false },
-            { name: '—',    role: 'Performance Reporting',  status: 'Soon', live: false },
-            { name: '—',    role: 'Marketing Intelligence', status: 'Soon', live: false },
-          ].map((agent, i) => (
-            <Reveal key={agent.role} delay={i * 60}>
-              <div className="flex items-center justify-between py-5 border-b border-border">
+
+          <div className="mt-14 border-t border-border">
+            {ROSTER.map((agent, i) => (
+              <div
+                key={`${agent.role}-${i}`}
+                className="flex items-center justify-between py-5 border-b border-border"
+              >
                 <div className="flex items-center gap-4">
-                  <span className={`text-[0.88rem] tracking-[-0.01em] ${agent.live ? 'text-text-primary' : 'text-text-tertiary'}`}>
+                  <span className={`text-[0.95rem] tracking-[-0.01em] ${agent.live ? 'text-text-primary' : 'text-text-tertiary'}`}>
                     {agent.name}
                   </span>
                   <span className={`text-[0.55rem] uppercase tracking-[0.07em] px-[7px] py-[2px] rounded border ${
-                    agent.live ? 'border-[rgba(61,187,119,0.4)] text-[#3dbb77]' : 'border-border text-text-tertiary'
+                    agent.live
+                      ? 'border-[rgba(61,187,119,0.4)] text-[#3dbb77]'
+                      : 'border-border text-text-tertiary'
                   }`}>
                     {agent.status}
                   </span>
                 </div>
-                <span className={`text-[0.75rem] ${agent.live ? 'text-text-secondary' : 'text-text-tertiary'}`}>
+                <span className={`text-[0.78rem] ${agent.live ? 'text-text-secondary' : 'text-text-tertiary'}`}>
                   {agent.role}
                 </span>
               </div>
-            </Reveal>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       <Divider />
 
-      {/* ── FOOTER ── */}
-      <footer className="py-7 px-8 max-w-[1100px] mx-auto flex items-center justify-between max-md:flex-col max-md:gap-2 max-md:text-center">
-        <div className="text-[0.75rem] font-medium tracking-[0.07em] uppercase text-text-tertiary">Krew</div>
-        <div className="text-[0.68rem] text-text-tertiary">Luna · Customer Operations Agent</div>
-        <div className="text-[0.68rem] text-text-tertiary">© 2025 Krew. All rights reserved.</div>
-      </footer>
+      {/* ── SECTION 6 — THE HORIZON (mission & vision) ── */}
+      <section className="py-24 md:py-28 px-8">
+        <div className="max-w-[1100px] mx-auto">
+          <Eyebrow>Mission &amp; Vision</Eyebrow>
+          <div className="grid md:grid-cols-2 gap-x-20 gap-y-12 items-start">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Mission</p>
+              <p className="text-[clamp(1rem,1.6vw,1.3rem)] text-text-secondary font-light leading-[1.6] tracking-[-0.015em]">
+                To give every MENA brand owner an AI-powered operations team — starting with
+                customer support, expanding across every repetitive task that slows growth.
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-text-tertiary mb-[16px]">Vision</p>
+              <p className="text-[clamp(1rem,1.6vw,1.3rem)] text-text-secondary font-light leading-[1.6] tracking-[-0.015em]">
+                The MENA brands defining the next decade won’t be run by the biggest teams.
+                They’ll be run by founders and their Krew — always on, always accurate,
+                operating in the background while the founder builds in the foreground.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-16 md:mt-20 text-[clamp(1.4rem,3vw,2.4rem)] font-bold tracking-[-0.03em] leading-[1.25] text-text-primary max-w-[820px]">
+            This is the new era of e-commerce. It starts here.
+          </p>
+        </div>
+      </section>
+
+      <Divider />
+
+      {/* ── SECTION 7 — THE INVITATION (close) ── */}
+      <section className="py-36 md:py-44 px-8">
+        <div className="max-w-[1100px] mx-auto text-center">
+          <h2 className="text-[clamp(2.4rem,6vw,4.5rem)] font-bold tracking-[-0.04em] leading-[1.05] text-text-primary">
+            This is Krew.<br />
+            Come build. We&apos;ll handle the rest.
+          </h2>
+          <div className="mt-10">
+            <Button href="/early-access" variant="primary">
+              Join the early access →
+            </Button>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

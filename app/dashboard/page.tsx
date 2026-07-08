@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import { getUserInfo } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import AgentCardAura from '@/components/AgentCardAura';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -13,8 +14,11 @@ import { supabase } from '@/lib/supabase';
 //   Returns: { first_name, last_name, email }
 //
 // GET /api/agents
-//   Returns: [{ id, name, role, status: 'live'|'soon', stats: {...} }]
+//   Returns: [{ id, name, role, status: 'live'|'soon', stats: {...},
+//              color_identity: { hue, sat, angle } }]
 //   Current agents: luna (live), ivy (live), agent3 (soon), agent4 (soon)
+//   color_identity is a Supabase JSONB seed driving the card aura (see
+//   components/AgentCardAura.tsx); passed through as the `colorway` prop.
 //
 // GET /api/notifications
 //   Returns: [{ id, agent, message, time }]
@@ -29,7 +33,8 @@ const agents = [
     description: 'Handles Instagram and WhatsApp DMs with your brand voice, processes orders, and escalates complex issues.',
     status: 'live',
     stats: { conversations: '247', response: '0.4s' },
-    available: true
+    available: true,
+    colorway: { hue: 330, sat: 45, angle: 290 }
   },
   {
     id: 'ivy',
@@ -38,7 +43,8 @@ const agents = [
     description: 'Tracks expenses, cash flow, and profitability in real time. Surfaces financial signals so you always know where your money stands.',
     status: 'live',
     stats: { revenue: '$84k', growth: '+12%' },
-    available: true
+    available: true,
+    colorway: { hue: 152, sat: 55, angle: 220 }
   },
   {
     id: 'agent3',
@@ -47,7 +53,8 @@ const agents = [
     description: 'Coming soon. Automated weekly and monthly performance reports across all operations. Zero manual work, full clarity.',
     status: 'soon',
     stats: { reports: '—', metrics: '—' },
-    available: false
+    available: false,
+    colorway: { hue: 40, sat: 50, angle: 200 }
   },
   {
     id: 'agent4',
@@ -56,7 +63,8 @@ const agents = [
     description: 'Coming soon. Connects ad spend, content performance, and conversion data into one clear intelligence layer.',
     status: 'soon',
     stats: { campaigns: '—', roi: '—' },
-    available: false
+    available: false,
+    colorway: { hue: 265, sat: 55, angle: 240 }
   }
 ];
 
@@ -109,10 +117,9 @@ export default function MyKrewDashboard() {
   };
 
   const handleAgentClick = (agent: typeof agents[0]) => {
-    if (agent.available && agent.id === 'luna') {
-      router.push('/dashboard/luna');
+    if (agent.available) {
+      router.push(`/dashboard/${agent.id}`);
     }
-    // TODO: route to /dashboard/ivy when Ivy dashboard is built
   };
 
   return (
@@ -133,18 +140,25 @@ export default function MyKrewDashboard() {
 
           {/* Agents grid
               API: GET /api/agents → array of agent objects */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-border border border-border rounded-[14px] overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {agents.map((agent) => (
               <div
                 key={agent.id}
                 onClick={() => handleAgentClick(agent)}
-                className={`bg-background p-8 transition-colors duration-[180ms] flex flex-col gap-[1.4rem] min-h-[230px] ${
-                  agent.available ? 'cursor-pointer hover:bg-background2' : 'opacity-[0.42] pointer-events-none'
+                className={`agent-card-with-aura group relative overflow-hidden rounded-[22px] border bg-background p-8 flex flex-col min-h-[250px] transition-[border-color,transform,box-shadow] duration-300 ${
+                  agent.available
+                    ? 'cursor-pointer border-border hover:border-border-md hover:-translate-y-[2px]'
+                    : 'border-border pointer-events-none'
                 }`}
               >
+                {/* Aura — full-card color wash + rotating glow shape, behind content */}
+                <AgentCardAura colorway={agent.colorway} status={agent.status as 'live' | 'soon'} />
+
+                {/* Content layer — sits above the aura, stays fully readable */}
+                <div className={`relative z-[1] flex-1 flex flex-col gap-[1.4rem] ${agent.available ? '' : 'opacity-50'}`}>
                 {/* Top row */}
                 <div className="flex items-start justify-between">
-                  <div className="w-[38px] h-[38px] border border-border-md rounded-[10px] flex items-center justify-center text-text-tertiary">
+                  <div className="w-[38px] h-[38px] border border-border-md bg-tag-bg backdrop-blur-sm rounded-[12px] flex items-center justify-center text-text-secondary">
                     {agent.id === 'luna' && (
                       <svg className="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
@@ -167,7 +181,15 @@ export default function MyKrewDashboard() {
                     )}
                   </div>
                   <div className={`flex items-center gap-[5px] text-[0.6rem] uppercase tracking-[0.05em] ${agent.status === 'live' ? 'text-text-secondary' : 'text-text-tertiary'}`}>
-                    {agent.status === 'live' && <span className="w-[5px] h-[5px] rounded-full bg-text-secondary shadow-[0_0_5px_var(--text-secondary)] animate-pulse" />}
+                    {agent.status === 'live' && (
+                      <span
+                        className="w-[5px] h-[5px] rounded-full animate-pulse"
+                        style={{
+                          background: `hsl(${agent.colorway.hue} 70% 68%)`,
+                          boxShadow: `0 0 6px hsl(${agent.colorway.hue} 70% 60%)`,
+                        }}
+                      />
+                    )}
                     {agent.status}
                   </div>
                 </div>
@@ -190,7 +212,7 @@ export default function MyKrewDashboard() {
                     ))}
                   </div>
                   {agent.available ? (
-                    <div className="flex items-center gap-1 text-[0.67rem] text-text-tertiary">
+                    <div className="flex items-center gap-1 text-[0.67rem] text-text-tertiary transition-[color,transform] duration-300 group-hover:text-text-primary group-hover:translate-x-[2px]">
                       Open
                       <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M9 5l7 7-7 7"/>
@@ -201,6 +223,7 @@ export default function MyKrewDashboard() {
                       Coming to Krew
                     </div>
                   )}
+                </div>
                 </div>
               </div>
             ))}

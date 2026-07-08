@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, ReactNode, ComponentType } from 'react';
+import Button from '@/components/Button';
 
 // ─── Scroll-reveal ─────────────────────────────────────────────────────────────
 function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
@@ -456,13 +457,13 @@ export default function LunaAgentPage() {
               Luna handles your Instagram DMs — replies, orders, exchanges, and refunds — so you can focus on building.
             </p>
 
-            <div className="flex items-center gap-2">
-              <button className="bg-btn-bg text-btn-text rounded-[8px] font-medium hover:opacity-85 transition-opacity duration-200" style={{ padding: '9px 18px', fontSize: '0.78rem' }}>
+            <div className="flex items-center" style={{ gap: 'var(--btn-gap)' }}>
+              <Button variant="primary">
                 Join Waitlist
-              </button>
-              <button className="border border-border-md text-text-secondary rounded-[8px] hover:border-border-hover hover:text-text-primary transition-all duration-200" style={{ padding: '9px 18px', fontSize: '0.78rem' }}>
+              </Button>
+              <Button variant="secondary">
                 Try Live Demo
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -533,13 +534,13 @@ export default function LunaAgentPage() {
           <p className="text-[0.85rem] text-text-secondary mb-8 max-w-[380px] mx-auto leading-[1.65]">
             Join the waitlist and be the first to go live with Luna.
           </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <button className="bg-btn-bg text-btn-text px-6 py-3 rounded-[10px] text-[0.8rem] font-medium hover:opacity-85 transition-opacity duration-200">
+          <div className="flex items-center justify-center flex-wrap" style={{ gap: 'var(--btn-gap)' }}>
+            <Button variant="primary">
               Join Waitlist
-            </button>
-            <button className="border border-border-md text-text-secondary px-6 py-3 rounded-[10px] text-[0.8rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
+            </Button>
+            <Button variant="secondary">
               Try Live Demo
-            </button>
+            </Button>
           </div>
         </Reveal>
       </section>
