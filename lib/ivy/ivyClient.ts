@@ -38,6 +38,12 @@ import {
   RevenueSnapshot,
   Target,
 } from './types';
+import {
+  createIvyCapital,
+  createIvyExpense,
+  deleteIvyCapital,
+  updateIvyCapital,
+} from '@/lib/api';
 
 const BRAND_ID = 'brand-demo';
 
@@ -95,60 +101,14 @@ function snapshot(
   };
 }
 
-function expense(
-  monthOffset: number,
-  day: number,
-  amount: number,
-  category: ExpenseCategory,
-  source: ExpenseSource,
-  note: string,
-): Expense {
-  return {
-    id: sid('exp'),
-    brand_id: BRAND_ID,
-    amount,
-    category,
-    capital_id: 'cap-main',
-    source,
-    note,
-    spent_at: monthDate(monthOffset, day),
-  };
-}
-
 // ── Seed data ─────────────────────────────────────────────────────────────────
-// This month: ~800K gross delivered, 28% return rate.
-// Capital: 500K injected, 400K spent (80%) → 100K cash remaining.
-// Inventory 700K vs 1M sales target → 300K gap.
-
-const SEED_EXPENSES: Expense[] = [
-  expense(0, 5, 40_000, 'marketing_ads', 'text', 'Meta + TikTok ads — week 1'),
-  expense(0, 4, 2_000, 'other', 'voice', 'Courier tips + misc supplies'),
-  expense(0, 3, 6_000, 'software', 'text', 'Shopify + tools subscriptions'),
-  expense(0, 2, 60_000, 'inventory_materials', 'voice', 'Bought fabrics and zippers'),
-  expense(0, 1, 15_000, 'rent_utilities', 'voice', 'Workshop rent'),
-  expense(1, 28, 55_000, 'marketing_ads', 'text', 'Meta ads — full month'),
-  expense(1, 27, 45_000, 'shipping_fulfillment', 'receipt', 'Bosta monthly invoice'),
-  expense(1, 26, 40_000, 'salaries', 'text', 'Monthly payroll — 4 staff'),
-  expense(1, 21, 5_000, 'fees_commissions', 'text', 'Payment gateway fees'),
-  expense(1, 18, 12_000, 'packaging', 'receipt', 'Mailers, tissue paper, stickers'),
-  expense(1, 12, 120_000, 'inventory_materials', 'receipt', 'Fabric restock — 3 suppliers'),
-];
-
-const SEED_SPENT = SEED_EXPENSES.reduce((s, e) => s + e.amount, 0); // 400,000
+// Capitals + Expenses start EMPTY — they are hydrated from the backend on mount
+// (see IvyProvider). The revenue / inventory / target seed below is dummy data
+// that keeps the not-yet-wired pages populated until those endpoints land.
 
 const initialState: IvyState = {
-  capitals: [
-    {
-      id: 'cap-main',
-      brand_id: BRAND_ID,
-      name: 'Main Operating Capital',
-      initial_amount: 500_000,
-      current_balance: 500_000 - SEED_SPENT, // 100,000
-      color: 'teal',
-      created_at: monthDate(2, 10),
-    },
-  ],
-  expenses: SEED_EXPENSES,
+  capitals: [],
+  expenses: [],
   revenueChannels: [
     { id: 'ch-online', brand_id: BRAND_ID, name: 'Online Store', kind: 'online', created_at: monthDate(2, 10) },
     { id: 'ch-showroom', brand_id: BRAND_ID, name: 'Zamalek Showroom', kind: 'showroom', created_at: monthDate(2, 12) },
@@ -229,7 +189,31 @@ class IvyClient {
     this.listeners.forEach((fn) => fn());
   }
 
-  // ── Mutations (future: POST/PUT to the API, then refresh) ──────────────────
+  /** Replace the store from a backend bootstrap (mock → live seam).
+      Only Capitals + Expenses are wired to the API; revenue/inventory/target
+      keep whatever the current (seed/dummy) state holds. */
+  hydrate(partial: { capitals: Capital[]; expenses: Expense[] }) {
+    this.set({ ...this.state, capitals: partial.capitals, expenses: partial.expenses });
+  }
+
+  /** Swap a client temp id for the server-assigned id across the store, so
+      later writes (e.g. an expense on a freshly created pool) reference the
+      real DB row. */
+  private swapCapitalId(tempId: string, serverRow: Capital) {
+    const s = this.state;
+    this.set({
+      ...s,
+      capitals: s.capitals.map((c) => (c.id === tempId ? { ...serverRow } : c)),
+      expenses: s.expenses.map((e) => (e.capital_id === tempId ? { ...e, capital_id: serverRow.id } : e)),
+    });
+  }
+
+  private swapExpenseId(tempId: string, serverRow: Expense) {
+    const s = this.state;
+    this.set({ ...s, expenses: s.expenses.map((e) => (e.id === tempId ? { ...serverRow } : e)) });
+  }
+
+  // ── Mutations (optimistic: local write now, API in the background) ─────────
 
   addExpense(input: {
     amount: number;
@@ -252,6 +236,20 @@ class IvyClient {
         c.id === input.capital_id ? { ...c, current_balance: c.current_balance - input.amount } : c,
       ),
     });
+
+    createIvyExpense(input)
+      .then((serverRow: Expense) => this.swapExpenseId(row.id, serverRow))
+      .catch((err) => {
+        console.error('[ivy] addExpense failed — reverting:', err);
+        const cur = this.state;
+        this.set({
+          ...cur,
+          expenses: cur.expenses.filter((e) => e.id !== row.id),
+          capitals: cur.capitals.map((c) =>
+            c.id === input.capital_id ? { ...c, current_balance: c.current_balance + input.amount } : c,
+          ),
+        });
+      });
     return row;
   }
 
@@ -267,6 +265,14 @@ class IvyClient {
     };
     const s = this.state;
     this.set({ ...s, capitals: [...s.capitals, row] });
+
+    createIvyCapital(input)
+      .then((serverRow: Capital) => this.swapCapitalId(row.id, serverRow))
+      .catch((err) => {
+        console.error('[ivy] addCapital failed — reverting:', err);
+        const cur = this.state;
+        this.set({ ...cur, capitals: cur.capitals.filter((c) => c.id !== row.id) });
+      });
     return row;
   }
 
@@ -274,6 +280,7 @@ class IvyClient {
       injected amount so recorded spend (initial − balance) is preserved. */
   updateCapital(id: string, input: { name: string; initial_amount: number; color: CapitalColor }) {
     const s = this.state;
+    const prev = s.capitals.find((c) => c.id === id);
     this.set({
       ...s,
       capitals: s.capitals.map((c) => {
@@ -288,13 +295,33 @@ class IvyClient {
         };
       }),
     });
+
+    updateIvyCapital(id, input)
+      .then((serverRow: Capital) => {
+        const cur = this.state;
+        this.set({ ...cur, capitals: cur.capitals.map((c) => (c.id === id ? { ...serverRow } : c)) });
+      })
+      .catch((err) => {
+        console.error('[ivy] updateCapital failed — reverting:', err);
+        if (!prev) return;
+        const cur = this.state;
+        this.set({ ...cur, capitals: cur.capitals.map((c) => (c.id === id ? prev : c)) });
+      });
   }
 
   /** Delete a pool. Guarded by the caller — pools with deductions can't be
       deleted (their expenses reference this capital_id). */
   deleteCapital(id: string) {
     const s = this.state;
+    const removed = s.capitals.find((c) => c.id === id);
     this.set({ ...s, capitals: s.capitals.filter((c) => c.id !== id) });
+
+    deleteIvyCapital(id).catch((err) => {
+      console.error('[ivy] deleteCapital failed — reverting:', err);
+      if (!removed) return;
+      const cur = this.state;
+      this.set({ ...cur, capitals: [...cur.capitals, removed] });
+    });
   }
 
   addRevenueChannel(input: { name: string; kind: RevenueChannelKind }): RevenueChannel {

@@ -1,6 +1,7 @@
 'use client';
 
 import IvyShell from '../components/IvyShell';
+import TeamSection from '../components/TeamSection';
 import { SectionCard } from '@/components/DashboardPrimitives';
 import { useIvy } from '@/components/IvyProvider';
 import { ivyClient } from '@/lib/ivy/ivyClient';
@@ -15,8 +16,11 @@ import { ivyClient } from '@/lib/ivy/ivyClient';
 // POST   /api/integrations/bosta/connect      Body: { api_key }
 // DELETE /api/integrations/bosta/disconnect
 //
-// --- TELEGRAM (expense-logging agent) ---
-// POST   /api/integrations/telegram/connect   → { bot_link }
+// --- TELEGRAM (expense-logging agent) — WIRED (see Team section) ---
+// GET    /members                    → BrandMember[]
+// POST   /members                    Body: { name, role, phone? }
+// DELETE /members/:id
+// POST   /members/:id/telegram-link  → { link, expires_at }  (single-use deep link)
 // =============================================================================
 
 export default function IvySettings() {
@@ -50,6 +54,10 @@ export default function IvySettings() {
             />
           </button>
         </div>
+      </SectionCard>
+
+      <SectionCard title="Team" subtitle="add media buyers who log expenses to Ivy over Telegram">
+        <TeamSection />
       </SectionCard>
 
       <SectionCard title="Currency" subtitle="all amounts across the Ivy dashboard">
@@ -96,12 +104,12 @@ export default function IvySettings() {
               <div>
                 <div className="text-[0.75rem] text-text-primary mb-[2px]">Telegram agent</div>
                 <div className="text-[0.66rem] text-text-tertiary">
-                  Log expenses by text, voice, or receipt photo. Preview it on the Activity page.
+                  Log expenses by text — just message Ivy. Add people who can log in the Team section above.
                 </div>
               </div>
             </div>
             <span className="text-[0.6rem] uppercase tracking-[0.05em] text-ivy-accent border border-ivy-accent-border rounded px-[7px] py-[2px] shrink-0">
-              preview
+              live
             </span>
           </div>
         </div>
