@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isLoggedIn } from '@/lib/auth';
 import { getUserInfo } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import AgentCardAura from '@/components/AgentCardAura';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
