@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { login } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import '../signup/onboarding.css';
 
 // ── LunaMark icon ──
@@ -37,12 +38,50 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // ── Google OAuth ──────────────────────────────────────────────────────────────
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
+  // ── Email + password login ────────────────────────────────────────────────────
+  // Strategy: try Supabase signInWithPassword first (new accounts).
+  // If Supabase returns "Invalid login credentials" and the user might be a legacy
+  // account (email not in auth.users), fall back to our custom /auth/login endpoint.
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (loading) return;
     setError('');
     setLoading(true);
     try {
+      // ── Attempt 1: Supabase Auth (new Supabase-managed accounts) ─────────────
+      const { data: { session }, error: supabaseError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (session) {
+        // Supabase login succeeded — no legacy token needed; apiRequest picks up the session
+        if (session.user) {
+          localStorage.setItem('user_info', JSON.stringify({ email: session.user.email }));
+        }
+        setTimeout(() => router.push(redirectTo), 500);
+        return;
+      }
+
+      const isCredentialError =
+        supabaseError?.message?.toLowerCase().includes('invalid login credentials') ||
+        supabaseError?.message?.toLowerCase().includes('email not confirmed');
+
+      if (!isCredentialError) {
+        // Supabase returned a real error (rate limit, network, etc.) — surface it
+        setError(supabaseError?.message || 'Login failed. Please try again.');
+        return;
+      }
+
+      // ── Attempt 2: Legacy /auth/login (existing accounts with bcrypt passwords) ─
       const response = await login(formData);
       if (response.user) {
         localStorage.setItem('user_info', JSON.stringify(response.user));
@@ -103,6 +142,25 @@ function LoginForm() {
                       </Link>
                     </p>
                   </div>
+
+                  {/* Google SSO */}
+                  <div className="sso-row">
+                    <button
+                      type="button"
+                      className="sso-btn"
+                      onClick={handleGoogleLogin}
+                      disabled={loading}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="sso-icon">
+                        <path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5c-.2 1.3-.9 2.3-2 3v2.5h3.2c1.9-1.7 3.1-4.3 3.1-7.3z" fill="currentColor" opacity="0.9" />
+                        <path d="M12 22c2.7 0 5-.9 6.7-2.5l-3.2-2.5c-.9.6-2 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.9v2.6C4.6 19.7 8 22 12 22z" fill="currentColor" opacity="0.7" />
+                        <path d="M6.2 13.7c-.2-.6-.3-1.2-.3-1.7s.1-1.1.3-1.7V7.7H2.9C2.3 9 2 10.4 2 12s.3 3 .9 4.3l3.3-2.6z" fill="currentColor" opacity="0.5" />
+                        <path d="M12 5.8c1.5 0 2.8.5 3.9 1.5l2.9-2.9C17 2.9 14.7 2 12 2 8 2 4.6 4.3 2.9 7.7L6.2 10.3c.8-2.5 3.1-4.5 5.8-4.5z" fill="currentColor" opacity="0.85" />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </button>
+                  </div>
+                  <div className="or-divider">or</div>
 
                   <form
                     id="login-form"

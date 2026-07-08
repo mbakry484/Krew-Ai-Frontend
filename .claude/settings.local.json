@@ -24,7 +24,10 @@
       "Bash(Get-ChildItem -Path \"f:\\\\Krew-Ai-Frontend\" -Recurse -Filter \"package.json\")",
       "Bash(Select-Object -First 5)",
       "PowerShell(npx tsc --noEmit)",
-      "Bash(npx tsc *)"
+      "Bash(ls /Users/mohamedbakry/Krew/krew-ai-backend)",
+      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/**)",
+      "Read(//Users/mohamedbakry/Krew/Krew-Ai-backend/routes/**)",
+      "Bash(git config *)"
     ],
     "deny": [],
     "ask": []
