@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import Button from '@/components/Button';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -299,19 +300,13 @@ export default function PricingPage() {
               ))}
             </ul>
 
-            <div className="flex gap-[0.6rem] mt-6">
-              <Link
-                href="/early-access"
-                className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200"
-              >
+            <div className="flex mt-6" style={{ gap: 'var(--btn-gap)' }}>
+              <Button href="/early-access" variant="primary">
                 {displayedTier.key === 'obsidian' ? 'Talk to us' : 'Start free trial'}
-              </Link>
-              <Link
-                href="/faq"
-                className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
-              >
+              </Button>
+              <Button href="/faq" variant="secondary">
                 See FAQ
-              </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -398,13 +393,13 @@ export default function PricingPage() {
         <p className="text-[0.78rem] text-text-secondary leading-[1.75] max-w-[420px] font-light mx-auto mb-6">
           Usage-based. No feature locks. Move between tiers whenever your volume changes.
         </p>
-        <div className="flex justify-center gap-[0.7rem] flex-wrap">
-          <Link href="/early-access" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
+        <div className="flex justify-center flex-wrap" style={{ gap: 'var(--btn-gap)' }}>
+          <Button href="/early-access" variant="primary">
             Start free trial
-          </Link>
-          <Link href="/faq" className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
+          </Button>
+          <Button href="/faq" variant="secondary">
             Talk to the team
-          </Link>
+          </Button>
         </div>
       </section>
 

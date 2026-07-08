@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import ReliefSection from '@/components/landing/ReliefSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
+import Button from '@/components/Button';
 
 // =============================================================================
 // BACKEND API NOTES (for backend team)
@@ -175,11 +176,18 @@ export default function LandingPage() {
           <div className="flex-1 grid hero-grid max-w-[1320px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
 
             {/* LEFT */}
-            <div className="hero-left flex flex-col gap-8 py-20 pr-8">
+            <div className="hero-left flex flex-col py-20 pr-8">
+
+              <div
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[var(--space-hero-eyebrow)]`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '0ms' }}
+              >
+                Krew — Customer Operations
+              </div>
 
               <h1
-                className={`${heroReady ? 'hero-blur-in' : ''} text-[clamp(2.6rem,4.6vw,4.3rem)] tracking-[-0.045em] leading-[1.03] text-text-primary`}
-                style={{ opacity: heroReady ? undefined : 0, animationDelay: '0ms' }}
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[clamp(2.6rem,4.6vw,4.3rem)] tracking-[-0.03em] leading-[1.02] text-text-primary mb-[var(--space-hero-headline)]`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '80ms' }}
               >
                 <span className="font-bold">Luna.</span>
                 <span className="font-light"> Every DM,<br />answered.</span>
@@ -187,25 +195,22 @@ export default function LandingPage() {
               </h1>
 
               <p
-                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.95rem] text-text-secondary max-w-[460px] leading-[1.75] font-light`}
-                style={{ opacity: heroReady ? undefined : 0, animationDelay: '120ms' }}
+                className={`${heroReady ? 'hero-blur-in' : ''} text-[0.8rem] text-text-secondary max-w-[420px] leading-[1.6] font-light mb-[var(--space-hero-subhead)]`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '160ms' }}
               >
                 140 conversations a week — orders, returns, questions — handled in Arabic, Franco, and English. Automatically.
               </p>
 
               <div
-                className={`${heroReady ? 'hero-blur-in' : ''} flex gap-[0.9rem] mt-2 flex-wrap items-center`}
-                style={{ opacity: heroReady ? undefined : 0, animationDelay: '220ms' }}
+                className={`${heroReady ? 'hero-blur-in' : ''} hero-cta-row`}
+                style={{ opacity: heroReady ? undefined : 0, animationDelay: '240ms' }}
               >
-                <Link
-                  href="/early-access"
-                  className="bg-btn-bg text-btn-text border-none rounded-[8px] px-6 py-[10px] text-[0.82rem] font-medium hover:opacity-85 transition-opacity duration-200"
-                >
+                <Button href="/early-access" variant="primary">
                   Start with Luna
-                </Link>
-                <Link href="/agents/luna" className="text-text-secondary text-[0.8rem] font-light hover:text-text-primary transition-colors duration-200">
+                </Button>
+                <Button href="/agents/luna" variant="secondary">
                   Explore Luna →
-                </Link>
+                </Button>
               </div>
             </div>
 
@@ -778,15 +783,12 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="mt-8">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
-            >
+            <Button href="/pricing" variant="secondary">
               See full pricing
               <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
-            </Link>
+            </Button>
           </div>
         </div>
 
@@ -799,15 +801,12 @@ export default function LandingPage() {
           <p className="text-[0.8rem] text-text-secondary font-light mb-8 max-w-[400px] mx-auto leading-[1.8]">
             We've answered the most common ones about Luna, pricing, and integrations.
           </p>
-          <Link
-            href="/faq"
-            className="inline-flex items-center gap-2 border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200"
-          >
+          <Button href="/faq" variant="secondary">
             Browse FAQ
             <svg className="w-[11px] h-[11px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
-          </Link>
+          </Button>
         </div>
 
         <div className="h-[1px] bg-border" />
@@ -821,13 +820,13 @@ export default function LandingPage() {
           <p className="text-[0.8rem] text-text-secondary leading-[1.8] max-w-[460px] font-light mx-auto mb-8">
             We're onboarding select brands into Luna now. Be among the first to turn your inbox into an operation.
           </p>
-          <div className="flex justify-center gap-[0.7rem]">
-            <Link href="/early-access" className="bg-btn-bg text-btn-text px-[22px] py-[9px] rounded-[8px] text-[0.78rem] font-medium hover:opacity-85 transition-opacity duration-200">
+          <div className="flex justify-center" style={{ gap: 'var(--btn-gap)' }}>
+            <Button href="/early-access" variant="primary">
               Request access
-            </Link>
-            <button className="border border-border text-text-secondary px-[22px] py-[9px] rounded-[8px] text-[0.78rem] hover:border-border-hover hover:text-text-primary transition-all duration-200">
+            </Button>
+            <Button variant="secondary">
               Talk to the team
-            </button>
+            </Button>
           </div>
         </div>
 
