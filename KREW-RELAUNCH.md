@@ -42,18 +42,18 @@
 ## PHASE 2 — Landing page rebuild (2 days)
 
 ### 2.1 Hero — Ivy's wedge (DECIDED: live-agent hero, crew is beat #2)
-- [ ] Headline = Ivy's real-profit hook, same big-type style as current hero. Direction:
+- [x] Headline = Ivy's real-profit hook, same big-type style as current hero. Direction:
   - "Shopify says EGP 914,000. **Your real profit is EGP 660,000.**"
   - or "Your **real** profit. Finally visible."
-- [ ] Ivy mascot alive in the frame (idle float + glow breathing).
-- [ ] One quiet crew signal: Luna + Nova mascots small/dimmed at the edge, OR a single sub-line: "Ivy is the first of your Krew."
-- [ ] Primary CTA: "Start with Ivy". Secondary: "Meet the crew" → scroll to 2.2.
-- [ ] **Structural rule:** hero content comes from the registry's `live` agent — when Nova launches, the hero rotates by flipping registry state, not by rewriting the page.
+- [x] Ivy mascot alive in the frame (idle float + glow breathing).
+- [x] One quiet crew signal: Luna + Nova mascots small/dimmed at the edge, OR a single sub-line: "Ivy is the first of your Krew." *(shipped the sub-line option)*
+- [x] Primary CTA: "Start with Ivy". Secondary: "Meet the crew" → scroll to 2.2.
+- [x] **Structural rule:** hero content comes from the registry's `live` agent — when Nova launches, the hero rotates by flipping registry state, not by rewriting the page. *(hero copy lives in content/agent-content.ts, keyed by slug)*
 
 ### 2.2 The Crew reveal — "Not another tool. A crew."
-- [ ] Immediately after the hero. Three mascots assemble into formation (Film 01 beat, simplified) → settle into the three `<AgentCard />`s (Image-1 layout).
-- [ ] Hover: mascot expression change + glow bloom. Ivy = LIVE → /agents/ivy. Luna = BETA → /agents/luna. Nova = SOON (dimmed, teaser).
-- [ ] This section is permanent brand layer; hero above it rotates with launch focus.
+- [x] Immediately after the hero. Three mascots assemble into formation (Film 01 beat, simplified) → settle into the three `<AgentCard />`s (Image-1 layout). *(cards assemble from a center stack; mascots ride inside)*
+- [x] Hover: mascot expression change + glow bloom. Ivy = LIVE → /agents/ivy. Luna = BETA → /agents/luna. Nova = SOON (dimmed, teaser). *(glow bloom + links/statuses done; expression swap still blocked on Mascot Lab expression exports)*
+- [x] This section is permanent brand layer; hero above it rotates with launch focus.
 
 ### 2.3 Ivy Spotlight (the new "main character" section)
 - [ ] **The wedge, stated plainly:** "Shopify says EGP 914,000. Your real number is EGP 660,000." Gross → returns → expenses → real net profit, animated as a collapsing number.
