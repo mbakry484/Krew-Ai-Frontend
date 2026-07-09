@@ -16,7 +16,7 @@
 
 ## PHASE 1 — Architecture: kill the hardcoding (½ day)
 
-- [ ] **`lib/agents.ts` registry** — single source of truth:
+- [x] **`lib/agents.ts` registry** — single source of truth:
   ```ts
   {
     slug: 'ivy',
@@ -31,11 +31,11 @@
     channels: ['Telegram', 'Bosta', 'Shopify'],
   }
   ```
-- [ ] **`<AgentMascot />`** — one component, props: `agent`, `size`, `expression`, `animated`. Reuses Mascot Lab SVG system. Idle float + subtle inner-glow breathing by default; respects `prefers-reduced-motion`.
-- [ ] **`<AgentStatusBadge />`** — LIVE (pulsing dot), BETA (accent outline), SOON (dimmed). Driven by registry.
-- [ ] **`<AgentCard />`** — the Image-1 style card (dark, radial accent glow, mascot centered, name + /role). Used on landing lineup + dashboard parity.
-- [ ] **Refactor nav + footer** to map over registry. Delete every hardcoded "Luna" nav string. "How It Works" copy becomes agent-agnostic ("How agents operate inside your business").
-- [ ] **Per-agent theme scope:** CSS variable scope (`[data-agent="ivy"]`) so any section can inherit an agent's accent without new CSS.
+- [x] **`<AgentMascot />`** — one component, props: `agent`, `size`, `expression`, `animated`. Reuses Mascot Lab SVG system. Idle float + subtle inner-glow breathing by default; respects `prefers-reduced-motion`. *(Only the idle pose is exported so far — expression variants still to come from Mascot Lab.)*
+- [x] **`<AgentStatusBadge />`** — LIVE (pulsing dot), BETA (accent outline), SOON (dimmed). Driven by registry.
+- [x] **`<AgentCard />`** — the Image-1 style card (dark, radial accent glow, mascot centered, name + /role). Used on landing lineup + dashboard parity.
+- [x] **Refactor nav + footer** to map over registry. Delete every hardcoded "Luna" nav string. "How It Works" copy becomes agent-agnostic ("How agents operate inside your business").
+- [x] **Per-agent theme scope:** CSS variable scope (`[data-agent="ivy"]`) so any section can inherit an agent's accent without new CSS.
 
 ---
 
@@ -74,8 +74,8 @@
 
 ### 2.6 Cleanup
 - [ ] Early-access CTA copy: "Start with Ivy. Scale with your Krew."
-- [ ] Footer blurb: kill "Starting with customer service." → "AI agents that run your brand's operations."
-- [ ] Footer agent links from registry.
+- [x] Footer blurb: kill "Starting with customer service." → "AI agents that run your brand's operations." *(done early, in Session 1's footer extraction)*
+- [x] Footer agent links from registry. *(done early, in Session 1's footer extraction)*
 
 ---
 
