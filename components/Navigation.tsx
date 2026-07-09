@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { isLoggedIn, logout } from '@/lib/auth';
+import { AGENTS, getLiveAgent } from '@/lib/agents';
+import AgentStatusBadge from './agents/AgentStatusBadge';
 import Button from './Button';
 
 // ─── Shared panel animation classes ──────────────────────────────────────────
@@ -149,40 +151,45 @@ export default function Navigation() {
                 <span className="text-[0.65rem] leading-none text-text-tertiary">+</span>
               </button>
 
-              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[500px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
-                <div className="grid grid-cols-2">
-                  <button
-                    onClick={() => { router.push('/agents/luna'); setHoveredMega(null); }}
-                    className="group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150 border-r border-border"
-                  >
-                    <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary group-hover:border-border-md mb-5 transition-colors duration-150">
-                      <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                      </svg>
-                    </div>
-                    <div className="flex items-center gap-2 mb-[0.35rem]">
-                      <div className="text-[0.82rem] font-semibold text-text-primary tracking-[-0.01em]">Luna</div>
-                      <span className="text-[0.5rem] uppercase tracking-[0.07em] px-[5px] py-[2px] rounded border border-[rgba(92,156,110,0.3)] text-[#5c9c6e]">Live</span>
-                    </div>
-                    <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
-                      Customer Operations Agent
-                    </div>
-                  </button>
+              <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[620px] bg-dropdown-bg border border-border rounded-2xl overflow-hidden shadow-xl z-[60] ${panelAnim} ${hoveredMega === 'agents' ? panelVisible : panelHidden}`}>
+                <div className="grid grid-cols-3">
+                  {AGENTS.map((agent, i) => {
+                    const tileIcon = (
+                      <div className={`w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary mb-5 transition-colors duration-150 ${agent.status !== 'soon' ? 'group-hover:border-border-md' : ''}`}>
+                        <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+                          <path d={agent.menuIconPath}/>
+                        </svg>
+                      </div>
+                    );
+                    const tileText = (
+                      <>
+                        <div className="flex items-center flex-wrap gap-2 mb-[0.35rem]">
+                          <div className="text-[0.82rem] font-semibold text-text-primary tracking-[-0.01em]">{agent.name}</div>
+                          <AgentStatusBadge agent={agent} />
+                        </div>
+                        <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
+                          {agent.role}
+                        </div>
+                      </>
+                    );
+                    const borderClass = i < AGENTS.length - 1 ? 'border-r border-border' : '';
 
-                  <div className="flex flex-col p-7 opacity-40 cursor-default select-none">
-                    <div className="w-[38px] h-[38px] rounded-[10px] bg-background3 border border-border flex items-center justify-center text-text-tertiary mb-5">
-                      <svg className="w-[17px] h-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                      </svg>
-                    </div>
-                    <div className="flex items-center gap-2 mb-[0.35rem]">
-                      <div className="text-[0.82rem] font-semibold text-text-primary tracking-[-0.01em]">Ivy</div>
-                      <span className="text-[0.5rem] uppercase tracking-[0.07em] px-[5px] py-[2px] rounded border border-border text-text-tertiary">Soon</span>
-                    </div>
-                    <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
-                      Financial Visibility
-                    </div>
-                  </div>
+                    return agent.status === 'soon' ? (
+                      <div key={agent.slug} className={`flex flex-col p-7 opacity-40 cursor-default select-none ${borderClass}`}>
+                        {tileIcon}
+                        {tileText}
+                      </div>
+                    ) : (
+                      <button
+                        key={agent.slug}
+                        onClick={() => { router.push(agent.href); setHoveredMega(null); }}
+                        className={`group flex flex-col p-7 text-left hover:bg-background3 transition-colors duration-150 ${borderClass}`}
+                      >
+                        {tileIcon}
+                        {tileText}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -238,7 +245,7 @@ export default function Navigation() {
                       How It Works
                     </div>
                     <div className="text-[0.68rem] text-text-secondary font-light leading-[1.6]">
-                      How Luna operates inside your business
+                      How agents operate inside your business
                     </div>
                   </button>
                 </div>
@@ -303,8 +310,9 @@ export default function Navigation() {
               <Button href="/auth/login" variant="secondary" size="sm">
                 Log in
               </Button>
+              {/* COPY.md NAV CTA — templated from the registry's live agent */}
               <Button href="/early-access" variant="primary" size="sm">
-                Get early access
+                Start with {getLiveAgent().name}
               </Button>
             </div>
           ) : (
@@ -406,15 +414,21 @@ export default function Navigation() {
           {/* Nav sections */}
           <div className="mb-[2px]">
             <div className="text-[0.57rem] uppercase tracking-[0.12em] text-text-tertiary px-3 pt-2 pb-1">Agents</div>
-            <button
-              onClick={() => { router.push('/agents/luna'); setMobileOpen(false); }}
-              className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
-            >
-              Luna — Customer Operations
-            </button>
-            <div className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary opacity-30 cursor-default select-none">
-              Ivy — Financial Visibility
-            </div>
+            {AGENTS.map((agent) =>
+              agent.status === 'soon' ? (
+                <div key={agent.slug} className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary opacity-30 cursor-default select-none">
+                  {agent.name} — {agent.role}
+                </div>
+              ) : (
+                <button
+                  key={agent.slug}
+                  onClick={() => { router.push(agent.href); setMobileOpen(false); }}
+                  className="w-full text-left px-3 py-[7px] rounded-[8px] text-[0.78rem] text-text-secondary hover:bg-background3 hover:text-text-primary transition-all duration-150"
+                >
+                  {agent.name} — {agent.role}
+                </button>
+              )
+            )}
           </div>
 
           <div className="mb-[2px]">
@@ -515,7 +529,7 @@ export default function Navigation() {
                 className="w-full"
                 onClick={() => setMobileOpen(false)}
               >
-                Get early access
+                Start with {getLiveAgent().name}
               </Button>
             </div>
           )}
