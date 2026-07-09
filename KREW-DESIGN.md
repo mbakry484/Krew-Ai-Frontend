@@ -58,6 +58,8 @@ Reference: `design-refs/aura-luna.png`, `aura-ivy.png`, `aura-nova.png`. Every a
 
 Rules: never a flat linear gradient, never full-saturation edge-to-edge color, noise is mandatory on every aura.
 
+Light theme (decided Session 2): the full aura recipe is dark-only. In light theme an agent-themed section shows only a soft `accent-soft` radial behind the mascot/subject — no dark slab, no new colors.
+
 ---
 
 ## 4. Mascots

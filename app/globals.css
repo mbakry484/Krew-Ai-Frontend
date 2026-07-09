@@ -1274,6 +1274,23 @@ select option:checked {
   mix-blend-mode: overlay;
 }
 
+/* ── Hero aura — §3 full recipe in dark theme only (KREW-DESIGN §3, "Light
+      theme" rule): light theme shows no dark slab; the agent presence comes
+      from .hero-mascot-glow, a soft accent-soft radial behind the mascot. ── */
+[data-theme='light'] .hero-aura {
+  display: none;
+}
+.hero-mascot-glow {
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, var(--agent-accent-soft), transparent 70%);
+  pointer-events: none;
+}
+[data-theme='dark'] .hero-mascot-glow {
+  display: none;
+}
+
 /* ── Agent card (design-refs/MASCOTS.png) — dark card, aura, mascot centered,
       name + /role. Content sits above the aura layer. ── */
 .agent-card {
