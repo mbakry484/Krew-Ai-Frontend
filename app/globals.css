@@ -1276,7 +1276,19 @@ select option:checked {
 
 /* ── Hero aura — §3 full recipe in dark theme only (KREW-DESIGN §3, "Light
       theme" rule): light theme shows no dark slab; the agent presence comes
-      from .hero-mascot-glow, a soft accent-soft radial behind the mascot. ── */
+      from .hero-mascot-glow, a soft accent-soft radial behind the mascot.
+      Unlike the card aura, the hero variant drops the boxed vignette (it read
+      as a hard seam against the page) and instead fades out at the bottom so
+      the backdrop melts into --bg-base; the hero pulls it up behind the
+      floating navbar with -mt-20/pt-20. ── */
+.hero-aura {
+  background:
+    radial-gradient(ellipse 80% 70% at 30% 35%, var(--agent-aura-core-a35), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 85% 90%, var(--agent-aura-bleed-a20), transparent 70%),
+    #0A0A0A;
+  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+}
 [data-theme='light'] .hero-aura {
   display: none;
 }

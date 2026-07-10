@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getLiveAgent } from '@/lib/agents';
 import { getHeroCopy } from '@/content/agent-content';
-import AgentMascot from '@/components/agents/AgentMascot';
+import HeroStage from '@/components/landing/HeroStage';
 import Button from '@/components/Button';
 
 // =============================================================================
@@ -43,7 +43,9 @@ export default function Hero() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="relative flex-1 flex" data-agent={agent.slug}>
+      {/* -mt-20/pt-20 pulls the aura up behind the floating navbar so there is
+          no seam between the page top and the hero backdrop */}
+      <div className="relative flex-1 flex -mt-20 pt-20" data-agent={agent.slug}>
         {/* §3 aura — dark theme only; hidden in light via .hero-aura rules */}
         <div className="krew-aura hero-aura" aria-hidden="true" />
 
@@ -91,15 +93,18 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT — the live agent, alive in the frame (idle float + glow
-              breathing + blink come from AgentMascot's defaults) */}
+          {/* RIGHT — the stage: the live agent at work (Telegram thread
+              driving the dashboard mock; mascot lives in the chat header) */}
           <div
             className={`hero-right ${ready ? 'hero-blur-in-slow' : ''} flex items-center justify-center py-6`}
             style={at(100)}
           >
-            <div className="relative flex items-center justify-center">
+            <div className="relative w-full flex items-center justify-center">
+              {/* light-theme agent presence (KREW-DESIGN §3 light rule) */}
               <div className="hero-mascot-glow" aria-hidden="true" />
-              <AgentMascot agent={agent} size={300} className="relative z-[1]" />
+              <div className="relative z-[1] w-full">
+                <HeroStage agent={agent} />
+              </div>
             </div>
           </div>
         </div>
@@ -134,10 +139,6 @@ export default function Hero() {
           .hero-grid { padding: 0 1.2rem; gap: 0; }
           .hero-left { padding: 2.5rem 0 2rem; }
           .hero-right { padding: 0 0 2.5rem; }
-          .hero-right :global(.agent-mascot) {
-            width: 220px !important;
-            height: 220px !important;
-          }
         }
 
         .stats-strip-grid {
