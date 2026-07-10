@@ -9,8 +9,8 @@ import AgentCard from '@/components/agents/AgentCard';
 // =============================================================================
 // CREW REVEAL (Phase 2.2) — the permanent brand layer directly under the
 // rotating hero. Strings verbatim from content/COPY.md "Crew reveal"; the
-// three cards render straight from the registry (Ivy LIVE → link, Luna BETA →
-// link, Nova SOON → dimmed, all handled inside AgentCard).
+// three cards render straight from the registry (live/beta → link, soon →
+// dimmed teaser, all handled inside AgentCard).
 //
 // The assemble is this page's single hero-grade animated moment (KREW-DESIGN
 // §5): the cards fade in stacked on the center slot, hold a beat, then the
