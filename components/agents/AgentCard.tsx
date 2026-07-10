@@ -24,7 +24,12 @@ export default function AgentCard({
 
   const inner = (
     <>
-      <div className="krew-aura" aria-hidden="true" />
+      {/* §3 v2 (a): the designed aura texture itself — grain baked in */}
+      <div
+        className="agent-card-aura"
+        style={{ backgroundImage: `url(${agent.auraTexture})` }}
+        aria-hidden="true"
+      />
       <div className="agent-card-content">
         <div className="flex w-full items-start justify-between gap-4">
           <p className="agent-card-copy">{agent.oneLiner}</p>

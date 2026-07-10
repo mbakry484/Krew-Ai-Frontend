@@ -55,6 +55,12 @@ export interface Agent {
   channels: string[];
   /** SVG path (24×24 stroke icon) for the nav mega-menu tile. */
   menuIconPath: string;
+  /**
+   * KREW-DESIGN §3 v2 implementation (a): the designed aura as a texture
+   * asset (WebP of design-refs/aura-*.png) — card backgrounds use this,
+   * never a generated gradient.
+   */
+  auraTexture: string;
 }
 
 /** Ordered for display: live agent leads the lineup. */
@@ -78,6 +84,7 @@ export const AGENTS: readonly Agent[] = [
     channels: ['Telegram', 'Bosta', 'Shopify'],
     menuIconPath:
       'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+    auraTexture: '/textures/aura-ivy.webp',
   },
   {
     slug: 'luna',
@@ -98,6 +105,7 @@ export const AGENTS: readonly Agent[] = [
     channels: ['Instagram', 'WhatsApp', 'Shopify'],
     menuIconPath:
       'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
+    auraTexture: '/textures/aura-luna.webp',
   },
   {
     slug: 'nova',
@@ -117,6 +125,7 @@ export const AGENTS: readonly Agent[] = [
     href: '/agents/nova',
     channels: [],
     menuIconPath: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6M23 6v6',
+    auraTexture: '/textures/aura-nova.webp',
   },
 ];
 
