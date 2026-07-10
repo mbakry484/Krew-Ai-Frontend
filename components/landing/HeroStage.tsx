@@ -166,7 +166,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
               <p className="text-[0.5rem] text-text-secondary leading-[1.55] mt-[0.4rem] font-light">{dashboard.returnRate.line}</p>
             </div>
 
-            {/* WHAT IVY LOGGED — fills up as the ticks land */}
+            {/* logged-activity panel — fills up as the ticks land */}
             <div className="rounded-[12px] border border-border bg-background p-[0.7rem] min-w-0 flex flex-col">
               <div className="text-[0.5rem] uppercase tracking-[0.14em] text-text-tertiary mb-[0.45rem]">{dashboard.loggedTitle}</div>
               {loggedRows.length === 0 ? (
