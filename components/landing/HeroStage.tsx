@@ -52,7 +52,9 @@ const TIMELINE: { at: number; patch: Partial<StageState> }[] = [
 ];
 const CYCLE_S = 34; // 29s active + 5s rest
 
-const EGP = (v: number) => `EGP ${Math.round(v).toLocaleString('en-US')}`;
+// NBSP glue so money figures never wrap mid-figure at any width
+const NBSP = String.fromCharCode(0xa0);
+const EGP = (v: number) => `EGP${NBSP}${Math.round(v).toLocaleString('en-US')}`;
 
 /** Animates toward `value` with a short rAF count; snaps under reduced motion. */
 function TickNumber({ value, instant }: { value: number; instant: boolean }) {
@@ -114,6 +116,22 @@ export default function HeroStage({ agent }: { agent: Agent }) {
 
   return (
     <div className="hs-stage relative w-full" aria-hidden="true">
+
+      {/* ── MOBILE (≤768px): live stat strip — the dashboard sync, compressed.
+            Ticks on every "Logged ✓" exactly like the desktop mock. ── */}
+      <div className="hs-strip relative rounded-[14px] border border-border bg-background2 overflow-hidden" data-agent={agent.slug}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 70% 130% at 78% 0%, var(--agent-accent-soft), transparent 70%)' }} />
+        {state.ticks > 0 && <div key={state.ticks} className="hs-strip-flash absolute inset-0 pointer-events-none" />}
+        <div className={`hs-fade relative p-[0.9rem] ${fade}`}>
+          <div className="text-[0.55rem] uppercase tracking-[0.14em] text-text-tertiary mb-[0.35rem]">{dashboard.profitLabel}</div>
+          <div className="text-[1.5rem] font-light tracking-[-0.03em] text-text-primary leading-none">
+            <TickNumber value={profit} instant={!!reduce} />
+          </div>
+          <div className="text-[0.62rem] text-text-tertiary mt-[0.45rem]">
+            net revenue {EGP(dashboard.netRevenue)} − expenses <TickNumber value={expenses} instant={!!reduce} />
+          </div>
+        </div>
+      </div>
 
       {/* ── BACK: the agent's dashboard (mirrors the real overview page) ── */}
       <div className="hs-desk absolute bg-background2 border border-border-md rounded-[16px] overflow-hidden flex">
@@ -192,29 +210,33 @@ export default function HeroStage({ agent }: { agent: Agent }) {
       <div className="hs-phone absolute bottom-0 left-0 z-[3] rounded-[26px] overflow-hidden bg-background border border-border-md w-[236px]">
         {/* header */}
         <div className="flex items-center gap-[0.5rem] px-[0.7rem] py-[0.55rem] border-b border-border bg-background2">
-          <svg className="w-[13px] h-[13px] text-text-secondary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          <svg className="hs-back w-[13px] h-[13px] text-text-secondary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           <span className="hs-avatar shrink-0"><AgentMascot agent={agent} size={26} /></span>
           <div className="flex-1 min-w-0">
-            <div className="text-[0.66rem] font-semibold text-text-primary leading-tight">{agent.name}</div>
-            <div className="text-[0.5rem] text-text-tertiary">online</div>
+            <div className="text-[length:var(--hs-name-fs)] font-semibold text-text-primary leading-tight">{agent.name}</div>
+            <div className="text-[length:var(--hs-sub-fs)] text-text-tertiary">online</div>
           </div>
         </div>
 
         {/* thread — bottom-anchored; older messages clip above */}
-        <div className={`hs-fade h-[330px] px-[0.6rem] py-[0.6rem] flex flex-col justify-end gap-[0.4rem] overflow-hidden ${fade}`} data-agent={agent.slug}>
+        <div className={`hs-fade hs-thread flex flex-col justify-end overflow-hidden ${fade}`} data-agent={agent.slug}>
           {script.chat.slice(0, state.shown).map((item, idx) => {
             switch (item.kind) {
               case 'photo':
                 return (
                   <div key={idx} className="hs-in self-end">
                     <div className="hs-bubble-user rounded-[12px] rounded-br-[4px] p-[4px]">
-                      {/* receipt attachment mock */}
-                      <div className="w-[108px] h-[76px] rounded-[9px] bg-background3 border border-border relative overflow-hidden">
-                        <div className="absolute left-[10px] right-[34px] top-[12px] h-[3px] rounded bg-border-md" />
-                        <div className="absolute left-[10px] right-[20px] top-[24px] h-[3px] rounded bg-border" />
-                        <div className="absolute left-[10px] right-[44px] top-[36px] h-[3px] rounded bg-border" />
-                        <div className="absolute left-[10px] right-[28px] top-[48px] h-[3px] rounded bg-border" />
-                        <div className="absolute right-[8px] bottom-[6px] text-[0.6rem]">📄</div>
+                      {/* receipt thumbnail: white paper, faint print lines,
+                          dashed divider, darker total row */}
+                      <div className="hs-receipt relative overflow-hidden rounded-[9px]" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.10)' }}>
+                        <div className="absolute left-[9%] top-[10%] h-[4px] w-[42%] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.32)' }} />
+                        <div className="absolute left-[9%] right-[16%] top-[27%] h-[3px] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.13)' }} />
+                        <div className="absolute left-[9%] right-[32%] top-[38%] h-[3px] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.13)' }} />
+                        <div className="absolute left-[9%] right-[22%] top-[49%] h-[3px] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.13)' }} />
+                        <div className="absolute left-[9%] right-[38%] top-[60%] h-[3px] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.13)' }} />
+                        <div className="absolute left-[9%] right-[9%] top-[73%]" style={{ borderTop: '1px dashed rgba(0,0,0,0.22)' }} />
+                        <div className="absolute left-[9%] bottom-[9%] h-[5px] w-[28%] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.40)' }} />
+                        <div className="absolute right-[9%] bottom-[9%] h-[5px] w-[32%] rounded-[2px]" style={{ background: 'rgba(0,0,0,0.48)' }} />
                       </div>
                     </div>
                   </div>
@@ -222,7 +244,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
               case 'agent':
                 return (
                   <div key={idx} className="hs-in self-start max-w-[85%]">
-                    <div className="hs-bubble-agent rounded-[12px] rounded-bl-[4px] px-[0.55rem] py-[0.4rem] text-[0.58rem] leading-[1.5] text-text-primary">
+                    <div className="hs-bubble-agent rounded-[12px] rounded-bl-[4px] px-[0.55rem] py-[0.4rem] text-[length:var(--hs-msg-fs)] leading-[1.5] text-text-primary">
                       {item.text}
                     </div>
                     {item.chips && (
@@ -238,7 +260,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
                                   : 'hs-chip hs-chip-chosen'
                                 : 'hs-chip hs-chip-dimmed';
                           return (
-                            <span key={chip} className={`${cls} flex-1 text-center rounded-[8px] px-[0.4rem] py-[0.3rem] text-[0.54rem] whitespace-nowrap`}>
+                            <span key={chip} className={`${cls} flex-1 text-center rounded-[8px] px-[0.4rem] py-[0.3rem] text-[length:var(--hs-chip-fs)] whitespace-nowrap`}>
                               {chip}
                             </span>
                           );
@@ -260,9 +282,9 @@ export default function HeroStage({ agent }: { agent: Agent }) {
                             <span key={wi} className="w-[2px] rounded-full" style={{ height: h, background: 'var(--agent-accent)', opacity: 0.75 }} />
                           ))}
                         </span>
-                        <span className="text-[0.5rem] text-text-tertiary tabular-nums">{item.duration}</span>
+                        <span className="text-[length:var(--hs-sub-fs)] text-text-tertiary tabular-nums">{item.duration}</span>
                       </div>
-                      <div className="text-[0.56rem] leading-[1.5] text-text-secondary mt-[0.3rem]" dir="rtl" lang="ar">
+                      <div className="text-[length:var(--hs-msg-fs)] leading-[1.5] text-text-secondary mt-[0.3rem]" dir="rtl" lang="ar">
                         {item.transcript}
                       </div>
                     </div>
@@ -272,7 +294,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
                 return (
                   <div key={idx} className="hs-in self-end max-w-[85%]">
                     <div
-                      className="hs-bubble-user rounded-[12px] rounded-br-[4px] px-[0.55rem] py-[0.4rem] text-[0.58rem] leading-[1.5] text-text-primary"
+                      className="hs-bubble-user rounded-[12px] rounded-br-[4px] px-[0.55rem] py-[0.4rem] text-[length:var(--hs-msg-fs)] leading-[1.5] text-text-primary"
                       dir={item.rtl ? 'rtl' : undefined}
                       lang={item.rtl ? 'ar' : undefined}
                     >
@@ -285,7 +307,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
                   <div key={idx} className="hs-in self-start max-w-[92%]">
                     <div className="hs-bubble-agent rounded-[12px] rounded-bl-[4px] px-[0.6rem] py-[0.5rem] flex flex-col gap-[0.35rem]">
                       {item.lines.map((line, li) => (
-                        <div key={li} className="hs-line text-[0.56rem] leading-[1.55] text-text-primary" style={{ animationDelay: `${li * 0.45}s` }}>
+                        <div key={li} className="hs-line text-[length:var(--hs-msg-fs)] leading-[1.55] text-text-primary" style={{ animationDelay: `${li * 0.45}s` }}>
                           {line}
                         </div>
                       ))}
@@ -304,8 +326,8 @@ export default function HeroStage({ agent }: { agent: Agent }) {
           )}
         </div>
 
-        {/* input bar */}
-        <div className="flex items-center gap-[0.45rem] px-[0.6rem] py-[0.5rem] border-t border-border bg-background2">
+        {/* input bar — device chrome, hidden on mobile */}
+        <div className="hs-input flex items-center gap-[0.45rem] px-[0.6rem] py-[0.5rem] border-t border-border bg-background2">
           <svg className="w-[14px] h-[14px] text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
           <div className="flex-1 rounded-[14px] border border-border px-[0.55rem] py-[0.25rem] text-[0.54rem] text-text-tertiary">Message</div>
           <svg className="w-[14px] h-[14px] text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
@@ -325,6 +347,32 @@ export default function HeroStage({ agent }: { agent: Agent }) {
         }
         .hs-phone {
           box-shadow: 0 22px 48px rgba(0, 0, 0, 0.2);
+          /* chat type scale — bumped on mobile */
+          --hs-msg-fs: 0.58rem;
+          --hs-chip-fs: 0.54rem;
+          --hs-sub-fs: 0.5rem;
+          --hs-name-fs: 0.66rem;
+        }
+        .hs-thread {
+          height: 330px;
+          padding: 0.6rem;
+          gap: 0.4rem;
+        }
+        .hs-receipt {
+          width: 112px;
+          height: 82px;
+        }
+        /* mobile live stat strip — desktop uses the full dashboard mock */
+        .hs-strip {
+          display: none;
+        }
+        .hs-strip-flash {
+          background: var(--agent-accent-soft);
+          animation: hsStripFlash 1s ease both;
+        }
+        @keyframes hsStripFlash {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
         }
         /* avatar: keep glow breathing + blink, kill the float (too big at 26px) */
         .hs-avatar :global(.agent-mascot svg) {
@@ -388,7 +436,7 @@ export default function HeroStage({ agent }: { agent: Agent }) {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .hs-in, .hs-line, .hs-row {
+          .hs-in, .hs-line, .hs-row, .hs-strip-flash {
             animation: none;
           }
           .hs-fade {
@@ -396,24 +444,52 @@ export default function HeroStage({ agent }: { agent: Agent }) {
           }
         }
 
-        /* one-column hero: stage centered under the copy */
+        /* one-column hero (tablet): stage centered under the copy, same
+           desktop composition */
         @media (max-width: 900px) {
           .hs-stage {
             max-width: 560px;
             margin: 0 auto;
           }
         }
-        /* small screens: phone only, static */
-        @media (max-width: 640px) {
+
+        /* ── MOBILE (≤768px): structural variant — stat strip + full-bleed
+              chat panel; no device bezel, no fake chrome ── */
+        @media (max-width: 768px) {
           .hs-stage {
             height: auto;
+            max-width: none;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            gap: 0.8rem;
           }
           .hs-desk { display: none; }
+          .hs-strip { display: block; }
           .hs-phone {
             position: static;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: none;
+            --hs-msg-fs: 0.8rem;
+            --hs-chip-fs: 0.74rem;
+            --hs-sub-fs: 0.62rem;
+            --hs-name-fs: 0.85rem;
           }
+          .hs-thread {
+            /* grows with the conversation like a real chat — compact at the
+               first message, capped at ~440px, always bottom-anchored; never
+               a tall empty panel early in the loop */
+            height: auto;
+            min-height: 220px;
+            max-height: 440px;
+            padding: 0.85rem;
+            gap: 0.55rem;
+          }
+          .hs-receipt {
+            width: 148px;
+            height: 104px;
+          }
+          .hs-back, .hs-input { display: none; }
         }
       `}</style>
     </div>

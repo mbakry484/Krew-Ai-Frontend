@@ -41,6 +41,11 @@ export default function Hero() {
     animationDelay: `${delayMs}ms`,
   });
 
+  // Typography, not copy: glue money figures ("EGP 914,000.") to a single
+  // unbreakable unit so headlines never wrap mid-figure. Config strings stay
+  // byte-identical to COPY.md.
+  const nbspMoney = (s: string) => s.replace(/EGP (?=\d)/g, 'EGP\u00A0');
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* -mt-20/pt-20 pulls the aura up behind the floating navbar so there is
@@ -61,12 +66,12 @@ export default function Hero() {
             </div>
 
             <h1
-              className={`${ready ? 'hero-blur-in' : ''} text-[clamp(2.6rem,4.6vw,4.3rem)] tracking-[-0.03em] leading-[1.02] mb-[var(--space-hero-headline)]`}
+              className={`${ready ? 'hero-blur-in' : ''} hero-headline mb-[var(--space-hero-headline)]`}
               style={at(80)}
             >
-              <span className="font-light text-text-secondary">{copy.headline}</span>
+              <span className="font-light text-text-secondary">{nbspMoney(copy.headline)}</span>
               <br />
-              <span className="font-normal text-text-primary">{copy.headlineEmphasis}</span>
+              <span className="font-normal text-text-primary">{nbspMoney(copy.headlineEmphasis)}</span>
             </h1>
 
             <p
@@ -131,13 +136,27 @@ export default function Hero() {
         .hero-grid {
           grid-template-columns: 52% 48%;
         }
+        .hero-headline {
+          font-size: clamp(2.6rem, 4.6vw, 4.3rem);
+          letter-spacing: -0.03em;
+          line-height: 1.02;
+        }
         @media (max-width: 900px) {
           .hero-grid { grid-template-columns: 1fr; }
           .hero-right { padding: 0 0 2.5rem; }
         }
+        /* ── Mobile hero: tighter statement type; the stage below restructures
+              itself (strip + full-bleed chat) inside HeroStage ── */
+        @media (max-width: 768px) {
+          .hero-headline {
+            font-size: 1.85rem;
+            letter-spacing: -0.02em;
+            line-height: 1.12;
+          }
+          .hero-left { padding: 2.5rem 0 1.6rem; }
+        }
         @media (max-width: 640px) {
           .hero-grid { padding: 0 1.2rem; gap: 0; }
-          .hero-left { padding: 2.5rem 0 2rem; }
           .hero-right { padding: 0 0 2.5rem; }
         }
 
