@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useInView, useReducedMotion } from 'motion/react';
 import { getLiveAgent } from '@/lib/agents';
 import { getSpotlightContent } from '@/content/agent-content';
+import AgentMascot from '@/components/agents/AgentMascot';
 import Button from '@/components/Button';
 
 // =============================================================================
@@ -338,37 +339,57 @@ function Reveal({
   );
 }
 
+// Telegram brand mark — a channel logo, same brand-color idiom as the existing
+// integrations strip (KREW-DESIGN allows brand marks; agent accent is untouched).
+function TelegramGlyph({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="12" fill="#229ED9" />
+      <path
+        fill="#fff"
+        d="M5.6 11.8l11-4.25c.51-.19.96.12.79.9l-1.87 8.82c-.13.6-.5.74-1 .46l-2.77-2.04-1.33 1.28c-.15.15-.28.28-.56.28l.2-2.85 5.16-4.66c.22-.2-.05-.31-.35-.11l-6.38 4.02-2.75-.86c-.6-.19-.61-.6.12-.89z"
+      />
+    </svg>
+  );
+}
+
 export default function SpotlightSection() {
   const agent = getLiveAgent();
   const content = getSpotlightContent(agent.slug);
   const reduce = !!useReducedMotion();
 
+  // Split the reply on its own separator so the teammate attribution can carry
+  // the accent — substrings only, byte-identical to the COPY.md string.
+  const [replyMain, replyAttr] = content.telegram.reply.split(' · ');
+
   return (
     <section className="spotlight border-t border-border" data-agent={agent.slug}>
       <div className="spotlight-inner">
 
-        {/* Header */}
-        <Reveal className="text-center max-w-[620px] mx-auto">
-          <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">
-            {agent.name} — {agent.role}
-          </div>
-          <h2 className="text-[clamp(1.4rem,3.2vw,2.1rem)] font-light tracking-[-0.025em] leading-[1.2] text-text-primary mb-[1.1rem]">
-            {content.headline}
-          </h2>
-          <p className="text-[0.82rem] text-text-secondary leading-[1.8] font-light max-w-[440px] mx-auto">
-            {content.sub}
-          </p>
-        </Reveal>
+        {/* ── TRUTH beat — headline flows straight into the collapsing number ── */}
+        <div className="beat">
+          <Reveal className="text-center max-w-[620px] mx-auto">
+            <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[1.4rem]">
+              {agent.name} — {agent.role}
+            </div>
+            <h2 className="text-[clamp(1.4rem,3.2vw,2.1rem)] font-light tracking-[-0.025em] leading-[1.2] text-text-primary mb-[1.1rem]">
+              {content.headline}
+            </h2>
+            <p className="text-[0.82rem] text-text-secondary leading-[1.8] font-light max-w-[440px] mx-auto">
+              {content.sub}
+            </p>
+          </Reveal>
 
-        {/* The truth beat — collapsing number + return dial */}
-        <Reveal className="truth-grid" delay={80}>
-          <Wedge wedge={content.wedge} reduce={reduce} />
-          <div className="truth-divider" aria-hidden="true" />
-          <ReturnDial returns={content.returns} reduce={reduce} />
-        </Reveal>
+          <Reveal className="truth-grid" delay={80}>
+            <Wedge wedge={content.wedge} reduce={reduce} />
+            <div className="truth-divider" aria-hidden="true" />
+            <ReturnDial returns={content.returns} reduce={reduce} />
+          </Reveal>
+        </div>
 
-        {/* Short multi-user Telegram recap */}
-        <div className="recap">
+        {/* ── CHAT beat — a real Telegram window; a teammate logs, the agent
+              confirms and attributes the spend to them ── */}
+        <div className="beat">
           <Reveal className="text-center max-w-[500px] mx-auto">
             <h3 className="text-[clamp(1.2rem,2.6vw,1.65rem)] font-light tracking-[-0.02em] leading-[1.25] text-text-primary mb-[0.9rem]">
               {content.telegram.headline}
@@ -378,22 +399,74 @@ export default function SpotlightSection() {
             </p>
           </Reveal>
 
-          <Reveal className="recap-card" delay={120}>
-            <div className="recap-msg recap-staff">
-              <span className="recap-badge">{content.telegram.staffBadge}</span>
-              <span className="recap-bubble recap-bubble-user" dir="rtl" lang="ar">
-                {content.telegram.staffText}
+          <Reveal className="chat-wrap" delay={120}>
+            {/* channel tag, tied to the window by a short line — where it lives */}
+            <div className="chat-channel">
+              <span className="chat-channel-chip">
+                <TelegramGlyph size={12} />
+                Telegram
               </span>
+              <span className="chat-channel-line" aria-hidden="true" />
             </div>
-            <div className="recap-msg recap-agent">
-              <span className="recap-bubble recap-bubble-agent">
-                {content.telegram.reply}
-              </span>
+
+            <div className="chat">
+              <div className="chat-head">
+                <span className="chat-ava">
+                  <AgentMascot agent={agent} size={30} />
+                </span>
+                <div className="chat-id">
+                  <div className="chat-name">{agent.name}</div>
+                  <div className="chat-status">
+                    <span className="chat-status-dot" />
+                    online
+                  </div>
+                </div>
+              </div>
+
+              <div className="chat-body">
+                {/* a teammate logs — clearly a different person, with a role */}
+                <div className="cmsg">
+                  <span className="cmsg-ava cmsg-ava-staff">O</span>
+                  <div className="cmsg-main">
+                    <div className="cmsg-meta">
+                      <span className="cmsg-name">Omar</span>
+                      <span className="cmsg-badge">{content.telegram.staffBadge}</span>
+                    </div>
+                    <div className="cbubble cbubble-in" dir="rtl" lang="ar">
+                      {content.telegram.staffText}
+                    </div>
+                  </div>
+                </div>
+
+                {/* the agent confirms and attributes the spend to the teammate */}
+                <div className="cmsg">
+                  <span className="cmsg-ava">
+                    <AgentMascot agent={agent} size={22} animated={false} />
+                  </span>
+                  <div className="cmsg-main">
+                    <div className="cbubble cbubble-agent">
+                      {replyMain}
+                      {replyAttr && <span className="cbubble-attr"> · {replyAttr}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* input bar — the chrome that says "this is a chat app" */}
+              <div className="chat-input">
+                <svg className="chat-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                </svg>
+                <span className="chat-input-field">Message</span>
+                <svg className="chat-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                </svg>
+              </div>
             </div>
           </Reveal>
         </div>
 
-        {/* Closer */}
+        {/* ── CLOSER ── */}
         <Reveal className="text-center">
           <p className="text-[clamp(1.1rem,2.4vw,1.5rem)] font-light tracking-[-0.02em] leading-[1.35] text-text-primary max-w-[440px] mx-auto mb-8">
             {content.peek.line}
@@ -409,27 +482,28 @@ export default function SpotlightSection() {
       <style jsx>{`
         .spotlight {
           background: var(--bg);
-          padding: 11rem 2rem;
+          padding: 8rem 2rem;
         }
         .spotlight-inner {
           max-width: 1040px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 11rem;
-        }
-
-        /* Recap block — headline + card stacked with breathing room */
-        .recap {
-          display: flex;
-          flex-direction: column;
-          gap: 3.5rem;
+          gap: 7.5rem;
         }
       `}</style>
 
-      {/* layout styles that must reach the Reveal wrappers (global, scoped by
-          the .spotlight ancestor) */}
+      {/* layout + chat styles, scoped by the .spotlight ancestor so they reach
+          the Reveal wrappers (rendered by a child component) */}
       <style jsx global>{`
+        /* a beat groups a header with its visual, tightly — so nothing floats */
+        .spotlight .beat {
+          display: flex;
+          flex-direction: column;
+          gap: 3.25rem;
+        }
+
+        /* truth: number dominant, dial supporting */
         .spotlight .truth-grid {
           display: grid;
           grid-template-columns: 1.5fr 1px 1fr;
@@ -444,69 +518,181 @@ export default function SpotlightSection() {
           background: var(--border);
           width: 1px;
         }
-        .spotlight .recap-card {
+
+        /* ── Telegram chat window ── */
+        .spotlight .chat-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+        }
+        .spotlight .chat-channel {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .spotlight .chat-channel-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 5px 11px;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          background: var(--bg2);
+          font-size: 0.62rem;
+          font-weight: 500;
+          color: var(--text-secondary);
+        }
+        .spotlight .chat-channel-line {
+          width: 1px;
+          height: 26px;
+          background: linear-gradient(to bottom, var(--border), transparent);
+        }
+        .spotlight .chat {
           width: 100%;
           max-width: 440px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 0.85rem;
-          padding: 1.6rem 1.5rem;
-          border: 1px solid var(--border);
-          border-radius: 16px;
+          border: 1px solid var(--border-md);
+          border-radius: 18px;
           background: var(--bg2);
+          overflow: hidden;
+          box-shadow: 0 22px 48px rgba(0, 0, 0, 0.22);
         }
-        .spotlight .recap-msg {
+        .spotlight .chat-head {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          padding: 0.7rem 0.85rem;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg);
+        }
+        .spotlight .chat-name {
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          line-height: 1.15;
+        }
+        .spotlight .chat-status {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.6rem;
+          color: var(--text-tertiary);
+        }
+        .spotlight .chat-status-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #3dbb77;
+        }
+        .spotlight .chat-body {
           display: flex;
           flex-direction: column;
-          gap: 0.4rem;
-          max-width: 84%;
+          gap: 1rem;
+          padding: 1.2rem 1rem;
         }
-        .spotlight .recap-staff {
-          align-self: flex-end;
-          align-items: flex-end;
-        }
-        .spotlight .recap-agent {
-          align-self: flex-start;
+        .spotlight .cmsg {
+          display: flex;
           align-items: flex-start;
+          gap: 0.6rem;
+          max-width: 90%;
         }
-        .spotlight .recap-badge {
-          font-size: 0.5rem;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--text-tertiary);
+        .spotlight .cmsg-ava {
+          flex-shrink: 0;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .spotlight .cmsg-ava-staff {
+          background: var(--bg3);
           border: 1px solid var(--border);
-          border-radius: 4px;
-          padding: 2px 6px;
+          font-size: 0.62rem;
+          font-weight: 600;
+          color: var(--text-secondary);
         }
-        .spotlight .recap-bubble {
+        .spotlight .cmsg-main {
+          min-width: 0;
+        }
+        .spotlight .cmsg-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          margin-bottom: 0.35rem;
+        }
+        .spotlight .cmsg-name {
+          font-size: 0.66rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .spotlight .cmsg-badge {
+          font-size: 0.48rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--agent-accent);
+          border: 1px solid var(--agent-accent);
+          border-radius: 4px;
+          padding: 1px 5px;
+          opacity: 0.85;
+        }
+        .spotlight .cbubble {
           font-size: 0.78rem;
           font-weight: 300;
           line-height: 1.55;
-          padding: 0.55rem 0.75rem;
-          border-radius: 14px;
-        }
-        .spotlight .recap-bubble-user {
-          background: var(--agent-accent-soft);
+          padding: 0.5rem 0.72rem;
+          border-radius: 13px;
           color: var(--text-primary);
-          border-bottom-right-radius: 5px;
         }
-        .spotlight .recap-bubble-agent {
+        .spotlight .cbubble-in {
           background: var(--bg3);
-          color: var(--text-primary);
-          border-bottom-left-radius: 5px;
+          border-top-left-radius: 4px;
+        }
+        .spotlight .cbubble-agent {
+          background: var(--agent-accent-soft);
+          border-top-left-radius: 4px;
+        }
+        .spotlight .cbubble-attr {
+          color: var(--agent-accent);
+          white-space: nowrap;
+        }
+        .spotlight .chat-input {
+          display: flex;
+          align-items: center;
+          gap: 0.55rem;
+          padding: 0.6rem 0.85rem;
+          border-top: 1px solid var(--border);
+          background: var(--bg);
+        }
+        .spotlight .chat-input-icon {
+          width: 15px;
+          height: 15px;
+          color: var(--text-tertiary);
+          flex-shrink: 0;
+        }
+        .spotlight .chat-input-field {
+          flex: 1;
+          padding: 0.32rem 0.7rem;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          font-size: 0.66rem;
+          color: var(--text-tertiary);
         }
 
         @media (max-width: 820px) {
           .spotlight {
-            padding: 7rem 1.4rem;
+            padding: 6rem 1.4rem;
           }
           .spotlight-inner {
-            gap: 7rem;
+            gap: 6rem;
+          }
+          .spotlight .beat {
+            gap: 2.75rem;
           }
           .spotlight .truth-grid {
             grid-template-columns: 1fr;
-            gap: 3.5rem;
+            gap: 3.25rem;
             max-width: 420px;
           }
           .spotlight .truth-divider {
