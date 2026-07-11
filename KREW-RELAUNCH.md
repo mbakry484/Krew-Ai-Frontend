@@ -66,14 +66,14 @@
 - [x] Mini dashboard peek + CTA. *(shipped as a clean closing beat — the approved line + "Start with Ivy" CTA; the full rebuilt dashboard mock lives in the hero, not duplicated here, per the flow decision 2026-07-11)*
 
 ### 2.4 Luna section — reframed as beta
-- [ ] Compress the current Luna content (features reel + overnight inbox) into ONE tight section: "Luna — Customer Operations. In beta." Keep the best asset (the multilingual overnight inbox wall — it's strong), cut the 4-step how-it-works from the homepage (move to /agents/luna).
-- [ ] CTA: "Join Luna beta."
+- [x] Compress the current Luna content into ONE tight section rendered from the registry's **beta agent** (`getBetaAgent()`): eyebrow `{name} — {role}` + BETA badge, the multilingual overnight-inbox wall kept as the visual (reframed `ReliefSection` → `BetaAgentSection`), approved headline/sub. Features reel + 4-step how-it-works cut from the homepage and **parked** as unmounted components (`FeaturesSection`, `HowItWorksSection`) for /agents/luna in Session 5.
+- [x] CTA: "Request invite" (per LOCKED decision #3 — invite-only, not "Join beta").
 
 ### 2.5 The Crew thesis section
-- [ ] Short manifesto beat: agents share context, one operation. "Luna hears what customers say. Ivy knows what it costs. Nova will know what converts." Ties to Our Vision page.
+- [x] Short manifesto beat: "One operation. Shared context." + the crew body — `CrewThesisSection`, copy from `content/landing-copy.ts`.
 
 ### 2.6 Cleanup
-- [ ] Early-access CTA copy: "Start with Ivy. Scale with your Krew."
+- [x] Early-access CTA copy: "Start with Ivy. Scale with your Krew." — `ClosingCtaSection`, agent names interpolated from the registry (rotates).
 - [x] Footer blurb: kill "Starting with customer service." → "AI agents that run your brand's operations." *(done early, in Session 1's footer extraction)*
 - [x] Footer agent links from registry. *(done early, in Session 1's footer extraction)*
 
@@ -188,7 +188,7 @@
 | 1 | `feat/agent-registry` | Phase 0 audit + Phase 1 (registry, AgentMascot, AgentStatusBadge, AgentCard, nav+footer refactor) | grep test passes; nav/footer render from registry; test page at /dev/agents showing all cards+badges+mascots |
 | 2 | `feat/landing-hero-crew` | 2.1 + 2.2 | Hero pulls live agent from registry; crew section assembled; mobile OK |
 | 3 | `feat/ivy-spotlight` | 2.3 Telegram demo + wedge | Scroll sequence works; reduced-motion fallback · **Session 3 — done, 2026-07-11, feat/ivy-spotlight** |
-| 4 | `feat/landing-luna-cleanup` | 2.4–2.6 | Homepage fully de-Luna'd |
+| 4 | `feat/landing-luna-cleanup` | 2.4–2.6 | Homepage fully de-Luna'd · **Session 4 — done, 2026-07-11, feat/landing-luna-cleanup** (app/page.tsx Luna-clean; FeaturesSection + HowItWorksSection parked for Session 5) |
 | 5 | `feat/agent-pages` | Phase 3 | /agents/ivy live, /agents/luna reframed |
 | 6 | `feat/pricing-meta` | Phase 4 + 5 | Pricing per-agent; meta/OG updated |
 | 7 | `feat/motion-qa` | Phase 6 + 7 | Lighthouse pass, mobile pass, ship to main |

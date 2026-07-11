@@ -12,14 +12,22 @@ import {
   easeOut,
   type MotionValue,
 } from 'motion/react';
+import { getBetaAgent } from '@/lib/agents';
+import { getBetaCopy } from '@/content/agent-content';
+import AgentStatusBadge from '@/components/agents/AgentStatusBadge';
+import Button from '@/components/Button';
 
 // =============================================================================
-// Landing-only "relief beat" — pure client-side theatre, no data, no fetching.
-// DM notifications pile up (tension), pause, drain away (relief), one line lands.
+// BETA SECTION (Phase 2.4) — the compressed beta-agent beat. The strong
+// "overnight inbox wall" theatre (formerly ReliefSection): multilingual DMs
+// pile up, pause, drain away, and the payoff line lands — reframed with the
+// beta agent's approved copy. Renders from the registry's beta agent, so it
+// rotates by launch state, never by editing this file. When there is no beta
+// agent, the section renders nothing.
 //
-// Everything — counter, every card, payoff line — derives from ONE master
-// progress value [0..1], so the pile and the number can never desync.
-// Monochrome by design: surface tokens only, no gradient.
+// Everything — counter, every card, payoff — derives from ONE master progress
+// value [0..1], so the pile and the number can never desync. Monochrome by
+// design (surface tokens only); the agent accent shows only on the badge.
 // =============================================================================
 
 const DMS = [
@@ -43,21 +51,22 @@ const CARD_STEP = 24; // px of vertical offset per card in the pile
 
 // ── Master timeline ──────────────────────────────────────────────────────────
 const TOTAL = 6.1; // seconds, played once on scroll-into-view
-// Normalized phase boundaries on master progress [0..1]:
-const PILE_END = 0.53;  // 0.00–0.53  cards pile + counter climbs to 140  (~3.2s)
-const HOLD_END = 0.70;  // 0.53–0.70  hold at full pile / 140             (~1.0s)
-const CLEAR_END = 0.85; // 0.70–0.85  cards drain + counter falls to 0    (~0.9s)
-//                         0.85–1.00  payoff line settles in              (~0.9s)
+const PILE_END = 0.53; // 0.00–0.53  cards pile + counter climbs to 140
+const HOLD_END = 0.7; //  0.53–0.70  hold at full pile / 140
+const CLEAR_END = 0.85; // 0.70–0.85 cards drain + counter falls to 0
+//                         0.85–1.00  payoff line settles in
 
-// Accelerating stagger — gaps shrink as the pile builds (seconds).
 const DELAYS = DMS.reduce<number[]>((acc, _, i) => {
-  if (i === 0) { acc.push(0); return acc; }
+  if (i === 0) {
+    acc.push(0);
+    return acc;
+  }
   acc.push(acc[i - 1] + Math.max(0.3 - i * 0.018, 0.09));
   return acc;
 }, []);
 const PILE_SECONDS = DELAYS[DELAYS.length - 1] + 0.4;
-const IN_WIN = 0.38 / TOTAL;  // one card's entrance, in progress units
-const OUT_WIN = 0.38 / TOTAL; // one card's exit, in progress units
+const IN_WIN = 0.38 / TOTAL;
+const OUT_WIN = 0.38 / TOTAL;
 
 function PileCard({
   progress,
@@ -71,7 +80,6 @@ function PileCard({
   const yBase = index * CARD_STEP;
   const inStart = (DELAYS[index] / PILE_SECONDS) * (PILE_END - IN_WIN);
   const inEnd = inStart + IN_WIN;
-  // top of pile drains first
   const outStart = HOLD_END + ((DMS.length - 1 - index) * 0.035) / TOTAL;
   const outEnd = outStart + OUT_WIN;
 
@@ -89,7 +97,10 @@ function PileCard({
     <motion.div
       className="absolute inset-x-0 mx-auto w-full max-w-[360px] flex items-center gap-3 rounded-[14px] bg-background2 border border-border px-4 py-3 text-left"
       style={{
-        opacity, y, rotate, scale,
+        opacity,
+        y,
+        rotate,
+        scale,
         x: d.x,
         zIndex: index,
         boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
@@ -112,7 +123,8 @@ function PileCard({
   );
 }
 
-export default function ReliefSection() {
+export default function BetaAgentSection() {
+  const agent = getBetaAgent();
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, amount: 0.35 });
   const reduceMotion = useReducedMotion();
@@ -120,14 +132,11 @@ export default function ReliefSection() {
 
   const progress = useMotionValue(0);
 
-  // Counter milestones ride the same master progress as the cards —
-  // 140 lands exactly when the last card does, 0 exactly when the pile is gone.
   const counterVal = useTransform(
     progress,
     [0, 0.13, 0.28, 0.42, PILE_END, HOLD_END, CLEAR_END],
     [0, 12, 47, 113, 140, 140, 0],
   );
-  // Rendered directly as text — ticks without React re-renders
   const counterText = useTransform(counterVal, (v) => Math.round(v));
 
   const payoffOpacity = useTransform(progress, [CLEAR_END, 0.97], [0, 1]);
@@ -145,19 +154,30 @@ export default function ReliefSection() {
     return () => controls.stop();
   }, [inView, reduceMotion, progress]);
 
+  // No beta agent in the registry → nothing to show.
+  if (!agent) return null;
+
+  const copy = getBetaCopy(agent.slug);
+  // Two-tone payoff: split the approved headline on its sentence break.
+  const [payoffLead, payoffTail] = copy.headline.split(/(?<=\.)\s+/);
+
   return (
     <section
       ref={sectionRef}
+      data-agent={agent.slug}
       className="relative overflow-hidden border-t border-border bg-background"
     >
       <div className="max-w-[960px] mx-auto px-8 pt-32 pb-24 md:pt-40 md:pb-28 text-center">
 
-        {/* eyebrow */}
-        <div className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-12 md:mb-14">
-          Your inbox, overnight
+        {/* eyebrow — agent identity + launch badge, from the registry */}
+        <div className="flex items-center justify-center gap-3 mb-12 md:mb-14">
+          <span className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary">
+            {agent.name} — {agent.role}
+          </span>
+          <AgentStatusBadge agent={agent} />
         </div>
 
-        {/* counter — large anchoring display number; stays at 0 in the resting state */}
+        {/* counter — large anchoring number; stays at 0 in the resting state */}
         <div className="flex items-baseline justify-center gap-3 mb-12 md:mb-16">
           <motion.span className="text-[2.4rem] md:text-[4.6rem] font-light tabular-nums tracking-[-0.045em] text-text-primary leading-none">
             {counterText}
@@ -173,17 +193,31 @@ export default function ReliefSection() {
             <PileCard key={d.handle} progress={progress} index={i} d={d} />
           ))}
 
-          {/* the relief line — settles in as the pile finishes draining */}
+          {/* the payoff line — settles in as the pile finishes draining */}
           <motion.h2
             className="absolute inset-0 flex items-center justify-center text-[clamp(1.8rem,3.6vw,3rem)] font-light tracking-[-0.035em] leading-[1.15] text-text-primary"
             style={{ opacity: payoffOpacity, y: payoffY, filter: payoffBlur }}
           >
             <span>
-              Every one. Answered.
-              <br />
-              <span className="text-text-secondary">While you slept.</span>
+              {payoffLead}
+              {payoffTail && (
+                <>
+                  <br />
+                  <span className="text-text-secondary">{payoffTail}</span>
+                </>
+              )}
             </span>
           </motion.h2>
+        </div>
+
+        {/* sub + CTA — the beta claim, stated plainly */}
+        <p className="text-[0.82rem] text-text-secondary leading-[1.8] font-light max-w-[440px] mx-auto mt-16 md:mt-20 mb-8">
+          {copy.sub}
+        </p>
+        <div className="flex justify-center">
+          <Button href="/early-access" variant="primary">
+            {copy.cta}
+          </Button>
         </div>
       </div>
     </section>

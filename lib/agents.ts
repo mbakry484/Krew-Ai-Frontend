@@ -142,3 +142,11 @@ export function getAgent(slug: AgentSlug): Agent {
 export function getLiveAgent(): Agent {
   return AGENTS.find((a) => a.status === 'live') ?? AGENTS[0];
 }
+
+/**
+ * The current beta agent. The homepage's beta section (Phase 2.4) renders from
+ * this — like the hero, it rotates by registry state, not by editing the page.
+ */
+export function getBetaAgent(): Agent | undefined {
+  return AGENTS.find((a) => a.status === 'beta');
+}

@@ -210,3 +210,32 @@ export function getSpotlightContent(slug: AgentSlug): SpotlightContent {
   }
   return content;
 }
+
+// ─── Beta section (2.4) — the compressed beta-agent beat on the homepage ──────
+// Strings verbatim from COPY.md "Luna beta section". The eyebrow composes from
+// the registry (name + role); the badge comes from AgentStatusBadge — so this
+// block only carries the headline / sub / CTA.
+
+export interface BetaCopy {
+  headline: string;
+  sub: string;
+  cta: string;
+}
+
+const BETA_COPY: Partial<Record<AgentSlug, BetaCopy>> = {
+  luna: {
+    headline: 'Every DM, answered. While you sleep.',
+    sub: '140 conversations a week — orders, returns, questions — handled in Arabic, Franco, and English. Automatically. Currently in invite-only beta.',
+    cta: 'Request invite',
+  },
+};
+
+export function getBetaCopy(slug: AgentSlug): BetaCopy {
+  const copy = BETA_COPY[slug];
+  if (!copy) {
+    throw new Error(
+      `No beta copy for beta agent "${slug}" — add its approved COPY.md block to content/agent-content.ts`
+    );
+  }
+  return copy;
+}
