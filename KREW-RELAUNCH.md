@@ -56,14 +56,14 @@
 - [x] This section is permanent brand layer; hero above it rotates with launch focus.
 
 ### 2.3 Ivy Spotlight (the new "main character" section)
-- [ ] **The wedge, stated plainly:** "Shopify says EGP 914,000. Your real number is EGP 660,000." Gross → returns → expenses → real net profit, animated as a collapsing number.
-- [ ] **Telegram demo block** (this is the money shot — currently 0% represented):
-  - Simulated Telegram thread: voice note bubble → transcribed → "Logged: Packaging — EGP 3,200 ✓"
-  - Receipt photo → parsed → categorized.
-  - Team member logging with role badge (shows multi-user auth).
-  - Keep it as a scroll-triggered sequence, same craft level as the current Luna DM mock.
-- [ ] **COD returns card:** the 28% return-rate dial from the real dashboard, with the line "EGP 224,000 came back as COD returns Shopify can't see."
-- [ ] Mini dashboard peek (real Ivy overview screenshot or rebuilt mock) + "Open Ivy" CTA.
+- [x] **The wedge, stated plainly:** "Shopify says EGP 914,000. Your real number is EGP 660,000." Gross → returns → expenses → real net profit, animated as a collapsing number. *(centerpiece: one figure that collapses 914,000 → 690,000 → 660,000 as the two deductions reveal on scroll; label morphs to accent "Your real net profit")*
+- [x] **Telegram demo block** — reframed: the full voice/receipt/chips money-shot shipped in the **hero stage** (Session 2). The spotlight carries the short **multi-user** beat only — staff message + role badge "STAFF" → "Logged ✓ Delivery fuel — EGP 500 · by Omar" — per the COPY.md Session-3 note (wedge is the centerpiece here, Telegram is a recap).
+  - [x] Simulated Telegram thread: voice note → transcribed → "Logged ✓ Packaging" *(hero stage)*
+  - [x] Receipt photo → parsed → categorized *(hero stage)*
+  - [x] Team member logging with role badge (multi-user) *(spotlight recap)*
+  - [x] Scroll-triggered reveals; reduced-motion falls back to the resolved state.
+- [x] **COD returns card:** the 28% return-rate dial, with the line "EGP 224,000 came back as COD returns Shopify can't see." *(SVG ring animates to 28% on scroll, stands beside the wedge as proof for the biggest deduction)*
+- [x] Mini dashboard peek + CTA. *(shipped as a clean closing beat — the approved line + "Start with Ivy" CTA; the full rebuilt dashboard mock lives in the hero, not duplicated here, per the flow decision 2026-07-11)*
 
 ### 2.4 Luna section — reframed as beta
 - [ ] Compress the current Luna content (features reel + overnight inbox) into ONE tight section: "Luna — Customer Operations. In beta." Keep the best asset (the multilingual overnight inbox wall — it's strong), cut the 4-step how-it-works from the homepage (move to /agents/luna).
@@ -187,7 +187,7 @@
 |---------|--------|-------|--------------------|
 | 1 | `feat/agent-registry` | Phase 0 audit + Phase 1 (registry, AgentMascot, AgentStatusBadge, AgentCard, nav+footer refactor) | grep test passes; nav/footer render from registry; test page at /dev/agents showing all cards+badges+mascots |
 | 2 | `feat/landing-hero-crew` | 2.1 + 2.2 | Hero pulls live agent from registry; crew section assembled; mobile OK |
-| 3 | `feat/ivy-spotlight` | 2.3 Telegram demo + wedge | Scroll sequence works; reduced-motion fallback |
+| 3 | `feat/ivy-spotlight` | 2.3 Telegram demo + wedge | Scroll sequence works; reduced-motion fallback · **Session 3 — done, 2026-07-11, feat/ivy-spotlight** |
 | 4 | `feat/landing-luna-cleanup` | 2.4–2.6 | Homepage fully de-Luna'd |
 | 5 | `feat/agent-pages` | Phase 3 | /agents/ivy live, /agents/luna reframed |
 | 6 | `feat/pricing-meta` | Phase 4 + 5 | Pricing per-agent; meta/OG updated |

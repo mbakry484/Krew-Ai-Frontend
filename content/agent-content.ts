@@ -126,3 +126,87 @@ export function getStageScript(slug: AgentSlug): StageScript {
   }
   return script;
 }
+
+// ─── Spotlight section (2.3) — the wedge, the return dial, a short team recap ──
+// Strings verbatim from COPY.md "Ivy spotlight" / "Wedge sequence" / "COD
+// returns card" / "Spotlight Telegram section" / "Dashboard peek". The wedge
+// runs on the canonical set: gross 914,000 − returns 224,000 − expenses 30,000
+// = real net profit 660,000. The eyebrow + closing CTA compose from the
+// registry (name + role), so they rotate with the live agent.
+
+export interface SpotlightContent {
+  headline: string;
+  sub: string;
+  /** The collapsing-number wedge. Running total: gross → −returns → −expenses. */
+  wedge: {
+    grossLabel: string;
+    grossAmount: number;
+    deductions: { label: string; amount: number }[];
+    resultLabel: string;
+    resultAmount: number;
+  };
+  /** COD return-rate proof — the dial + the one line. */
+  returns: {
+    label: string;
+    stat: string;
+    unit: string;
+    percent: number;
+    line: string;
+  };
+  /** Short multi-user Telegram recap — the full sequence lives in the hero. */
+  telegram: {
+    headline: string;
+    sub: string;
+    staffBadge: string;
+    staffText: string; // rtl arabic
+    reply: string;
+  };
+  /** Dashboard-peek closer — line + CTA (CTA label composes from the registry). */
+  peek: {
+    line: string;
+  };
+}
+
+const SPOTLIGHT_CONTENT: Partial<Record<AgentSlug, SpotlightContent>> = {
+  ivy: {
+    headline: "The number Shopify shows you isn't your number.",
+    sub: "Gross revenue minus COD returns minus real expenses. That's the number that decides if you're actually making money.",
+    wedge: {
+      grossLabel: 'Shopify gross',
+      grossAmount: 914000,
+      deductions: [
+        { label: "COD returns Shopify can't see", amount: 224000 },
+        { label: 'Real expenses', amount: 30000 },
+      ],
+      resultLabel: 'Your real net profit',
+      resultAmount: 660000,
+    },
+    returns: {
+      label: 'Return rate',
+      stat: '28.0%',
+      unit: 'of gross',
+      percent: 28,
+      line: "EGP 224,000 came back as COD returns Shopify can't see.",
+    },
+    telegram: {
+      headline: 'Log expenses the way you already talk.',
+      sub: 'Voice note, receipt photo, or a quick text — Ivy logs it, categorizes it, and updates your real profit. You and your team, in Telegram.',
+      staffBadge: 'STAFF',
+      staffText: 'اتدفع ٥٠٠ بنزين للتوصيل',
+      reply: 'Logged ✓ Delivery fuel — EGP 500 · by Omar',
+    },
+    peek: {
+      line: 'Everything Ivy hears becomes one clear picture.',
+    },
+  },
+};
+
+export function getSpotlightContent(slug: AgentSlug): SpotlightContent {
+  const content = SPOTLIGHT_CONTENT[slug];
+  if (!content) {
+    throw new Error(
+      `No spotlight content for live agent "${slug}" — add its approved COPY.md block to content/agent-content.ts`
+    );
+  }
+  return content;
+}

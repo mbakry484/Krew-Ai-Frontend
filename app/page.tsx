@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import Hero from '@/components/landing/Hero';
 import CrewSection from '@/components/landing/CrewSection';
+import SpotlightSection from '@/components/landing/SpotlightSection';
 import ReliefSection from '@/components/landing/ReliefSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import Button from '@/components/Button';
@@ -74,6 +75,10 @@ export default function LandingPage() {
 
         {/* ── CREW REVEAL — permanent brand layer (Phase 2.2) ── */}
         <CrewSection />
+
+        {/* ── SPOTLIGHT — the live agent's main-character beat: the wedge,
+              the return dial, a short team recap (Phase 2.3) ── */}
+        <SpotlightSection />
 
         {/* ── FEATURES — 4-tab feature switcher, sits directly under the hero ── */}
         <FeaturesSection />
