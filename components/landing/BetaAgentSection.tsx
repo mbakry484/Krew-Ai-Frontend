@@ -1,225 +1,273 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import {
-  motion,
-  useInView,
-  useMotionValue,
-  useTransform,
-  animate,
-  useReducedMotion,
-  easeIn,
-  easeOut,
-  type MotionValue,
-} from 'motion/react';
+import { useRef } from 'react';
+import { useInView } from 'motion/react';
 import { getBetaAgent } from '@/lib/agents';
 import { getBetaCopy } from '@/content/agent-content';
+import AgentMascot from '@/components/agents/AgentMascot';
 import AgentStatusBadge from '@/components/agents/AgentStatusBadge';
 import Button from '@/components/Button';
 
 // =============================================================================
-// BETA SECTION (Phase 2.4) — the compressed beta-agent beat. The strong
-// "overnight inbox wall" theatre (formerly ReliefSection): multilingual DMs
-// pile up, pause, drain away, and the payoff line lands — reframed with the
-// beta agent's approved copy. Renders from the registry's beta agent, so it
-// rotates by launch state, never by editing this file. When there is no beta
-// agent, the section renders nothing.
-//
-// Everything — counter, every card, payoff — derives from ONE master progress
-// value [0..1], so the pile and the number can never desync. Monochrome by
-// design (surface tokens only); the agent accent shows only on the badge.
+// BETA SECTION (Phase 2.4) — a deliberate pattern-break from the centred
+// live-agent beats above: a full-width, bold dark card with the agent's aura,
+// so the shift to a new agent reads instantly. Asymmetric — copy left, the
+// mascot right, surrounded by the multilingual overnight-inbox DMs that
+// blur-fade in and settle as "answered". Renders from the registry's beta
+// agent; when there is none, it renders nothing.
 // =============================================================================
 
+// A handful of the overnight inbox, scattered around the mascot. `answered`
+// cards show the green tick; the rest are still-incoming.
 const DMS = [
-  { handle: 'zaynab.nour', msg: 'هي عندكم المقاس الـ L؟', x: -18, rot: -2.5 },
-  { handle: 'omar.saleh', msg: 'delivery to Cairo?', x: 14, rot: 1.8 },
-  { handle: 'lina.maged', msg: '3andoko el black hoodie?', x: -8, rot: -1.2 },
-  { handle: 'sara.rami', msg: "what's the return policy?", x: 22, rot: 2.6 },
-  { handle: 'yasmin.k', msg: 'ممكن أغير المقاس؟', x: -24, rot: -3 },
-  { handle: 'mohamed.h', msg: 'el order wasal emta?', x: 6, rot: 1 },
-  { handle: 'nour.ali', msg: 'is the camo tee restocking?', x: -14, rot: 2.2 },
-  { handle: 'farah.adel', msg: 'do you ship to Alex?', x: 18, rot: -1.6 },
-  { handle: 'karim.f', msg: 'في خصم على الجاكيت؟', x: -4, rot: 2.8 },
-  { handle: 'ahmed.r', msg: 'btw3to talabat l Giza?', x: 12, rot: -2.2 },
-  { handle: 'mariam.s', msg: 'size chart please 🙏', x: -20, rot: 1.4 },
-  { handle: 'youssef.t', msg: 'can I pay on delivery?', x: 8, rot: -2.8 },
-  { handle: 'hana.m', msg: 'هل اللون الأبيض متوفر؟', x: -10, rot: 2 },
-  { handle: 'dina.m', msg: 'express shipping available?', x: 16, rot: -1 },
+  { handle: 'zaynab.nour', msg: 'هي عندكم المقاس الـ L؟', pos: { top: '4%', left: '0%' }, answered: true, delay: 0.15 },
+  { handle: 'omar.saleh', msg: 'delivery to Cairo?', pos: { top: '-2%', right: '8%' }, answered: false, delay: 0.32, hideSm: true },
+  { handle: 'lina.maged', msg: '3andoko el black hoodie?', pos: { top: '40%', left: '-6%' }, answered: true, delay: 0.24, hideSm: true },
+  { handle: 'sara.rami', msg: "return policy?", pos: { bottom: '6%', left: '6%' }, answered: false, delay: 0.42 },
+  { handle: 'yasmin.k', msg: 'ممكن أغير المقاس؟', pos: { bottom: '0%', right: '2%' }, answered: true, delay: 0.2 },
+  { handle: 'farah.adel', msg: 'ship to Alex?', pos: { top: '28%', right: '-4%' }, answered: false, delay: 0.36 },
 ];
-
-const CARD_STEP = 24; // px of vertical offset per card in the pile
-
-// ── Master timeline ──────────────────────────────────────────────────────────
-const TOTAL = 6.1; // seconds, played once on scroll-into-view
-const PILE_END = 0.53; // 0.00–0.53  cards pile + counter climbs to 140
-const HOLD_END = 0.7; //  0.53–0.70  hold at full pile / 140
-const CLEAR_END = 0.85; // 0.70–0.85 cards drain + counter falls to 0
-//                         0.85–1.00  payoff line settles in
-
-const DELAYS = DMS.reduce<number[]>((acc, _, i) => {
-  if (i === 0) {
-    acc.push(0);
-    return acc;
-  }
-  acc.push(acc[i - 1] + Math.max(0.3 - i * 0.018, 0.09));
-  return acc;
-}, []);
-const PILE_SECONDS = DELAYS[DELAYS.length - 1] + 0.4;
-const IN_WIN = 0.38 / TOTAL;
-const OUT_WIN = 0.38 / TOTAL;
-
-function PileCard({
-  progress,
-  index,
-  d,
-}: {
-  progress: MotionValue<number>;
-  index: number;
-  d: (typeof DMS)[number];
-}) {
-  const yBase = index * CARD_STEP;
-  const inStart = (DELAYS[index] / PILE_SECONDS) * (PILE_END - IN_WIN);
-  const inEnd = inStart + IN_WIN;
-  const outStart = HOLD_END + ((DMS.length - 1 - index) * 0.035) / TOTAL;
-  const outEnd = outStart + OUT_WIN;
-
-  const opacity = useTransform(progress, [inStart, inEnd, outStart, outEnd], [0, 1, 1, 0]);
-  const y = useTransform(
-    progress,
-    [inStart, inEnd, outStart, outEnd],
-    [yBase - 44, yBase, yBase, yBase + 72],
-    { ease: [easeOut, easeOut, easeIn] },
-  );
-  const rotate = useTransform(progress, [inStart, inEnd], [0, d.rot], { ease: easeOut });
-  const scale = useTransform(progress, [inStart, inEnd], [0.95, 1], { ease: easeOut });
-
-  return (
-    <motion.div
-      className="absolute inset-x-0 mx-auto w-full max-w-[360px] flex items-center gap-3 rounded-[14px] bg-background2 border border-border px-4 py-3 text-left"
-      style={{
-        opacity,
-        y,
-        rotate,
-        scale,
-        x: d.x,
-        zIndex: index,
-        boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
-        willChange: 'transform, opacity',
-      }}
-    >
-      <div className="w-[26px] h-[26px] rounded-full bg-background4 flex items-center justify-center text-[0.5rem] font-semibold text-text-secondary shrink-0 uppercase">
-        {d.handle.slice(0, 2)}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[0.66rem] font-medium text-text-primary leading-tight truncate">
-          {d.handle}
-        </div>
-        <div className="text-[0.66rem] text-text-secondary truncate" dir="auto">
-          {d.msg}
-        </div>
-      </div>
-      <span className="text-[0.55rem] text-text-tertiary shrink-0">now</span>
-    </motion.div>
-  );
-}
 
 export default function BetaAgentSection() {
   const agent = getBetaAgent();
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(sectionRef, { once: true, amount: 0.35 });
-  const reduceMotion = useReducedMotion();
-  const started = useRef(false);
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
 
-  const progress = useMotionValue(0);
-
-  const counterVal = useTransform(
-    progress,
-    [0, 0.13, 0.28, 0.42, PILE_END, HOLD_END, CLEAR_END],
-    [0, 12, 47, 113, 140, 140, 0],
-  );
-  const counterText = useTransform(counterVal, (v) => Math.round(v));
-
-  const payoffOpacity = useTransform(progress, [CLEAR_END, 0.97], [0, 1]);
-  const payoffY = useTransform(progress, [CLEAR_END, 0.97], [16, 0], { ease: easeOut });
-  const payoffBlur = useTransform(progress, [CLEAR_END, 0.97], ['blur(8px)', 'blur(0px)']);
-
-  useEffect(() => {
-    if (!inView || started.current) return;
-    started.current = true;
-    if (reduceMotion) {
-      progress.set(1); // resting state: "0 unread" + payoff line, no theatre
-      return;
-    }
-    const controls = animate(progress, 1, { duration: TOTAL, ease: 'linear' });
-    return () => controls.stop();
-  }, [inView, reduceMotion, progress]);
-
-  // No beta agent in the registry → nothing to show.
   if (!agent) return null;
 
   const copy = getBetaCopy(agent.slug);
-  // Two-tone payoff: split the approved headline on its sentence break.
-  const [payoffLead, payoffTail] = copy.headline.split(/(?<=\.)\s+/);
+  const [headLead, headTail] = copy.headline.split(/(?<=\.)\s+/);
 
   return (
-    <section
-      ref={sectionRef}
-      data-agent={agent.slug}
-      className="relative overflow-hidden border-t border-border bg-background"
-    >
-      <div className="max-w-[960px] mx-auto px-8 pt-32 pb-24 md:pt-40 md:pb-28 text-center">
+    <section ref={ref} data-agent={agent.slug} data-in={inView || undefined} className="beta px-6 py-24 md:py-28">
+      <div className="beta-card">
+        {/* the bold dark backdrop — the agent's aura (grain + glow) */}
+        <div className="krew-aura" aria-hidden="true" />
 
-        {/* eyebrow — agent identity + launch badge, from the registry */}
-        <div className="flex items-center justify-center gap-3 mb-12 md:mb-14">
-          <span className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary">
-            {agent.name} — {agent.role}
-          </span>
-          <AgentStatusBadge agent={agent} />
-        </div>
-
-        {/* counter — large anchoring number; stays at 0 in the resting state */}
-        <div className="flex items-baseline justify-center gap-3 mb-12 md:mb-16">
-          <motion.span className="text-[2.4rem] md:text-[4.6rem] font-light tabular-nums tracking-[-0.045em] text-text-primary leading-none">
-            {counterText}
-          </motion.span>
-          <span className="text-[0.62rem] md:text-[0.7rem] uppercase tracking-[0.12em] text-text-tertiary">
-            unread
-          </span>
-        </div>
-
-        {/* stage — fixed height, constrained pile column; transform/opacity only */}
-        <div className="relative mx-auto w-full max-w-[400px] h-[400px]">
-          {DMS.map((d, i) => (
-            <PileCard key={d.handle} progress={progress} index={i} d={d} />
-          ))}
-
-          {/* the payoff line — settles in as the pile finishes draining */}
-          <motion.h2
-            className="absolute inset-0 flex items-center justify-center text-[clamp(1.8rem,3.6vw,3rem)] font-light tracking-[-0.035em] leading-[1.15] text-text-primary"
-            style={{ opacity: payoffOpacity, y: payoffY, filter: payoffBlur }}
-          >
-            <span>
-              {payoffLead}
-              {payoffTail && (
+        <div className="beta-grid">
+          {/* LEFT — copy */}
+          <div className="beta-copy">
+            <div className="flex items-center gap-3 flex-wrap mb-6">
+              <span className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary">
+                {agent.name} — {agent.role}
+              </span>
+              <AgentStatusBadge agent={agent} />
+            </div>
+            <h2 className="text-[clamp(1.6rem,3.4vw,2.5rem)] font-light tracking-[-0.03em] leading-[1.12] text-text-primary mb-5">
+              {headLead}
+              {headTail && (
                 <>
                   <br />
-                  <span className="text-text-secondary">{payoffTail}</span>
+                  <span className="text-text-secondary">{headTail}</span>
                 </>
               )}
-            </span>
-          </motion.h2>
-        </div>
+            </h2>
+            <p className="text-[0.85rem] text-text-secondary leading-[1.8] font-light max-w-[420px] mb-9">
+              {copy.sub}
+            </p>
+            <Button href="/early-access" variant="primary">
+              {copy.cta}
+            </Button>
+          </div>
 
-        {/* sub + CTA — the beta claim, stated plainly */}
-        <p className="text-[0.82rem] text-text-secondary leading-[1.8] font-light max-w-[440px] mx-auto mt-16 md:mt-20 mb-8">
-          {copy.sub}
-        </p>
-        <div className="flex justify-center">
-          <Button href="/early-access" variant="primary">
-            {copy.cta}
-          </Button>
+          {/* RIGHT — the mascot, ringed by the overnight inbox */}
+          <div className="beta-stage" aria-hidden="true">
+            <div className="beta-mascot-glow" />
+            <div className="beta-mascot">
+              <AgentMascot agent={agent} size={200} />
+            </div>
+
+            {DMS.map((d) => (
+              <div
+                key={d.handle}
+                className={`beta-dm ${d.hideSm ? 'beta-dm-hide-sm' : ''}`}
+                style={{ ...d.pos, ['--dm-delay' as string]: `${d.delay}s` }}
+              >
+                <div className="beta-dm-avatar">{d.handle.slice(0, 2).toUpperCase()}</div>
+                <div className="beta-dm-body">
+                  <div className="beta-dm-handle">{d.handle}</div>
+                  <div className="beta-dm-msg" dir="auto">{d.msg}</div>
+                </div>
+                {d.answered ? (
+                  <span className="beta-dm-tick">✓</span>
+                ) : (
+                  <span className="beta-dm-now">now</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .beta-card {
+          position: relative;
+          max-width: 1240px;
+          margin: 0 auto;
+          border-radius: 28px;
+          border: 1px solid var(--border-md);
+          overflow: hidden;
+          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
+        }
+        .beta-grid {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: 44% 56%;
+          align-items: center;
+          gap: 2rem;
+          padding: clamp(2.2rem, 4vw, 4rem);
+          min-height: 460px;
+        }
+        .beta-copy {
+          opacity: 0;
+          transform: translateY(18px);
+          transition:
+            opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .beta[data-in] .beta-copy {
+          opacity: 1;
+          transform: none;
+        }
+
+        /* stage — mascot centred, DMs positioned around it */
+        .beta-stage {
+          position: relative;
+          min-height: 380px;
+          align-self: stretch;
+        }
+        .beta-mascot {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 2;
+        }
+        .beta-mascot-glow {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 320px;
+          height: 320px;
+          transform: translate(-50%, -50%);
+          border-radius: 50%;
+          background: radial-gradient(circle, var(--agent-accent-soft), transparent 68%);
+          pointer-events: none;
+        }
+        .beta-dm {
+          position: absolute;
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          width: 190px;
+          max-width: 62%;
+          padding: 0.5rem 0.6rem;
+          border-radius: 12px;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+          opacity: 0;
+          transform: translateY(8px) scale(0.94);
+          filter: blur(8px);
+          transition:
+            opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--dm-delay),
+            transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--dm-delay),
+            filter 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--dm-delay);
+        }
+        .beta[data-in] .beta-dm {
+          opacity: 1;
+          transform: none;
+          filter: blur(0);
+        }
+        .beta-dm-avatar {
+          flex-shrink: 0;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: var(--bg3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.5rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .beta-dm-body {
+          flex: 1;
+          min-width: 0;
+        }
+        .beta-dm-handle {
+          font-size: 0.6rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          line-height: 1.2;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .beta-dm-msg {
+          font-size: 0.6rem;
+          color: var(--text-secondary);
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .beta-dm-tick {
+          flex-shrink: 0;
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          background: #3dbb77;
+          color: #fff;
+          font-size: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .beta-dm-now {
+          flex-shrink: 0;
+          font-size: 0.5rem;
+          color: var(--text-tertiary);
+        }
+
+        @media (max-width: 860px) {
+          .beta-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            text-align: left;
+          }
+          .beta-copy {
+            text-align: center;
+          }
+          .beta-copy :global(.flex) {
+            justify-content: center;
+          }
+          .beta-copy p {
+            margin-left: auto;
+            margin-right: auto;
+          }
+          .beta-stage {
+            min-height: 340px;
+            margin-top: 1rem;
+          }
+          .beta-dm-hide-sm {
+            display: none;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .beta-copy,
+          .beta-dm {
+            opacity: 1;
+            transform: none;
+            filter: none;
+            transition: none;
+          }
+        }
+      `}</style>
     </section>
   );
 }
