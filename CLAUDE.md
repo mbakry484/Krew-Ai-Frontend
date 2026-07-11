@@ -14,6 +14,9 @@ Current launch state: **Ivy = live, Luna = beta, Nova = soon.**
 6. **Reuse the shell.** Study existing layout/section components before creating new ones. New components only when nothing existing fits.
 7. **One phase = one branch = one PR into dev.** Small commits; every commit leaves `npm run build` passing.
 8. **Stay in scope.** Only touch files belonging to the current session's phase (see `KREW-RELAUNCH.md`). Do not opportunistically refactor unrelated code.
+9. **Never kill processes broadly.** Never run `killall node`, `pkill node`, or equivalent. Stop only your own dev server, by its specific port or PID.
+10. **Log progress.** At the end of every session, update KREW-RELAUNCH.md: check off completed items (- [x]) and add a one-line "Session N — done, <date>, <branch>" note to the session table row. Include this in the final commit.
+
 
 ## Key files
 - `KREW-RELAUNCH.md` — the relaunch plan and session breakdown. Always check which session we are in.

@@ -36,29 +36,27 @@ Neutral/brand (non-agent) accent: white on dark. Krew brand moments use no color
 
 ---
 
-## 3. The Aura (signature background treatment)
+## 3. The Aura (signature background treatment) — v2, grain-first
 
-Reference: `design-refs/aura-luna.png`, `aura-ivy.png`, `aura-nova.png`. Every agent-themed section/card background follows this recipe:
+Reference: `design-refs/aura-luna.png`, `aura-ivy.png`, `aura-nova.png` — these ARE the target. The look is xAI-card-like: **near-black, muted color, grain doing the texture work.** If a surface reads as a smooth colorful gradient, it is wrong.
 
-1. **Base:** `--bg-base` black.
-2. **Primary glow:** large radial gradient of `aura-core`, positioned **off-center upper-left** (~30% x, 35% y), soft falloff to transparent by ~70% radius.
-3. **Secondary bleed:** smaller, dimmer radial of `aura-bleed` in the **lower-right corner**, barely visible — it's felt, not seen.
-4. **Vignette:** edges fall to pure black.
-5. **Noise:** film grain over everything, **strong** — visible texture, not a whisper. SVG `feTurbulence` (fractalNoise, baseFrequency ~0.9, opacity 0.10–0.14) or a tiling noise PNG at similar opacity, `mix-blend-mode: overlay`.
+**Hard limits:**
+- Color must never dominate. At least ~60% of any aura surface stays near-black. Glow peak luminosity stays low — the accent is *felt* in the dark, never a bright pool.
+- Grain must be **visible at a glance** at normal viewing distance. If you can't see grain in a screenshot, it fails. feTurbulence baseFrequency ~0.65–0.8, grain scale large enough to read (not sub-pixel dust), opacity 0.12–0.18, `mix-blend-mode: overlay` on dark.
+- No smooth edge-to-edge saturation, ever.
 
-```css
-[data-agent] .aura {
-  background:
-    radial-gradient(ellipse 80% 70% at 30% 35%, var(--aura-core-a35), transparent 70%),
-    radial-gradient(ellipse 50% 45% at 85% 90%, var(--aura-bleed-a20), transparent 70%),
-    var(--bg-base);
-}
-/* + noise layer as ::after with the grain texture */
-```
+**Two sanctioned implementations:**
 
-Rules: never a flat linear gradient, never full-saturation edge-to-edge color, noise is mandatory on every aura.
+**(a) Texture asset (preferred for agent cards):** use the aura PNGs themselves, compressed to WebP (~1200px, quality ~70), as the card background layer (`background-size: cover`), content on top. This guarantees the exact designed look with zero generative drift. One asset per agent: `public/textures/aura-{slug}.webp`.
 
-Light theme (decided Session 2): the full aura recipe is dark-only. In light theme an agent-themed section shows only a soft `accent-soft` radial behind the mascot/subject — no dark slab, no new colors.
+**(b) CSS recipe (for large/section surfaces where an image won't scale):**
+1. Base `--bg-base` black.
+2. Primary glow: radial of `aura-core` **at reduced alpha (≤0.22 peak)**, off-center upper-left, tight falloff (transparent by ~55% radius).
+3. Secondary bleed: `aura-bleed` lower-right, ≤0.10 alpha — subliminal.
+4. Vignette to pure black edges.
+5. Grain layer per the hard limits above. Mandatory.
+
+**Hero rule (marketing pages):** the hero background is *predominantly clean near-black*. Accent tint concentrates behind/around the product stage (the demo devices) and fades out before it reaches the headline column — the type sits on clean dark, like the pre-relaunch site. No page-wide color wash.
 
 ---
 

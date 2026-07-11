@@ -48,15 +48,32 @@ Demo numbers are canonical across the whole site: gross **EGP 914,000** · retur
 - Step 3 label: `Real expenses` → `− EGP 30,000`
 - Result label: `Your real net profit` → `EGP 660,000`
 
-#### Telegram demo (scripted thread)
+#### Hero stage — Telegram script (plays on the phone mock in the hero; dashboard mock syncs on every "Logged ✓")
+
+**Beat 1 — receipt + pool question**
+- Msg 1 (user): [receipt photo attachment]
+- Msg 2 (Ivy): `📄 Got it — Shipping supplies, EGP 1,850. Which pool?` + chips: `🟢 Operations` / `🔵 Marketing`
+- Msg 3 (user): taps `🟢 Operations`
+- Msg 4 (Ivy): `Logged ✓ Shipping supplies — EGP 1,850 · Operations pool` → DASHBOARD TICK
+
+**Beat 2 — voice note**
+- Msg 5 (user, voice note bubble, transcript): `دفعت ٣٢٠٠ جنيه تغليف`
+- Msg 6 (Ivy): `Logged ✓ Packaging — EGP 3,200 🧾` → DASHBOARD TICK
+
+**Beat 3 — the brain moment**
+- Msg 7 (user): `إزاي نوصل مليون جنيه الشهر ده؟`
+- Msg 8 (Ivy, one structured message, four lines):
+  `📊 You're at EGP 690,000 net — EGP 310,000 to go.`
+  `🔻 Returns are 28% (EGP 224,000). Getting to 20% recovers ≈ EGP 73,000.`
+  `📦 Top sellers cover 70% of the gap — restock this week.`
+  `🎯 Doable. 9 days left.`
+
+Long calm pause, then loop. Reduced motion: static scene showing the final state (all messages visible, dashboard at end values).
+
+#### Spotlight Telegram section (Session 3 — now carries the wedge math as its centerpiece; short Telegram recap only)
 - Section headline: `Log expenses the way you already talk.`
 - Sub: `Voice note, receipt photo, or a quick text — Ivy logs it, categorizes it, and updates your real profit. You and your team, in Telegram.`
-- Msg 1 (user, voice note transcript): `دفعت ٣٢٠٠ جنيه تغليف`
-- Msg 2 (Ivy): `Logged ✓ Packaging — EGP 3,200`
-- Msg 3 (user): sends receipt photo
-- Msg 4 (Ivy): `Logged ✓ Shipping supplies — EGP 1,850 · from receipt`
-- Msg 5 (team member, small role badge "STAFF"): `اتدفع ٥٠٠ بنزين للتوصيل`
-- Msg 6 (Ivy): `Logged ✓ Delivery fuel — EGP 500 · by Omar`
+- Team beat (spotlight-only, shows multi-user): (staff member, role badge "STAFF"): `اتدفع ٥٠٠ بنزين للتوصيل` → Ivy: `Logged ✓ Delivery fuel — EGP 500 · by Omar`
 
 #### COD returns card
 - Label: `RETURN RATE`
