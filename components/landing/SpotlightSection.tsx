@@ -424,22 +424,22 @@ export default function SpotlightSection() {
               </div>
 
               <div className="chat-body">
-                {/* a teammate logs — clearly a different person, with a role */}
-                <div className="cmsg">
+                {/* the teammate (sender) — right side, with a role badge */}
+                <div className="cmsg cmsg-out">
                   <span className="cmsg-ava cmsg-ava-staff">O</span>
                   <div className="cmsg-main">
                     <div className="cmsg-meta">
                       <span className="cmsg-name">Omar</span>
                       <span className="cmsg-badge">{content.telegram.staffBadge}</span>
                     </div>
-                    <div className="cbubble cbubble-in" dir="rtl" lang="ar">
+                    <div className="cbubble cbubble-user" dir="rtl" lang="ar">
                       {content.telegram.staffText}
                     </div>
                   </div>
                 </div>
 
-                {/* the agent confirms and attributes the spend to the teammate */}
-                <div className="cmsg">
+                {/* the agent — left side; confirms and attributes to the teammate */}
+                <div className="cmsg cmsg-in">
                   <span className="cmsg-ava">
                     <AgentMascot agent={agent} size={22} animated={false} />
                   </span>
@@ -596,6 +596,14 @@ export default function SpotlightSection() {
           gap: 0.6rem;
           max-width: 90%;
         }
+        /* sender on the right (avatar trailing), agent on the left */
+        .spotlight .cmsg-out {
+          align-self: flex-end;
+          flex-direction: row-reverse;
+        }
+        .spotlight .cmsg-in {
+          align-self: flex-start;
+        }
         .spotlight .cmsg-ava {
           flex-shrink: 0;
           width: 26px;
@@ -614,7 +622,15 @@ export default function SpotlightSection() {
           color: var(--text-secondary);
         }
         .spotlight .cmsg-main {
+          display: flex;
+          flex-direction: column;
           min-width: 0;
+        }
+        .spotlight .cmsg-out .cmsg-main {
+          align-items: flex-end;
+        }
+        .spotlight .cmsg-in .cmsg-main {
+          align-items: flex-start;
         }
         .spotlight .cmsg-meta {
           display: flex;
@@ -645,12 +661,12 @@ export default function SpotlightSection() {
           border-radius: 13px;
           color: var(--text-primary);
         }
-        .spotlight .cbubble-in {
-          background: var(--bg3);
-          border-top-left-radius: 4px;
+        .spotlight .cbubble-user {
+          background: var(--agent-accent-soft);
+          border-top-right-radius: 4px;
         }
         .spotlight .cbubble-agent {
-          background: var(--agent-accent-soft);
+          background: var(--bg3);
           border-top-left-radius: 4px;
         }
         .spotlight .cbubble-attr {
