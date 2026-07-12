@@ -127,6 +127,81 @@ export function getStageScript(slug: AgentSlug): StageScript {
   return script;
 }
 
+// ─── Light-theme hero stage — the tablet dashboard replica ──────────────────
+// Section labels are verbatim from the real agent dashboard overview
+// (app/dashboard/ivy/page.tsx — same precedent as the dark stage: chrome
+// strings mirror the product UI). Numbers are COPY.md canon only: profit
+// 660,000 = net revenue 690,000 − expenses 30,000; returns 28% (224,000) of
+// gross 914,000; inventory 700,000 against the 1,000,000 target (70%). The
+// logged line-items reuse the approved script amounts (1,850 / 3,200 / 500).
+
+export interface LightStageContent {
+  header: { title: string; subtitle: string };
+  profit: { label: string; value: number; sub: string };
+  returnRate: { label: string; stat: string; unit: string; percent: number; line: string };
+  netRevenue: { label: string; value: number; keptPct: number; line: string };
+  inventory: { label: string; stat: string; unit: string; percent: number; line: string };
+  breakdown: { label: string; rows: { name: string; amount: number }[] };
+  logged: { label: string; rows: { note: string; meta: string; amount: number }[] };
+}
+
+const LIGHT_STAGE: Partial<Record<AgentSlug, LightStageContent>> = {
+  ivy: {
+    header: { title: 'financial overview', subtitle: 'real profit, cash, and return visibility' },
+    profit: {
+      label: 'Real net profit — This month',
+      value: 660000,
+      sub: 'net revenue EGP 690,000 − expenses EGP 30,000',
+    },
+    returnRate: {
+      label: 'Return rate',
+      stat: '28.0%',
+      unit: 'of gross',
+      percent: 28,
+      line: "EGP 224,000 came back as COD returns Shopify can't see.",
+    },
+    netRevenue: {
+      label: 'Net revenue',
+      value: 690000,
+      // kept share of gross delivered: 690,000 / 914,000
+      keptPct: 75.5,
+      line: 'EGP 914,000 delivered − EGP 224,000 returned',
+    },
+    inventory: {
+      label: 'Inventory vs target',
+      stat: '70%',
+      unit: 'covered',
+      percent: 70,
+      line: 'Holding EGP 700,000 against the EGP 1,000,000 target — EGP 300,000 gap to cover.',
+    },
+    breakdown: {
+      label: 'Where the money went',
+      rows: [
+        { name: 'Packaging', amount: 3200 },
+        { name: 'Shipping supplies', amount: 1850 },
+        { name: 'Delivery fuel', amount: 500 },
+      ],
+    },
+    logged: {
+      label: 'What Ivy logged',
+      rows: [
+        { note: 'Packaging', meta: 'voice note · 2m ago', amount: 3200 },
+        { note: 'Shipping supplies', meta: 'receipt · 14m ago', amount: 1850 },
+      ],
+    },
+  },
+};
+
+export function getLightStageContent(slug: AgentSlug): LightStageContent {
+  const content = LIGHT_STAGE[slug];
+  if (!content) {
+    throw new Error(
+      `No light-stage content for live agent "${slug}" — add its approved COPY.md block to content/agent-content.ts`
+    );
+  }
+  return content;
+}
+
 // ─── Spotlight section (2.3) — the wedge, the return dial, a short team recap ──
 // Strings verbatim from COPY.md "Ivy spotlight" / "Wedge sequence" / "COD
 // returns card" / "Spotlight Telegram section" / "Dashboard peek". The wedge

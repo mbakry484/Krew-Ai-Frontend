@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTheme } from '@/components/ThemeProvider';
 import { getLiveAgent } from '@/lib/agents';
 import { getHeroCopy } from '@/content/agent-content';
 import HeroStage from '@/components/landing/HeroStage';
+import HeroStageLight from '@/components/landing/HeroStageLight';
 import Button from '@/components/Button';
 
 // =============================================================================
@@ -19,6 +21,8 @@ import Button from '@/components/Button';
 export default function Hero() {
   const agent = getLiveAgent();
   const copy = getHeroCopy(agent.slug);
+  const { theme } = useTheme();
+  const dk = theme === 'dark';
 
   // Keep elements at opacity:0 until after first paint, then apply the
   // animation class. Double RAF guarantees the browser has committed the
@@ -98,8 +102,9 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT — the stage: the live agent at work (Telegram thread
-              driving the dashboard mock; mascot lives in the chat header) */}
+          {/* RIGHT — the stage. Theme split: dark keeps the two-device coded
+              stage; light gets the tablet-boot composite on desktop and falls
+              back to the dark stage's strip+chat variant on mobile. */}
           <div
             className={`hero-right ${ready ? 'hero-blur-in-slow' : ''} flex items-center justify-center py-6`}
             style={at(100)}
@@ -108,7 +113,18 @@ export default function Hero() {
               {/* light-theme agent presence (KREW-DESIGN §3 light rule) */}
               <div className="hero-mascot-glow" aria-hidden="true" />
               <div className="relative z-[1] w-full">
-                <HeroStage agent={agent} />
+                {dk ? (
+                  <HeroStage agent={agent} />
+                ) : (
+                  <>
+                    <div className="stage-light-desk">
+                      <HeroStageLight agent={agent} />
+                    </div>
+                    <div className="stage-light-mobile">
+                      <HeroStage agent={agent} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -166,6 +182,15 @@ export default function Hero() {
         }
         @media (max-width: 640px) {
           .stats-strip-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* Light-theme stage split: tablet composite ≥769px, the dark stage's
+           strip+chat mobile variant below */
+        .stage-light-desk { width: 100%; }
+        .stage-light-mobile { display: none; width: 100%; }
+        @media (max-width: 768px) {
+          .stage-light-desk { display: none; }
+          .stage-light-mobile { display: block; }
         }
       `}</style>
     </div>
