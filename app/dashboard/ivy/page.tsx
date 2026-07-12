@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import IvyShell from './components/IvyShell';
 import CapitalCard, { cardDigits } from './components/CapitalCard';
+import TelegramLinkBanner from './components/onboarding/TelegramLinkBanner';
 import { Sparkline, SourceIcon } from './components/_ivyShared';
 import { AgentSays, ArcGauge, AuraField, CountUp } from '@/components/AuraSystem';
 import { Delta, EmptyState, formatEGP, timeAgo } from '@/components/DashboardPrimitives';
@@ -93,6 +94,9 @@ export default function IvyOverview() {
       actions={periodTabs}
     >
       <div className="krew-stagger flex flex-col gap-5">
+
+        {/* Persistent Telegram-linking nudge — until the account is linked */}
+        <TelegramLinkBanner />
 
         {/* Ivy speaks — replaces the old alert banners */}
         {nudges.map((n) => (

@@ -587,6 +587,16 @@ class IvyClient {
     this.persistOnboarding();
   }
 
+  /** Re-open the onboarding overlay straight at the Telegram step (from the
+      Overview "connect Telegram" banner). Completing it flips completed back. */
+  reopenTelegramStep() {
+    this.set({
+      ...this.state,
+      onboarding: { ...this.state.onboarding, completed: false, step: 'telegram' },
+    });
+    this.persistOnboarding();
+  }
+
   completeOnboarding() {
     this.set({
       ...this.state,
