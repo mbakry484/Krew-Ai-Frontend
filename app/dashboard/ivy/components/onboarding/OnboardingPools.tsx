@@ -8,9 +8,10 @@ import { useIvy } from '@/components/IvyProvider';
 import { ivyClient } from '@/lib/ivy/ivyClient';
 import { CAPITAL_COLORS, CapitalColor } from '@/lib/ivy/types';
 
-// Step 2 — Create your first capital pool. Reuses the exact Visa-style card UI
-// (CapitalCard) with a live preview as the founder types. At least one pool is
-// required to continue; up to 3 can be added here, more later from Capital.
+// Step 2 — Create your first capital pool. Reuses the Visa-style CapitalCard
+// with a live preview as the founder types. One button: Continue commits the
+// current pool (locally — see ivyClient.addCapital skipApi) and moves on. More
+// pools can be added later from Capital.
 
 const inputCls =
   'w-full bg-input-bg border border-border rounded-[8px] px-3 py-2 text-[0.82rem] text-text-primary placeholder:text-text-tertiary focus:border-border-hover focus:outline-none transition-colors duration-150';
@@ -34,19 +35,30 @@ export default function OnboardingPools({
 
   const numericAmount = Number(amount) || 0;
   const atLimit = capitals.length >= MAX_POOLS;
-  const canContinue = capitals.length >= 1;
 
-  const addPool = () => {
+  // Commit the drafted pool (if any) and move on. Local write so an expired
+  // token can't bounce the flow. Empty draft is fine as long as a pool exists.
+  const proceed = () => {
     const value = Number(amount);
-    if (!name.trim()) {
-      setError('Give the pool a name.');
+    const hasDraft = name.trim() !== '' || amount.trim() !== '';
+
+    if (hasDraft) {
+      if (!name.trim()) { setError('Give the pool a name.'); return; }
+      if (!Number.isFinite(value) || value <= 0) { setError('Enter an opening balance greater than zero.'); return; }
+      if (!atLimit) ivyClient.addCapital({ name: name.trim(), initial_amount: value, color }, { skipApi: true });
+    } else if (capitals.length === 0) {
+      setError('Add a pool — a name and the cash sitting in it right now.');
       return;
     }
-    if (!Number.isFinite(value) || value <= 0) {
-      setError('Enter an opening balance greater than zero.');
-      return;
-    }
-    ivyClient.addCapital({ name: name.trim(), initial_amount: value, color });
+    onNext();
+  };
+
+  // Optional: bank the current pool and clear the form to add another.
+  const addAnother = () => {
+    const value = Number(amount);
+    if (!name.trim()) { setError('Give the pool a name.'); return; }
+    if (!Number.isFinite(value) || value <= 0) { setError('Enter an opening balance greater than zero.'); return; }
+    ivyClient.addCapital({ name: name.trim(), initial_amount: value, color }, { skipApi: true });
     setName('');
     setAmount('');
     setColor('teal');
@@ -86,7 +98,7 @@ export default function OnboardingPools({
       )}
 
       {/* Draft form + live preview */}
-      {!atLimit && (
+      {!atLimit ? (
         <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 items-start">
           <div className="cap-preview">
             <CapitalCard
@@ -146,23 +158,23 @@ export default function OnboardingPools({
 
             {error && <p className="text-[0.72rem] text-[#e07070]">{error}</p>}
 
-            <button
-              onClick={addPool}
-              className="self-start rounded-[9px] border border-ivy-accent-border text-ivy-accent px-4 py-[8px] text-[0.74rem] font-medium hover:bg-ivy-accent/10 transition-colors duration-150"
-            >
-              {capitals.length === 0 ? 'Add this pool' : 'Add another pool'}
-            </button>
+            {capitals.length < MAX_POOLS - 1 && (
+              <button
+                onClick={addAnother}
+                className="self-start text-[0.72rem] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+              >
+                + Save &amp; add another pool
+              </button>
+            )}
           </div>
         </div>
-      )}
-
-      {atLimit && (
+      ) : (
         <p className="text-[0.72rem] text-text-tertiary text-center">
           {MAX_POOLS} pools added — you can add more later from Capital.
         </p>
       )}
 
-      {/* Footer actions */}
+      {/* Footer actions — single primary Continue */}
       <div className="flex items-center justify-between pt-2">
         <button
           onClick={onBack}
@@ -171,19 +183,17 @@ export default function OnboardingPools({
           Back
         </button>
         <button
-          onClick={onNext}
-          disabled={!canContinue}
-          className="rounded-[10px] bg-btn-bg text-btn-text px-6 py-[9px] text-[0.78rem] font-medium hover:opacity-90 transition-opacity duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-          title={canContinue ? undefined : 'Add at least one pool with a balance to continue'}
+          onClick={proceed}
+          className="rounded-[10px] bg-btn-bg text-btn-text px-6 py-[9px] text-[0.78rem] font-medium hover:opacity-90 transition-opacity duration-150"
         >
           Continue
         </button>
       </div>
 
-      {canContinue && (
+      {capitals.length > 0 && (
         <p className="text-center text-[0.66rem] text-text-tertiary -mt-3">
-          {formatEGP(capitals.reduce((s, c) => s + c.current_balance, 0))} across{' '}
-          {capitals.length} pool{capitals.length !== 1 ? 's' : ''} — nothing works without at least one.
+          {formatEGP(capitals.reduce((s, c) => s + c.current_balance, 0))} tracked across{' '}
+          {capitals.length} pool{capitals.length !== 1 ? 's' : ''}.
         </p>
       )}
     </div>

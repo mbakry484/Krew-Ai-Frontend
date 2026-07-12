@@ -392,7 +392,10 @@ class IvyClient {
     return row;
   }
 
-  addCapital(input: { name: string; initial_amount: number; color: CapitalColor }): Capital {
+  addCapital(
+    input: { name: string; initial_amount: number; color: CapitalColor },
+    opts?: { skipApi?: boolean },
+  ): Capital {
     const row: Capital = {
       id: `cap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       brand_id: BRAND_ID,
@@ -404,6 +407,12 @@ class IvyClient {
     };
     const s = this.state;
     this.set({ ...s, capitals: [...s.capitals, row] });
+
+    // Onboarding creates pools before the brand is necessarily authenticated
+    // with the backend; skipApi keeps it a local write so an expired-token 401
+    // can't logout()→redirect mid-flow (and can't revert the pool out from
+    // under the user). TODO: persist onboarding pools once auth is guaranteed.
+    if (opts?.skipApi) return row;
 
     createIvyCapital(input)
       .then((serverRow: Capital) => this.swapCapitalId(row.id, serverRow))
