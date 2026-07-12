@@ -289,11 +289,11 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
           --win-extend-right: 130px;
           --win-height: 450px;
 
-          --hand-x: 0px;
+          --hand-x: 30px;
           --hand-y: 0px;
           --hand-size: 105%;
-          --hand-fade-start: 56%;
-          --hand-fade-end: 84%;
+          --hand-fade-start: 74%;
+          --hand-fade-end: 88%;
 
           position: relative;
           width: 100%;
