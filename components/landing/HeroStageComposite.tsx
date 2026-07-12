@@ -255,21 +255,55 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
 
       <style jsx>{`
         .hsl-stage {
+          /* ═══════════════════ CONTROL PANEL ═══════════════════
+             Change a number, save, the page refreshes itself.
+
+             WHOLE SCENE — window + hand move/scale TOGETHER:
+               --scene-x      +20px moves everything RIGHT · -20px LEFT
+               --scene-y      +20px moves everything DOWN  · -20px UP
+               --scene-scale  1 = normal · 1.1 = 10% bigger · 0.9 = smaller
+
+             WINDOW only:
+               --win-x            nudge: + right · − left
+               --win-y            nudge: + down  · − up
+               --win-extend-left  stretch the LEFT edge outward (wider)
+               --win-extend-right stretch the RIGHT edge outward (wider)
+               --win-height       dashboard height in px (shorter/taller)
+
+             HAND only:
+               --hand-x     nudge: + right · − left
+               --hand-y     nudge: + down  · − up
+               --hand-size  size, % of the column (bigger % = bigger hand)
+             ══════════════════════════════════════════════════════ */
+          --scene-x: 0px;
+          --scene-y: 0px;
+          --scene-scale: 1;
+
+          --win-x: 0px;
+          --win-y: 12px;
+          --win-extend-left: 0px;
+          --win-extend-right: 130px;
+          --win-height: 450px;
+
+          --hand-x: 0px;
+          --hand-y: 0px;
+          --hand-size: 105%;
+
           position: relative;
           width: 100%;
           height: 600px;
+          transform: translate(var(--scene-x), var(--scene-y)) scale(var(--scene-scale));
+          transform-origin: center center;
         }
 
-        /* ── the window — wide, bleeding past the column toward the viewport
-              edge so the dashboard doesn't read stacked. Theme-token surfaces:
+        /* ── the window — reads the knobs above; theme-token surfaces:
               light window in light mode, dark in dark. ── */
         .hsl-win {
           position: absolute;
           top: 6px;
-          left: 0;
-          /* HOW FAR THE WINDOW GROWS RIGHT: the middle "-15vw" is the knob —
-             a bigger number (e.g. -18vw) = wider window pushed further right */
-          right: clamp(-230px, -15vw, -80px);
+          left: calc(-1 * var(--win-extend-left));
+          right: calc(-1 * var(--win-extend-right));
+          transform: translate(var(--win-x), var(--win-y));
           border-radius: 18px;
           border: 1px solid var(--border-md);
           background: var(--bg2);
@@ -292,7 +326,7 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
         }
         .hsl-screen {
           position: relative;
-          height: 500px;
+          height: var(--win-height);
         }
 
         /* ── boot layer ── */
@@ -638,11 +672,13 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
         .hsl-hand {
           position: absolute;
           z-index: 5;
-          right: clamp(-180px, -12vw, -60px);
+          /* base anchor — prefer the --hand-x / --hand-y knobs for moving */
+          right: clamp(-100px, -12vw, -60px);
           bottom: -14%;
-          width: 96%;
+          width: var(--hand-size);
           max-width: 700px;
           height: auto;
+          transform: translate(var(--hand-x), var(--hand-y));
           user-select: none;
           pointer-events: none;
           filter: drop-shadow(0 30px 46px rgba(10, 10, 10, 0.24));
