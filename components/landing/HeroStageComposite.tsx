@@ -274,12 +274,16 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
                --hand-x     nudge: + right · − left
                --hand-y     nudge: + down  · − up
                --hand-size  size, % of the column (bigger % = bigger hand)
+               --hand-fade-start  where the bottom fade BEGINS (% of the
+                                  photo's height; lower = starts higher)
+               --hand-fade-end    where it's FULLY gone (must be > start;
+                                  the gap between them = how soft the fade)
              ══════════════════════════════════════════════════════ */
           --scene-x: 0px;
           --scene-y: 0px;
           --scene-scale: 1;
 
-          --win-x: 0px;
+          --win-x: -100px;
           --win-y: 12px;
           --win-extend-left: 0px;
           --win-extend-right: 130px;
@@ -288,6 +292,8 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
           --hand-x: 0px;
           --hand-y: 0px;
           --hand-size: 105%;
+          --hand-fade-start: 56%;
+          --hand-fade-end: 84%;
 
           position: relative;
           width: 100%;
@@ -682,9 +688,18 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
           user-select: none;
           pointer-events: none;
           filter: drop-shadow(0 30px 46px rgba(10, 10, 10, 0.24));
-          /* wrist fade: "78%" = where the fade starts (lower = fades earlier) */
-          -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
-          mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
+          /* bottom dissolve — fully transparent by --hand-fade-end, so the
+             arm (and its shadow) never crosses the hero's bottom border */
+          -webkit-mask-image: linear-gradient(
+            to bottom,
+            #000 var(--hand-fade-start),
+            transparent var(--hand-fade-end)
+          );
+          mask-image: linear-gradient(
+            to bottom,
+            #000 var(--hand-fade-start),
+            transparent var(--hand-fade-end)
+          );
         }
 
         @media (prefers-reduced-motion: reduce) {
