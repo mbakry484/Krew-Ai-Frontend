@@ -18,10 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Blocking script: reads localStorage and sets data-theme before first paint
-            — prevents dark/light flash on load. Must be synchronous (no defer/async). */}
+        {/* Blocking script (must be synchronous — no defer/async):
+            1. reads localStorage → sets data-theme before first paint (no flash)
+            2. disables the browser's scroll restoration so a reload always
+               lands at the top instead of wherever you last were. Anchor
+               links + programmatic scroll are unaffected. */}
         <script dangerouslySetInnerHTML={{ __html:
-          `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}`
+          `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}` +
+          `try{if('scrollRestoration' in history){history.scrollRestoration='manual'}}catch(e){}`
         }} />
       </head>
       <body>
