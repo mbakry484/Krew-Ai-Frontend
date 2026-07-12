@@ -193,6 +193,11 @@
 | 6 | `feat/pricing-meta` | Phase 4 + 5 | Pricing per-agent; meta/OG updated |
 | 7 | `feat/motion-qa` | Phase 6 + 7 | Lighthouse pass, mobile pass, ship to main |
 
+## Out-of-band builds (product dashboard — outside the landing relaunch)
+| Build | Branch | Scope | Status |
+|-------|--------|-------|--------|
+| Ivy launch readiness | `feat/ivy-launch-readiness` | First-open onboarding flow · product-level inventory rebuild (costs/alerts/bulk-fill) · two-layer profit (real profit vs cash) · alert preferences. Frontend-only against mocked API contracts; no marketing/registry/other-agent changes. | **done, 2026-07-12, feat/ivy-launch-readiness** |
+
 ## Kickoff prompt template (Session 1 — adapt per session)
 ```
 Read, in this order, before doing anything:
