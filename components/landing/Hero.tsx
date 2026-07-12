@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTheme } from '@/components/ThemeProvider';
 import { getLiveAgent } from '@/lib/agents';
 import { getHeroCopy } from '@/content/agent-content';
 import HeroStage from '@/components/landing/HeroStage';
-import HeroStageLight from '@/components/landing/HeroStageLight';
+import HeroStageComposite from '@/components/landing/HeroStageComposite';
 import Button from '@/components/Button';
 
 // =============================================================================
@@ -21,8 +20,6 @@ import Button from '@/components/Button';
 export default function Hero() {
   const agent = getLiveAgent();
   const copy = getHeroCopy(agent.slug);
-  const { theme } = useTheme();
-  const dk = theme === 'dark';
 
   // Keep elements at opacity:0 until after first paint, then apply the
   // animation class. Double RAF guarantees the browser has committed the
@@ -51,7 +48,7 @@ export default function Hero() {
   const nbspMoney = (s: string) => s.replace(/EGP (?=\d)/g, 'EGP\u00A0');
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="hero-root min-h-screen flex flex-col">
       {/* -mt-20/pt-20 pulls the aura up behind the floating navbar so there is
           no seam between the page top and the hero backdrop */}
       <div className="relative flex-1 flex -mt-20 pt-20" data-agent={agent.slug}>
@@ -102,9 +99,8 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT — the stage. Theme split: dark keeps the two-device coded
-              stage; light gets the tablet-boot composite on desktop and falls
-              back to the dark stage's strip+chat variant on mobile. */}
+          {/* RIGHT — the stage: the window+hand composite (both themes) on
+              desktop; the strip+chat variant (HeroStage) on mobile. */}
           <div
             className={`hero-right ${ready ? 'hero-blur-in-slow' : ''} flex items-center justify-center py-6`}
             style={at(100)}
@@ -113,18 +109,12 @@ export default function Hero() {
               {/* light-theme agent presence (KREW-DESIGN §3 light rule) */}
               <div className="hero-mascot-glow" aria-hidden="true" />
               <div className="relative z-[1] w-full">
-                {dk ? (
+                <div className="stage-desk">
+                  <HeroStageComposite agent={agent} />
+                </div>
+                <div className="stage-mobile">
                   <HeroStage agent={agent} />
-                ) : (
-                  <>
-                    <div className="stage-light-desk">
-                      <HeroStageLight agent={agent} />
-                    </div>
-                    <div className="stage-light-mobile">
-                      <HeroStage agent={agent} />
-                    </div>
-                  </>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -149,6 +139,11 @@ export default function Hero() {
       </div>
 
       <style jsx>{`
+        /* the stage composite bleeds past the right column toward the viewport
+           edge — clip here so the page never scrolls horizontally */
+        .hero-root {
+          overflow-x: clip;
+        }
         .hero-grid {
           grid-template-columns: 52% 48%;
         }
@@ -184,13 +179,13 @@ export default function Hero() {
           .stats-strip-grid { grid-template-columns: 1fr 1fr; }
         }
 
-        /* Light-theme stage split: tablet composite ≥769px, the dark stage's
-           strip+chat mobile variant below */
-        .stage-light-desk { width: 100%; }
-        .stage-light-mobile { display: none; width: 100%; }
+        /* Stage split (both themes): window+hand composite ≥769px, the
+           strip+chat variant below */
+        .stage-desk { width: 100%; }
+        .stage-mobile { display: none; width: 100%; }
         @media (max-width: 768px) {
-          .stage-light-desk { display: none; }
-          .stage-light-mobile { display: block; }
+          .stage-desk { display: none; }
+          .stage-mobile { display: block; }
         }
       `}</style>
     </div>

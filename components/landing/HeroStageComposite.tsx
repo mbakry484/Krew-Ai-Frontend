@@ -7,21 +7,23 @@ import { getLightStageContent } from '@/content/agent-content';
 import AgentMascot from '@/components/agents/AgentMascot';
 
 // =============================================================================
-// LIGHT-THEME HERO STAGE — a layered composite: an Apple-tablet-style device
-// (coded, live) running a replica of the live agent's dashboard overview, with
-// the photographed hand + phone (public/hero/hand-device.webp) layered in
-// front, bottom-right. The dashboard inside the tablet stays dark-themed (it
-// replicates the product), so the screen uses literal §1 dark tokens — same
-// precedent as AgentCard's always-dark surface.
+// HERO STAGE COMPOSITE (both themes, desktop) — a layered scene: a wide
+// macOS-style app window running a live coded replica of the agent's dashboard
+// overview, with the photographed hand + phone (public/hero/hand-device.webp)
+// layered in front, right side, like the concept comp. The window bleeds past
+// the hero column toward the viewport edge so the dashboard reads wide, with
+// its right region intentionally sitting behind the hand.
 //
-// Boot sequence (plays ONCE per page load): the screen wakes near-black with
-// the mascot centred — wobble, one blink, a glow pulse (~1s) — then the
-// dashboard cross-fades in while the mascot shrinks into the header avatar
-// slot, as if it becomes the interface. prefers-reduced-motion: no
-// performance; the dashboard renders immediately with a static header avatar.
+// Theme-responsive: every surface uses the theme tokens, so the window is
+// light in light mode and dark in dark mode. Window chrome (traffic lights)
+// mirrors real macOS UI — same precedent as the integrations' brand marks.
 //
-// Desktop/tablet only (≥769px). Mobile keeps the dark stage's strip + chat
-// variant — the split lives in Hero.tsx.
+// Boot sequence (plays ONCE per page load): the empty window holds the mascot
+// centred — wobble, one blink, a glow pulse (~1s) — then the dashboard
+// cross-fades in while the mascot shrinks into the header avatar slot.
+// prefers-reduced-motion: no performance; dashboard renders immediately.
+//
+// Desktop only (≥769px). Mobile keeps the strip + chat variant (HeroStage).
 // =============================================================================
 
 const NBSP = String.fromCharCode(0xa0);
@@ -57,7 +59,7 @@ function SettleNumber({ value, run, instant }: { value: number; run: boolean; in
   return <span className="tabular-nums">{EGP(display)}</span>;
 }
 
-/** Tiny arc gauge — stroke draws to `pct` once the stage is on. */
+/** Small arc gauge — stroke draws to `pct` once the stage is on. */
 function Arc({ pct, on, instant, children }: { pct: number; on: boolean; instant: boolean; children: React.ReactNode }) {
   const R = 26;
   const C = 2 * Math.PI * R;
@@ -65,7 +67,7 @@ function Arc({ pct, on, instant, children }: { pct: number; on: boolean; instant
   return (
     <div className="hsl-arc">
       <svg viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="4.5" />
+        <circle cx="32" cy="32" r={R} fill="none" stroke="var(--border)" strokeWidth="4.5" />
         <circle
           cx="32" cy="32" r={R} fill="none"
           stroke="var(--agent-accent)" strokeWidth="4.5" strokeLinecap="round"
@@ -89,20 +91,20 @@ const SIDEBAR_ICONS = [
   <><polyline key="a" points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
 ];
 
-export default function HeroStageLight({ agent }: { agent: Agent }) {
+export default function HeroStageComposite({ agent }: { agent: Agent }) {
   const content = getLightStageContent(agent.slug);
   const reduce = !!useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.4 });
 
-  // 'boot' = mascot performance on a dark screen · 'on' = dashboard live
+  // 'boot' = mascot performance in the empty window · 'on' = dashboard live
   const [phase, setPhase] = useState<'idle' | 'boot' | 'on'>(
     bootedThisLoad ? 'on' : 'idle'
   );
   const started = useRef(false);
 
   // NOTE: `phase` must NOT be a dep here — flipping idle→boot would run the
-  // cleanup and cancel the handoff timer, freezing the screen mid-boot.
+  // cleanup and cancel the handoff timer, freezing the window mid-boot.
   useEffect(() => {
     if (!inView || started.current) return;
     started.current = true;
@@ -124,11 +126,17 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
   return (
     <div ref={ref} className="hsl-stage" data-phase={phase} data-agent={agent.slug} aria-hidden="true">
 
-      {/* ── TABLET ── */}
-      <div className="hsl-tablet">
-        <div className="hsl-screen">
+      {/* ── macOS-style app window ── */}
+      <div className="hsl-win">
+        {/* window chrome — traffic lights (real macOS UI, like brand marks) */}
+        <div className="hsl-chrome">
+          <span className="hsl-dot" style={{ background: '#FF5F57' }} />
+          <span className="hsl-dot" style={{ background: '#FEBC2E' }} />
+          <span className="hsl-dot" style={{ background: '#28C840' }} />
+        </div>
 
-          {/* boot layer — mascot performance on the dark screen */}
+        <div className="hsl-screen">
+          {/* boot layer — mascot performance in the empty window */}
           <div className="hsl-boot">
             <div className="hsl-boot-mascot">
               <AgentMascot agent={agent} size={150} animated={false} />
@@ -154,7 +162,7 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
                   <div className="hsl-subtitle">{content.header.subtitle}</div>
                 </div>
                 <div className="hsl-head-ava">
-                  <AgentMascot agent={agent} size={24} animated={false} />
+                  <AgentMascot agent={agent} size={26} animated={false} />
                 </div>
               </div>
 
@@ -249,28 +257,40 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-stage {
           position: relative;
           width: 100%;
-          height: 560px;
+          height: 600px;
         }
 
-        /* ── device ── */
-        .hsl-tablet {
+        /* ── the window — wide, bleeding past the column toward the viewport
+              edge so the dashboard doesn't read stacked. Theme-token surfaces:
+              light window in light mode, dark in dark. ── */
+        .hsl-win {
           position: absolute;
-          top: 34px;
+          top: 6px;
           left: 0;
-          right: 8%;
-          border-radius: 26px;
-          background: #0a0a0a; /* bezel — §1 base as literal (always-dark device) */
-          padding: 11px;
+          right: clamp(-120px, -9vw, -40px);
+          border-radius: 18px;
+          border: 1px solid var(--border-md);
+          background: var(--bg2);
+          overflow: hidden;
           box-shadow:
-            0 40px 80px rgba(17, 24, 39, 0.18),
-            0 12px 28px rgba(17, 24, 39, 0.10);
+            0 44px 90px rgba(10, 10, 10, 0.16),
+            0 14px 30px rgba(10, 10, 10, 0.08);
+        }
+        .hsl-chrome {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border);
+        }
+        .hsl-dot {
+          width: 11px;
+          height: 11px;
+          border-radius: 50%;
         }
         .hsl-screen {
           position: relative;
-          border-radius: 16px;
-          overflow: hidden;
-          background: #0a0a0a;
-          height: 418px; /* landscape-leaning aspect against the column width */
+          height: 500px;
         }
 
         /* ── boot layer ── */
@@ -286,8 +306,11 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-boot-mascot {
           opacity: 0;
           transform: scale(0.85);
+          transition:
+            transform 0.4s ${EASE},
+            opacity 0.4s ${EASE};
         }
-        /* 0–180ms wake · 180–700ms wobble (blink + pulse ride the same window) */
+        /* 0–180ms wake · 180–700ms wobble (blink + pulse ride the window) */
         .hsl-stage[data-phase='boot'] .hsl-boot-mascot {
           animation:
             hslWake 0.18s ease-out both,
@@ -302,14 +325,9 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           animation: hslPulse 0.3s ease-in-out 0.7s 1;
         }
         /* 1000–1400ms handoff — shrink + glide toward the header slot */
-        .hsl-boot-mascot {
-          transition:
-            transform 0.4s ${EASE},
-            opacity 0.4s ${EASE};
-        }
         .hsl-stage[data-phase='on'] .hsl-boot-mascot {
           opacity: 0;
-          transform: translate(38%, -175%) scale(0.22);
+          transform: translate(40%, -180%) scale(0.22);
         }
         .hsl-stage[data-phase='idle'] .hsl-boot-mascot {
           opacity: 0;
@@ -340,7 +358,7 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           z-index: 1;
           display: flex;
           opacity: 0;
-          transform: scale(0.965);
+          transform: scale(0.97);
           transition:
             opacity 0.5s ${EASE} 0.06s,
             transform 0.5s ${EASE} 0.06s;
@@ -350,43 +368,41 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           transform: scale(1);
         }
 
-        /* Always-dark product chrome — §1 tokens as literals (page is light) */
         .hsl-side {
-          width: 38px;
+          width: 46px;
           flex-shrink: 0;
-          border-right: 1px solid rgba(255, 255, 255, 0.07);
-          background: rgba(255, 255, 255, 0.02);
+          border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 10px 0;
-          gap: 7px;
+          padding: 14px 0;
+          gap: 9px;
         }
         .hsl-side-icon {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-tertiary);
         }
         .hsl-side-icon.is-active {
-          background: #1c1c1f;
-          color: rgba(255, 255, 255, 0.65);
+          background: var(--bg3);
+          color: var(--text-secondary);
         }
         .hsl-side-icon svg {
-          width: 11px;
-          height: 11px;
+          width: 13px;
+          height: 13px;
         }
 
         .hsl-main {
           flex: 1;
           min-width: 0;
-          padding: 12px 14px;
+          padding: 16px 18px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
         }
         .hsl-head {
           display: flex;
@@ -395,20 +411,20 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           gap: 8px;
         }
         .hsl-title {
-          font-size: 0.72rem;
+          font-size: 0.85rem;
           font-weight: 300;
           letter-spacing: -0.02em;
-          color: rgba(255, 255, 255, 0.95);
+          color: var(--text-primary);
           line-height: 1.2;
         }
         .hsl-subtitle {
-          font-size: 0.5rem;
-          color: rgba(255, 255, 255, 0.4);
-          margin-top: 1px;
+          font-size: 0.56rem;
+          color: var(--text-tertiary);
+          margin-top: 2px;
         }
         .hsl-head-ava {
-          width: 24px;
-          height: 24px;
+          width: 26px;
+          height: 26px;
           border-radius: 50%;
           overflow: hidden;
           display: flex;
@@ -424,18 +440,18 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-tile {
           position: relative;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          border-radius: 11px;
-          background: #111113;
-          padding: 9px 11px;
+          border: 1px solid var(--border);
+          border-radius: 13px;
+          background: var(--bg);
+          padding: 12px 14px;
           min-width: 0;
         }
         .hsl-label {
-          font-size: 0.46rem;
+          font-size: 0.52rem;
           text-transform: uppercase;
           letter-spacing: 0.11em;
-          color: rgba(255, 255, 255, 0.4);
-          margin-bottom: 5px;
+          color: var(--text-tertiary);
+          margin-bottom: 6px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -444,34 +460,31 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-profit .hsl-glow {
           position: absolute;
           inset: 0;
-          background: radial-gradient(ellipse 60% 120% at 78% 0%, var(--agent-accent-soft), transparent 70%);
+          background: radial-gradient(ellipse 55% 130% at 80% 0%, var(--agent-accent-soft), transparent 70%);
           pointer-events: none;
         }
-        .hsl-profit > :global(*) {
-          position: relative;
-        }
         .hsl-big {
-          font-size: 1.5rem;
+          font-size: 1.9rem;
           font-weight: 300;
           letter-spacing: -0.04em;
           line-height: 1.05;
-          color: rgba(255, 255, 255, 0.95);
+          color: var(--text-primary);
         }
         .hsl-sub {
-          font-size: 0.5rem;
-          color: rgba(255, 255, 255, 0.4);
-          margin-top: 4px;
+          font-size: 0.56rem;
+          color: var(--text-tertiary);
+          margin-top: 5px;
         }
 
         .hsl-row3 {
           display: grid;
-          grid-template-columns: 1.15fr 0.9fr 1.15fr;
-          gap: 8px;
+          grid-template-columns: 1.15fr 0.95fr 1.15fr;
+          gap: 10px;
         }
         .hsl-row2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 8px;
+          gap: 10px;
           flex: 1;
           min-height: 0;
         }
@@ -479,12 +492,12 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-arc-line {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 9px;
         }
         .hsl-arc {
           position: relative;
-          width: 54px;
-          height: 54px;
+          width: 60px;
+          height: 60px;
           flex-shrink: 0;
         }
         .hsl-arc svg {
@@ -501,31 +514,31 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           justify-content: center;
         }
         .hsl-arc-stat {
-          font-size: 0.6rem;
+          font-size: 0.66rem;
           font-weight: 400;
           letter-spacing: -0.02em;
-          color: rgba(255, 255, 255, 0.95);
+          color: var(--text-primary);
           line-height: 1;
         }
         .hsl-arc-unit {
-          font-size: 0.36rem;
+          font-size: 0.4rem;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-tertiary);
           margin-top: 1px;
         }
         .hsl-line {
-          font-size: 0.48rem;
+          font-size: 0.54rem;
           font-weight: 300;
           line-height: 1.5;
-          color: rgba(255, 255, 255, 0.65);
+          color: var(--text-secondary);
           min-width: 0;
         }
         .hsl-mid {
-          font-size: 0.95rem;
+          font-size: 1.05rem;
           font-weight: 300;
           letter-spacing: -0.03em;
-          color: rgba(255, 255, 255, 0.95);
+          color: var(--text-primary);
           line-height: 1.1;
         }
         .hsl-split {
@@ -534,7 +547,7 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           border-radius: 999px;
           overflow: hidden;
           background: rgba(224, 112, 112, 0.55);
-          margin: 6px 0 5px;
+          margin: 7px 0 6px;
         }
         .hsl-split span {
           height: 100%;
@@ -547,25 +560,25 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         .hsl-bars {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
         .hsl-bar-meta {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 0.5rem;
+          font-size: 0.56rem;
           margin-bottom: 3px;
         }
         .hsl-bar-meta span:first-child {
-          color: rgba(255, 255, 255, 0.65);
+          color: var(--text-secondary);
         }
         .hsl-bar-meta span:last-child {
-          color: rgba(255, 255, 255, 0.95);
+          color: var(--text-primary);
         }
         .hsl-bar-track {
-          height: 3.5px;
+          height: 4px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--bg3);
           overflow: hidden;
         }
         .hsl-bar-track span {
@@ -584,10 +597,10 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 4.5px 0;
+          padding: 6px 0;
         }
         .hsl-log + .hsl-log {
-          border-top: 1px solid rgba(255, 255, 255, 0.07);
+          border-top: 1px solid var(--border);
         }
         .hsl-log-main {
           flex: 1;
@@ -595,44 +608,39 @@ export default function HeroStageLight({ agent }: { agent: Agent }) {
         }
         .hsl-log-note {
           display: block;
-          font-size: 0.52rem;
-          color: rgba(255, 255, 255, 0.95);
+          font-size: 0.58rem;
+          color: var(--text-primary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .hsl-log-meta {
           display: block;
-          font-size: 0.44rem;
-          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.48rem;
+          color: var(--text-tertiary);
           margin-top: 1px;
         }
         .hsl-log-amt {
-          font-size: 0.52rem;
-          color: rgba(255, 255, 255, 0.95);
+          font-size: 0.58rem;
+          color: var(--text-primary);
           flex-shrink: 0;
         }
 
-        /* ── the hand ── */
+        /* ── the hand — big, right side, wrist bleeding off the bottom like
+              the comp; the photo's hard crop melts via the mask ── */
         .hsl-hand {
           position: absolute;
           z-index: 5;
-          right: -7%;
-          bottom: -4%;
-          width: 56%;
-          max-width: 420px;
+          right: clamp(-140px, -10vw, -50px);
+          bottom: -9%;
+          width: 74%;
+          max-width: 560px;
           height: auto;
           user-select: none;
           pointer-events: none;
-          filter: drop-shadow(0 26px 40px rgba(17, 24, 39, 0.22));
-          /* melt the photo's hard wrist crop into the scene */
+          filter: drop-shadow(0 30px 46px rgba(10, 10, 10, 0.24));
           -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
           mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
-        }
-
-        @media (max-width: 1100px) {
-          .hsl-tablet { right: 8%; }
-          .hsl-hand { right: -9%; width: 60%; }
         }
 
         @media (prefers-reduced-motion: reduce) {
