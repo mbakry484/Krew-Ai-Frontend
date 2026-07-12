@@ -15,6 +15,7 @@ import {
   selectActivityFeed,
   selectCashRemaining,
   selectCategoryBreakdown,
+  selectCogsAndCash,
   selectPeriodMetrics,
   selectPreviousMetrics,
 } from '@/lib/ivy/ivyClient';
@@ -43,6 +44,7 @@ export default function IvyOverview() {
   const metrics = useMemo(() => selectPeriodMetrics(state, period), [state, period]);
   const prev = useMemo(() => selectPreviousMetrics(state, period), [state, period]);
   const cash = useMemo(() => selectCashRemaining(state), [state]);
+  const cogsAndCash = useMemo(() => selectCogsAndCash(state, period), [state, period]);
   const nudges = selectActiveNudges(state);
   const breakdown = useMemo(() => selectCategoryBreakdown(state, { period }), [state, period]);
   const recentActivity = useMemo(() => selectActivityFeed(state).slice(0, 5), [state]);
@@ -52,7 +54,15 @@ export default function IvyOverview() {
     : 0;
   const inventoryGap = state.target.sales_target - state.inventory.inventory_value;
 
-  const profitDelta = pctChange(metrics.netProfit, prev.netProfit);
+  // Two-layer profit: the hero shows REAL net profit (net revenue − COGS −
+  // expenses). COGS scales with delivered revenue, so the trend delta compares
+  // against the previous period at the same blended cost ratio.
+  const { cogs, cashDelta, costCoveragePct, realNetProfit } = cogsAndCash;
+  const hasCogs = costCoveragePct > 0;
+  const cogsRatio = metrics.grossDelivered > 0 ? cogs / metrics.grossDelivered : 0;
+  const prevRealNetProfit =
+    prev.netRevenue - Math.round(cogsRatio * prev.grossDelivered) - prev.expensesTotal;
+  const profitDelta = pctChange(realNetProfit, prevRealNetProfit);
   const returnRateDelta =
     metrics.returnRatePct !== null && prev.returnRatePct !== null
       ? Math.round((metrics.returnRatePct - prev.returnRatePct) * 10) / 10
@@ -118,13 +128,40 @@ export default function IvyOverview() {
             <div>
               <div className={tileLabelCls}>Real net profit — {IVY_PERIOD_LABEL[period]}</div>
               <div className="text-[3rem] max-md:text-[2.1rem] font-light tracking-[-0.045em] leading-[1.08] text-text-primary mt-2">
-                <CountUp value={metrics.netProfit} format={formatEGP} duration={1100} />
+                <CountUp value={realNetProfit} format={formatEGP} duration={1100} />
               </div>
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 {profitDelta !== null && <Delta pct={profitDelta} />}
                 <span className="text-[0.7rem] text-text-secondary">
-                  net revenue {formatEGP(metrics.netRevenue)} − expenses {formatEGP(metrics.expensesTotal)}
+                  net revenue {formatEGP(metrics.netRevenue)}
+                  {hasCogs && <> − COGS {formatEGP(cogs)}</>} − expenses {formatEGP(metrics.expensesTotal)}
                 </span>
+              </div>
+
+              {/* Second layer — profit vs cash */}
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                {hasCogs ? (
+                  <span
+                    className="group relative inline-flex items-center gap-[6px] rounded-full border border-border bg-background2 px-[11px] py-[4px] text-[0.68rem] cursor-default"
+                    title="profit ≠ cash. you restocked — that money became inventory, not loss."
+                  >
+                    <span className={cashDelta < 0 ? 'text-[#e07070]' : 'text-[#6bcf8f]'}>
+                      cash {cashDelta < 0 ? '−' : '+'}{formatEGP(Math.abs(cashDelta))}
+                    </span>
+                    <span className="text-text-tertiary">{IVY_PERIOD_LABEL[period].toLowerCase()}</span>
+                    <svg className="w-[11px] h-[11px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                    <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-10 w-[248px] rounded-[10px] border border-border-md bg-background px-3 py-2 text-[0.66rem] text-text-secondary leading-[1.5] opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
+                      profit ≠ cash. you restocked — that money became inventory, not loss.
+                    </span>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => router.push('/dashboard/ivy/inventory')}
+                    className="text-[0.7rem] text-ivy-accent hover:brightness-110 transition-[filter] duration-150"
+                  >
+                    add product costs to see true profit →
+                  </button>
+                )}
               </div>
             </div>
 
