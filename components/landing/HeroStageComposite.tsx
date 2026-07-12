@@ -267,7 +267,9 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
           position: absolute;
           top: 6px;
           left: 0;
-          right: clamp(-120px, -9vw, -40px);
+          /* HOW FAR THE WINDOW GROWS RIGHT: the middle "-15vw" is the knob —
+             a bigger number (e.g. -18vw) = wider window pushed further right */
+          right: clamp(-230px, -15vw, -80px);
           border-radius: 18px;
           border: 1px solid var(--border-md);
           background: var(--bg2);
@@ -627,18 +629,24 @@ export default function HeroStageComposite({ agent }: { agent: Agent }) {
         }
 
         /* ── the hand — big, right side, wrist bleeding off the bottom like
-              the comp; the photo's hard crop melts via the mask ── */
+              the comp; the photo's hard crop melts via the mask.
+              THE FOUR KNOBS:
+                width      → hand SIZE (% of the hero column)
+                max-width  → size cap in px so it stops growing on huge screens
+                right      → horizontal position; MORE negative = further right
+                bottom     → vertical position; MORE negative = lower ── */
         .hsl-hand {
           position: absolute;
           z-index: 5;
-          right: clamp(-140px, -10vw, -50px);
-          bottom: -9%;
-          width: 74%;
-          max-width: 560px;
+          right: clamp(-180px, -12vw, -60px);
+          bottom: -14%;
+          width: 96%;
+          max-width: 700px;
           height: auto;
           user-select: none;
           pointer-events: none;
           filter: drop-shadow(0 30px 46px rgba(10, 10, 10, 0.24));
+          /* wrist fade: "78%" = where the fade starts (lower = fades earlier) */
           -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
           mask-image: linear-gradient(to bottom, #000 78%, transparent 99%);
         }
