@@ -623,15 +623,21 @@ class IvyClient {
     this.persistOnboarding();
   }
 
-  /** Issue a Telegram linking code and (mock) simulate the confirmation. */
+  /** Issue a Telegram linking code. */
   fetchTelegramLinkCode() {
     // TODO: wire to real endpoint (GET /api/ivy/telegram/link-code). A mock
     // code keeps the linking step fully demoable before the backend lands.
     this.set({ ...this.state, telegramLinkCode: makeMockLinkCode() });
-    // TODO(backend): replace this simulated confirmation with polling
-    // GET /api/ivy/onboarding/status until telegramLinked === true.
+  }
+
+  /** Mock: pretend the user tapped "start" in Telegram a few seconds after they
+      open the deep link, so the success state actually plays in the demo.
+      TODO(backend): drop this — real confirmation comes from polling
+      GET /api/ivy/onboarding/status until telegramLinked === true. */
+  armTelegramLinkSimulation() {
+    if (this.state.onboarding.telegramLinked) return;
     clearTimeout(this.telegramSimTimer);
-    this.telegramSimTimer = setTimeout(() => this.markTelegramLinked(), 6500);
+    this.telegramSimTimer = setTimeout(() => this.markTelegramLinked(), 5000);
   }
 }
 

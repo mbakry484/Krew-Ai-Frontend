@@ -93,6 +93,7 @@ export default function OnboardingTelegram({
                 href={telegramLinkCode?.deepLink ?? '#'}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => ivyClient.armTelegramLinkSimulation()}
                 className="flex items-center gap-2 rounded-[10px] bg-ivy-accent text-white px-5 py-[9px] text-[0.78rem] font-medium hover:opacity-90 transition-opacity duration-150"
               >
                 <TelegramGlyph className="w-[15px] h-[15px]" />
