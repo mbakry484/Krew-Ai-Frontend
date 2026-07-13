@@ -183,6 +183,12 @@
 - Face elements (eyes/mouth) as separate groups with ids (`#eyes`, `#mouth`) → enables blink/expression animation without new files
 
 ## Session plan (one Claude Code session per row)
+
+> **⚠ Branch workflow changed 2026-07-13 (CLAUDE.md rule 7):** ALL work now happens
+> directly on `dev` — no new branches, ever. The Branch column below is historical;
+> sessions 1–4 + the Ivy dashboard build were merged into `dev` on 2026-07-13.
+> Sessions 5–7 run on `dev`.
+
 | Session | Branch | Scope | Definition of done |
 |---------|--------|-------|--------------------|
 | 1 | `feat/agent-registry` | Phase 0 audit + Phase 1 (registry, AgentMascot, AgentStatusBadge, AgentCard, nav+footer refactor) | grep test passes; nav/footer render from registry; test page at /dev/agents showing all cards+badges+mascots |
