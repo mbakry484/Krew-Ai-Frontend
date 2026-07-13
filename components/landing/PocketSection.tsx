@@ -175,10 +175,18 @@ export default function PocketSection() {
           filter: drop-shadow(0 30px 55px rgba(10, 10, 10, 0.26));
         }
 
-        /* ── Mobile: same pinned scrub, phone sized to the small screen ── */
+        /* ── Mobile: same pinned scrub — phone bigger and anchored right
+              under the text (no dead gap), instead of floating mid-screen ── */
         @media (max-width: 768px) {
           .pk .pk-phone {
-            width: min(320px, 74vw);
+            width: min(340px, 84vw);
+          }
+          .pk .pk-phone-layer {
+            align-items: flex-start;
+          }
+          .pk .pk-phone-wrap {
+            /* final top ≈ this + PHONE_SINK — keeps it hugging the sub line */
+            margin-top: 25vh;
           }
           .pk .pk-copy {
             padding: 0 1.3rem;
