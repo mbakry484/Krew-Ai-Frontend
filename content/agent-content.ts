@@ -127,6 +127,30 @@ export function getStageScript(slug: AgentSlug): StageScript {
   return script;
 }
 
+// ─── Pocket beat — the "financial analyst in your pocket" scroll moment ─────
+// Asset-driven (a phone push-notification render) + approved COPY.md lines.
+// The eyebrow composes from the registry (name + role). Only agents with a
+// notification asset get an entry.
+
+export interface PocketContent {
+  /** transparent phone render in public/hero/ */
+  image: string;
+  headline: string;
+  sub: string;
+}
+
+const POCKET_CONTENT: Partial<Record<AgentSlug, PocketContent>> = {
+  ivy: {
+    image: '/hero/ivy-notification.webp',
+    headline: 'Your financial analyst. In your pocket.',
+    sub: 'Ivy watches your cash, returns, and inventory around the clock — and sends the exact move to hit your number.',
+  },
+};
+
+export function getPocketContent(slug: AgentSlug): PocketContent | undefined {
+  return POCKET_CONTENT[slug];
+}
+
 // ─── Light-theme hero stage — the tablet dashboard replica ──────────────────
 // Section labels are verbatim from the real agent dashboard overview
 // (app/dashboard/ivy/page.tsx — same precedent as the dark stage: chrome

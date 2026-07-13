@@ -16,6 +16,11 @@ Demo numbers are canonical across the whole site: gross **EGP 914,000** · retur
 - CTA primary: `Start with Ivy`
 - CTA secondary: `Meet the crew →`
 
+### Ivy pocket beat (homepage — after hero, before the crew)
+- Eyebrow: `IVY — FINANCIAL VISIBILITY` *(reused from registry name + role)*
+- Headline: `Your financial analyst. In your pocket.`
+- Sub: `Ivy watches your cash, returns, and inventory around the clock — and sends the exact move to hit your number.`
+
 ### Crew reveal
 - Eyebrow: `THE CREW`
 - Headline: `Not another tool. A crew.`

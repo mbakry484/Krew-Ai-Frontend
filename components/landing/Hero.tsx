@@ -121,23 +121,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Stats strip — agent-agnostic claims; flagged for the 2.6 cleanup pass */}
-      <div className="flex justify-center border-t border-border relative z-[1]">
-        <div className="stats-strip-grid">
-          {[
-            { num: '~0s', label: 'Response time' },
-            { num: '24/7', label: 'Coverage' },
-            { num: '100%', label: 'Consistency' },
-            { num: '∞', label: 'Scale' },
-          ].map((s, i) => (
-            <div key={s.label} className={`text-center px-9 py-8 ${i < 3 ? 'border-r border-border' : ''}`}>
-              <div className="text-[1.2rem] font-light tracking-[-0.04em]">{s.num}</div>
-              <div className="text-[0.63rem] text-text-tertiary tracking-[0.05em] uppercase mt-[2px]">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <style jsx>{`
         /* the stage composite bleeds past the right column toward the viewport
            edge — clip here so the page never scrolls horizontally */
@@ -169,14 +152,6 @@ export default function Hero() {
         @media (max-width: 640px) {
           .hero-grid { padding: 0 1.2rem; gap: 0; }
           .hero-right { padding: 0 0 2.5rem; }
-        }
-
-        .stats-strip-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-        }
-        @media (max-width: 640px) {
-          .stats-strip-grid { grid-template-columns: 1fr 1fr; }
         }
 
         /* Stage split (both themes): window+hand composite ≥769px, the

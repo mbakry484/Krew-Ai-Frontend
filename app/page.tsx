@@ -1,4 +1,5 @@
 import Hero from '@/components/landing/Hero';
+import PocketSection from '@/components/landing/PocketSection';
 import CrewSection from '@/components/landing/CrewSection';
 import SpotlightSection from '@/components/landing/SpotlightSection';
 import BetaAgentSection from '@/components/landing/BetaAgentSection';
@@ -24,6 +25,10 @@ export default function LandingPage() {
 
       {/* ── HERO — registry-driven, rotates with the live agent (Phase 2.1) ── */}
       <Hero />
+
+      {/* ── POCKET BEAT — asset-driven Ivy moment: the phone rises, the
+            punchline is uncovered from behind it on scroll ── */}
+      <PocketSection />
 
       {/* ── CREW REVEAL — permanent brand layer (Phase 2.2) ── */}
       <CrewSection />
