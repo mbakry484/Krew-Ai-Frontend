@@ -8,6 +8,7 @@
 
 # next.js
 /.next/
+/.next-verify/
 /out/
 
 # production
@@ -35,4 +36,6 @@ yarn-error.log*
 *.swo
 
 # OS
-Thumbs.dbnul
+Thumbs.db
+public/hero/hand-device.png
+public/hero/ivy-notification.png

@@ -147,3 +147,105 @@ export interface Nudge {
   message: string;
   href?: string;
 }
+
+// ── Inventory products (Shopify sync read-model) ──────────────────────────────
+// NOT a raw Supabase table: the product/variant view returned by
+//   GET /api/ivy/inventory/products
+// Shopify stock joined with Ivy's per-variant cost + computed sales signals
+// (velocity, days-of-stock, best-seller flag). unitCost is the ONE piece a
+// founder fills in — the whole COGS/real-profit model hinges on it.
+
+/** Where a variant's cost came from — synced from Shopify or typed by hand. */
+export type CostSource = 'shopify' | 'manual';
+
+export interface Product {
+  variantId: string;
+  productTitle: string;
+  variantTitle: string;
+  imageUrl: string | null;
+  unitsInStock: number;
+  sellingPrice: number;
+  /** null until a cost is entered. Missing costs are the coverage nudge engine. */
+  unitCost: number | null;
+  costSource: CostSource | null;
+  /** Units sold per day, averaged over the last 30 days. */
+  velocity30d: number;
+  /** unitsInStock ÷ velocity30d; null renders as "∞" (no recent sales). */
+  daysOfStock: number | null;
+  isBestSeller: boolean;
+  lastSaleAt: string | null; // ISO
+}
+
+// ── Inventory alerts ──────────────────────────────────────────────────────────
+// GET /api/ivy/alerts?scope=inventory|all → InventoryAlert[]
+// severity maps to the dashboard's existing status palette (no new colors):
+//   critical → #e07070 (selling out) · warning → teal accent (low) ·
+//   neutral  → text-tertiary gray (dead stock).
+
+export type AlertSeverity = 'critical' | 'warning' | 'neutral';
+
+export type InventoryAlertType =
+  | 'best_seller_low'
+  | 'selling_out'
+  | 'low_stock'
+  | 'dead_stock'
+  | 'return_spike';
+
+export interface InventoryAlert {
+  id: string;
+  type: InventoryAlertType;
+  severity: AlertSeverity;
+  title: string;
+  body: string;
+  variantId?: string;
+  createdAt: string; // ISO
+}
+
+// ── Alert preferences ─────────────────────────────────────────────────────────
+// GET / PATCH /api/ivy/alert-preferences — same shape both ways.
+
+export interface AlertThresholdDays {
+  enabled: boolean;
+  thresholdDays: number;
+}
+
+export interface AlertPreferences {
+  bestSellerLowStock: AlertThresholdDays;
+  anyLowStock: AlertThresholdDays;
+  deadStock: AlertThresholdDays;
+  returnRateSpike: { enabled: boolean; thresholdPts: number };
+  poolLow: { enabled: boolean; thresholdEgp: number };
+}
+
+/** Sensible defaults from TASK 3 — used to seed the store and reset. */
+export const DEFAULT_ALERT_PREFERENCES: AlertPreferences = {
+  bestSellerLowStock: { enabled: true, thresholdDays: 7 },
+  anyLowStock: { enabled: true, thresholdDays: 5 },
+  deadStock: { enabled: true, thresholdDays: 60 },
+  returnRateSpike: { enabled: true, thresholdPts: 5 },
+  poolLow: { enabled: true, thresholdEgp: 20_000 },
+};
+
+// ── Onboarding + Telegram linking (first-open flow) ───────────────────────────
+// GET  /api/ivy/onboarding/status → OnboardingStatus
+// POST /api/ivy/onboarding/complete
+// GET  /api/ivy/telegram/link-code → TelegramLinkCode
+
+export interface OnboardingStatus {
+  completed: boolean;
+  telegramLinked: boolean;
+  poolCount: number;
+}
+
+/** The four cinematic steps, in order. Progress persists across refresh. */
+export type OnboardingStep = 'welcome' | 'pools' | 'telegram' | 'done';
+
+export const ONBOARDING_STEP_ORDER: OnboardingStep[] = ['welcome', 'pools', 'telegram', 'done'];
+
+export interface TelegramLinkCode {
+  /** Shown large, e.g. "IVY-7Q2K". */
+  code: string;
+  /** t.me deep link the "open Telegram" button points at. */
+  deepLink: string;
+  expiresAt: string; // ISO
+}

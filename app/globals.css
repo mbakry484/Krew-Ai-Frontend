@@ -156,9 +156,12 @@
   flex-wrap: wrap;
   align-items: center;
 }
+/* Mobile: compact buttons stay side by side — never full-width stacked pills */
 @media (max-width: 480px) {
-  .hero-cta-row { flex-direction: column; align-items: stretch; }
-  .hero-cta-row .btn { width: 100%; }
+  .hero-cta-row .btn {
+    padding: var(--btn-padding-y-sm) var(--btn-padding-x);
+    font-size: var(--btn-font-size-sm);
+  }
 }
 
 /* ── Agent card aura — full-card color wash + glowing rotating shape ─────── */
@@ -649,6 +652,29 @@
   .cap-card, .cap-card-bar > span, .cap-panel { transition: none; }
 }
 
+/* ── Ivy first-open onboarding — cinematic backdrop + per-step transition
+      (fade + subtle y-rise) and the Telegram-link success pulse. All motion
+      is frozen under prefers-reduced-motion below. ── */
+.ivy-onboard-backdrop { animation: ivyOnboardFade 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ivyOnboardFade { from { opacity: 0; } to { opacity: 1; } }
+
+.ivy-onboard-step { animation: ivyStepIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ivyStepIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ivy-link-success { animation: ivyLinkPulse 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ivyLinkPulse {
+  0%   { box-shadow: 0 0 0 0 var(--ivy-accent-border); }
+  70%  { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ivy-onboard-backdrop, .ivy-onboard-step, .ivy-link-success { animation: none; }
+}
+
 html {
   font-size: 15px;
 }
@@ -1110,4 +1136,308 @@ select option:checked {
   border-radius: 10px;
   padding: 28px 32px;
   margin-top: 56px;
+}
+
+/* ── Site footer (components/Footer.tsx) ── */
+.footer-grid {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+}
+@media (max-width: 768px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KREW AGENT IDENTITY SYSTEM (Phase 1)
+   All values below come from KREW-DESIGN.md — §2 accents, §3 aura, §4 mascots,
+   §6 status system. lib/agents.ts mirrors the same tokens as data.
+   One accent per agent; never two agent accents in one component.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── §2 Agent theme scopes — any section inherits an agent's accent by setting
+      data-agent. Alpha variants (a35/a20) feed the §3 aura recipe. ── */
+[data-agent='luna'] {
+  --agent-accent: #FF3D9E;
+  --agent-accent-soft: rgba(255, 61, 158, 0.15);
+  --agent-aura-core: #E86FAE;
+  --agent-aura-bleed: #C2402A;
+  --agent-aura-core-a22: rgba(232, 111, 174, 0.22);
+  --agent-aura-bleed-a10: rgba(194, 64, 42, 0.1);
+}
+[data-agent='ivy'] {
+  --agent-accent: #1FCFA4;
+  --agent-accent-soft: rgba(31, 207, 164, 0.15);
+  --agent-aura-core: #5FCDB2;
+  --agent-aura-bleed: #1E5F8A;
+  --agent-aura-core-a22: rgba(95, 205, 178, 0.22);
+  --agent-aura-bleed-a10: rgba(30, 95, 138, 0.1);
+}
+[data-agent='nova'] {
+  --agent-accent: #7C5CFF;
+  --agent-accent-soft: rgba(124, 92, 255, 0.15);
+  --agent-aura-core: #7FA3D9;
+  --agent-aura-bleed: #3B2FBF;
+  --agent-aura-core-a22: rgba(127, 163, 217, 0.22);
+  --agent-aura-bleed-a10: rgba(59, 47, 191, 0.1);
+}
+
+/* ── §4 Mascot — blob SVGs read these; idle float + glow breathing + blink ── */
+.agent-mascot {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  --mascot-light: var(--agent-aura-core);
+  --mascot-mid: var(--agent-accent);
+  --mascot-deep: var(--agent-aura-bleed);
+}
+.agent-mascot svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.agent-mascot .lid,
+.agent-mascot .eyes {
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.agent-mascot[data-animated='true'] svg {
+  animation: mascot-float 6s ease-in-out infinite;
+  animation-delay: var(--mascot-desync, 0s);
+}
+.agent-mascot[data-animated='true'] .blob-halo {
+  /* glow breathing: 0.85 → 1.0 of the halo's baked .55 opacity, offset from float */
+  animation: mascot-breathe 4s ease-in-out infinite;
+  animation-delay: calc(var(--mascot-desync, 0s) - 1.3s);
+}
+.agent-mascot[data-animated='true'] .eyes {
+  /* blink: scaleY dip; period varies per agent via --mascot-blink-period (4–7s) */
+  animation: mascot-blink var(--mascot-blink-period, 5.2s) infinite;
+  animation-delay: var(--mascot-desync, 0s);
+}
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(6px); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes mascot-breathe {
+  0%, 100% { opacity: 0.47; }
+  50% { opacity: 0.55; }
+}
+@keyframes mascot-blink {
+  0%, 3.6%, 100% { transform: scaleY(1); }
+  1.8% { transform: scaleY(0.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-mascot svg,
+  .agent-mascot .blob-halo,
+  .agent-mascot .eyes {
+    animation: none !important; /* freeze float/blink, keep static glow */
+  }
+}
+
+/* ── §6 Status badge ── */
+.agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+.agent-status[data-status='live'] {
+  color: var(--agent-accent);
+}
+.agent-status[data-status='live'] .agent-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--agent-accent);
+  box-shadow: 0 0 5px var(--agent-accent-soft);
+  animation: agent-status-pulse 2.4s ease-in-out infinite;
+}
+.agent-status[data-status='beta'] {
+  color: var(--agent-accent);
+  border: 1px solid var(--agent-accent);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.agent-status[data-status='soon'] {
+  color: var(--text-tertiary);
+}
+@keyframes agent-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-status[data-status='live'] .agent-status-dot { animation: none; }
+}
+
+/* ── §3 v2 The Aura, CSS recipe (implementation b — large/section surfaces):
+      near-black first, muted color, grain doing the texture work. Glow peak
+      ≤0.22 alpha with tight falloff (~55%), bleed ≤0.10, vignette to black,
+      coarse visible grain. If it reads as a smooth colorful gradient, it is
+      wrong. Agent cards use implementation (a) — the texture asset. ── */
+.krew-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 120% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.6) 100%),
+    radial-gradient(ellipse 75% 65% at 30% 35%, var(--agent-aura-core-a22), transparent 55%),
+    radial-gradient(ellipse 50% 45% at 85% 90%, var(--agent-aura-bleed-a10), transparent 55%),
+    #0A0A0A;
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.krew-aura::after {
+  /* §3 v2 grain — coarse enough to read in a screenshot: baseFrequency 0.7,
+     240px tile (stitched), 0.15 opacity, overlay on dark */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+
+/* ── Hero aura — §3 v2 hero rule: predominantly clean near-black; the tint
+      concentrates behind/around the product stage (right column on desktop,
+      below the copy on mobile) and fades before the headline column, so type
+      sits on clean dark. No page-wide wash. Dark theme only — light theme
+      keeps .hero-mascot-glow instead. Bottom mask melts the aura into the
+      page (no boxed vignette / seam); hero pulls it up behind the floating
+      navbar with -mt-20/pt-20. ── */
+.hero-aura {
+  background:
+    radial-gradient(ellipse 42% 55% at 76% 42%, var(--agent-aura-core-a22), transparent 55%),
+    radial-gradient(ellipse 30% 35% at 92% 88%, var(--agent-aura-bleed-a10), transparent 55%),
+    #0A0A0A;
+  -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+}
+@media (max-width: 900px) {
+  /* one-column hero: the stage sits below the copy */
+  .hero-aura {
+    background:
+      radial-gradient(ellipse 85% 42% at 50% 68%, var(--agent-aura-core-a22), transparent 55%),
+      radial-gradient(ellipse 40% 30% at 88% 94%, var(--agent-aura-bleed-a10), transparent 55%),
+      #0A0A0A;
+  }
+}
+[data-theme='light'] .hero-aura {
+  display: none;
+}
+.hero-mascot-glow {
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, var(--agent-accent-soft), transparent 70%);
+  pointer-events: none;
+}
+[data-theme='dark'] .hero-mascot-glow {
+  display: none;
+}
+
+/* ── Agent card (design-refs/MASCOTS.png) — dark card, aura texture behind,
+      mascot centered, name + /role. Content sits above the texture layer. ── */
+.agent-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.07); /* --border-subtle */
+  background: #0A0A0A; /* --bg-base */
+  text-decoration: none;
+}
+/* §3 v2 (a): the designed aura asset — exact look, grain baked in */
+.agent-card-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  transition: filter 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.agent-card:hover .agent-card-aura {
+  filter: brightness(1.12); /* glow bloom on hover */
+}
+.agent-card-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 2rem 1.75rem 1.9rem;
+  transition: opacity 0.3s ease;
+}
+/* §6 soon: dimmed content, grayscale mascot glow */
+.agent-card[data-status='soon'] .agent-card-content {
+  opacity: 0.4;
+}
+.agent-card[data-status='soon'] .agent-mascot svg {
+  filter: grayscale(0.9);
+}
+/* Card typography — always-dark card, so §1 text tokens as literals,
+   not the theme-switching --text-* variables. */
+.agent-card-copy {
+  max-width: 250px;
+  font-size: 0.72rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.65); /* --text-secondary */
+  text-align: left;
+}
+.agent-card-name {
+  font-size: 1.9rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.95); /* --text-primary */
+  text-align: center;
+}
+.agent-card-role {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.65); /* --text-secondary */
+  text-align: center;
+}
+.agent-card-cta {
+  margin-top: 1.9rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.4); /* --text-tertiary */
+  transition: color 0.2s ease;
+  text-align: center;
+}
+.agent-card:hover .agent-card-cta {
+  color: var(--agent-accent);
+}
+
+/* ── Typing indicator dots — shared chat-mock affordance. Lives here (not in a
+      page/section) because several surfaces use it, including the hero stage;
+      moving it out of app/page.tsx keeps it alive when homepage sections are
+      cut. ── */
+.typing-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.typing-dot:nth-child(3) { animation-delay: 0.36s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-dot { animation: none; }
 }

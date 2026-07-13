@@ -22,6 +22,12 @@ export function IvyProvider({ children }: { children: React.ReactNode }) {
   const state = useSyncExternalStore(ivyClient.subscribe, ivyClient.getState, ivyClient.getState);
 
   useEffect(() => {
+    // Restore first-open onboarding progress from localStorage (client-only) so
+    // a refresh mid-flow doesn't restart it, and completed users see no flash.
+    ivyClient.hydrateOnboarding();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     getIvyBootstrap()
       .then((data) => {

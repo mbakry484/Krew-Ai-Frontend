@@ -2,6 +2,7 @@
 
 import IvyShell from '../components/IvyShell';
 import TeamSection from '../components/TeamSection';
+import AlertPreferencesSection from '../components/AlertPreferences';
 import { SectionCard } from '@/components/DashboardPrimitives';
 import { useIvy } from '@/components/IvyProvider';
 import { ivyClient } from '@/lib/ivy/ivyClient';
@@ -54,6 +55,10 @@ export default function IvySettings() {
             />
           </button>
         </div>
+      </SectionCard>
+
+      <SectionCard title="Alerts" subtitle="what Ivy watches for — quietly, and only when it matters">
+        <AlertPreferencesSection />
       </SectionCard>
 
       <SectionCard title="Team" subtitle="add media buyers who log expenses to Ivy over Telegram">
