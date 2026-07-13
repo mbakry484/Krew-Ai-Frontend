@@ -1,11 +1,15 @@
 // =============================================================================
 // IVY — FINANCIAL VISIBILITY · data client (THE single data seam)
 // =============================================================================
-// This module is the ONLY data access point for the Ivy dashboard. Today it is
-// backed by an in-memory client-side store seeded with realistic mock data;
-// swapping to real Supabase/API later should touch THIS FILE ONLY:
-//   - keep the public surface (ivyClient methods + selectors) identical
-//   - replace the seed + synchronous mutations with fetches/mutations
+// This module is the ONLY data access point for the Ivy dashboard.
+//
+// LIVE: capitals + expenses (bootstrap), inventory products, alerts, alert
+// preferences, onboarding status (DB-backed — survives cleared storage),
+// Telegram link codes, and the real P&L overview (COGS / cash delta / cost
+// coverage) — all hydrated from the backend on mount (see IvyProvider →
+// hydrate + hydrateIntelligence + hydrateOnboarding).
+// STILL SEEDED: revenue channels/snapshots and the single inventory/target
+// rows — their endpoints don't exist yet (dummy shapes keep pages rendering).
 //
 // Backend notes (future API surface):
 //   GET    /api/ivy/capitals             → Capital[]
@@ -50,10 +54,17 @@ import {
   createIvyExpense,
   deleteIvyCapital,
   dismissIvyAlert,
+  getIvyAlertPreferences,
+  getIvyAlerts,
+  getIvyInventoryProducts,
+  getIvyOnboardingStatus,
+  getIvyOverview,
+  getIvyTelegramLinkCode,
   updateIvyAlertPreferences,
   updateIvyCapital,
   updateIvyProductCost,
 } from '@/lib/api';
+import type { IvyOverview } from '@/lib/api';
 
 const BRAND_ID = 'brand-demo';
 
@@ -76,6 +87,9 @@ export interface IvyState {
   alerts: InventoryAlert[];
   dismissedAlertIds: string[];
   alertPreferences: AlertPreferences;
+  /** Server-computed P&L per period (real COGS / cash delta / coverage).
+      Absent keys → selectCogsAndCash falls back to the client estimate. */
+  overviews: Partial<Record<IvyPeriod, IvyOverview>>;
   /** First-open onboarding — progress persisted to localStorage per brand. */
   onboarding: {
     /** false until localStorage is read on the client (prevents flash). */
@@ -128,109 +142,11 @@ function snapshot(
   };
 }
 
-// ── Inventory products seed (Shopify sync mock) ───────────────────────────────
-// A realistic apparel catalog: best sellers running low, dead stock, and a
-// deliberate ~70% cost coverage so the "add missing costs" nudge has teeth.
-// Replaced wholesale once GET /api/ivy/inventory/products is live.
-
-const daysOf = (units: number, velocity: number): number | null =>
-  velocity > 0 ? Math.round(units / velocity) : null;
-
-const daysAgo = (n: number): string => new Date(now.getTime() - n * 86_400_000).toISOString();
-
-function product(
-  variantId: string,
-  productTitle: string,
-  variantTitle: string,
-  unitsInStock: number,
-  sellingPrice: number,
-  unitCost: number | null,
-  velocity30d: number,
-  isBestSeller: boolean,
-  lastSaleDaysAgo: number | null,
-): Product {
-  return {
-    variantId,
-    productTitle,
-    variantTitle,
-    imageUrl: null,
-    unitsInStock,
-    sellingPrice,
-    unitCost,
-    costSource: unitCost != null ? 'shopify' : null,
-    velocity30d,
-    daysOfStock: daysOf(unitsInStock, velocity30d),
-    isBestSeller,
-    lastSaleAt: lastSaleDaysAgo == null ? null : daysAgo(lastSaleDaysAgo),
-  };
-}
-
-const seedProducts: Product[] = [
-  product('v-hoodie-blk-m', 'Black Hoodie', 'M', 38, 1450, 620, 3.1, true, 1),
-  product('v-hoodie-blk-l', 'Black Hoodie', 'L', 14, 1450, 620, 2.4, true, 1),
-  product('v-hoodie-blk-xl', 'Black Hoodie', 'XL', 9, 1450, null, 1.1, false, 2),
-  product('v-tee-wht-m', 'Oversized Tee', 'White / M', 20, 620, 240, 4.5, false, 1),
-  product('v-tee-wht-l', 'Oversized Tee', 'White / L', 60, 620, 240, 3.0, false, 1),
-  product('v-tee-blk-m', 'Oversized Tee', 'Black / M', 5, 620, null, 5.0, true, 1),
-  product('v-cargo-bge-32', 'Cargo Pants', 'Beige / 32', 10, 1400, 560, 0, false, 68),
-  product('v-cargo-bge-34', 'Cargo Pants', 'Beige / 34', 8, 1400, 560, 0, false, 72),
-  product('v-cargo-blk-32', 'Cargo Pants', 'Black / 32', 25, 1400, null, 1.4, false, 3),
-  product('v-knit-crm-m', 'Knit Sweater', 'Cream / M', 30, 1650, 720, 1.8, false, 2),
-  product('v-knit-crm-l', 'Knit Sweater', 'Cream / L', 22, 1650, null, 1.2, false, 4),
-  product('v-denim-m', 'Denim Jacket', 'M', 16, 1900, 850, 0.9, false, 5),
-  product('v-denim-l', 'Denim Jacket', 'L', 12, 1900, 850, 1.1, false, 3),
-  product('v-cap-blk', 'Logo Cap', 'Black', 120, 450, 150, 2.2, false, 1),
-];
-
-// One entry has a manual cost so the "manual" vs "shopify" tag both appear.
-seedProducts.find((p) => p.variantId === 'v-tee-wht-m')!.costSource = 'manual';
-seedProducts.find((p) => p.variantId === 'v-denim-m')!.costSource = 'manual';
-
-const seedAlerts: InventoryAlert[] = [
-  {
-    id: 'alert-hoodie-l',
-    type: 'best_seller_low',
-    severity: 'critical',
-    title: 'Black Hoodie · L',
-    body: 'Your best seller — about 6 days of stock left at this pace. Reorder before it goes dark.',
-    variantId: 'v-hoodie-blk-l',
-    createdAt: daysAgo(0),
-  },
-  {
-    id: 'alert-tee-wht-m',
-    type: 'low_stock',
-    severity: 'warning',
-    title: 'Oversized Tee · White / M',
-    body: 'Running low — roughly 4 days of cover left. It moves steadily, so it is worth topping up.',
-    variantId: 'v-tee-wht-m',
-    createdAt: daysAgo(1),
-  },
-  {
-    id: 'alert-cargo-bge',
-    type: 'dead_stock',
-    severity: 'neutral',
-    title: 'Cargo Pants · Beige / 32',
-    body: "Hasn't sold a unit in 68 days — EGP 14,000 sitting dead. A bundle or markdown could free that cash.",
-    variantId: 'v-cargo-bge-32',
-    createdAt: daysAgo(2),
-  },
-];
-
-/** A single-use Telegram link code — mock until the backend endpoint lands. */
-function makeMockLinkCode(): TelegramLinkCode {
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  const code = `IVY-${rand}`;
-  return {
-    code,
-    deepLink: `https://t.me/KrewIvyBot?start=${code}`,
-    expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
-  };
-}
-
 // ── Seed data ─────────────────────────────────────────────────────────────────
-// Capitals + Expenses start EMPTY — they are hydrated from the backend on mount
-// (see IvyProvider). The revenue / inventory / target seed below is dummy data
-// that keeps the not-yet-wired pages populated until those endpoints land.
+// Capitals, expenses, products, alerts, preferences, and overviews start EMPTY
+// — they are hydrated from the backend on mount (see IvyProvider). Only the
+// revenue / inventory / target seed below is dummy data, kept so the
+// not-yet-wired revenue pages stay populated until those endpoints land.
 
 const initialState: IvyState = {
   capitals: [],
@@ -277,26 +193,16 @@ const initialState: IvyState = {
     sales_target: 1_000_000,
     period: 'monthly',
   },
-  nudges: [
-    {
-      id: 'nudge-return-rate',
-      severity: 'warning',
-      message: 'Return rate jumped to 28% this month — up from 25% last month',
-      href: '/dashboard/ivy',
-    },
-    {
-      id: 'nudge-capital',
-      severity: 'warning',
-      message: '80% of Main Operating Capital is spent — EGP 100,000 remaining',
-      href: '/dashboard/ivy/capital',
-    },
-  ],
+  // Real warnings now come from the backend alert engine (`alerts`); the nudge
+  // strip stays empty rather than asserting numbers that aren't real.
+  nudges: [],
   dismissedNudgeIds: [],
   ivyEnabled: true,
-  products: seedProducts,
-  alerts: seedAlerts,
+  products: [],
+  alerts: [],
   dismissedAlertIds: [],
   alertPreferences: DEFAULT_ALERT_PREFERENCES,
+  overviews: {},
   onboarding: {
     hydrated: false,
     completed: false,
@@ -329,10 +235,56 @@ class IvyClient {
   }
 
   /** Replace the store from a backend bootstrap (mock → live seam).
-      Only Capitals + Expenses are wired to the API; revenue/inventory/target
+      Capitals + Expenses come from GET /ivy; revenue/inventory/target
       keep whatever the current (seed/dummy) state holds. */
   hydrate(partial: { capitals: Capital[]; expenses: Expense[] }) {
     this.set({ ...this.state, capitals: partial.capitals, expenses: partial.expenses });
+  }
+
+  /** Pull the live profit/inventory layer: products, alerts, preferences,
+      onboarding status, and the real P&L overview for every period the
+      selector can ask for. Each fetch fails soft — one bad endpoint logs and
+      leaves that slice as-is instead of blanking the dashboard. */
+  async hydrateIntelligence() {
+    const [products, alerts, prefs, onboarding, ovThis, ovLast, ov90] = await Promise.allSettled([
+      getIvyInventoryProducts(),
+      getIvyAlerts('all'),
+      getIvyAlertPreferences(),
+      getIvyOnboardingStatus(),
+      getIvyOverview('this_month'),
+      getIvyOverview('last_month'),
+      getIvyOverview('last_90'),
+    ]);
+
+    // Read state AFTER the fetches so optimistic writes made meanwhile survive.
+    const s = this.state;
+    const next: IvyState = { ...s };
+
+    if (products.status === 'fulfilled' && Array.isArray(products.value)) next.products = products.value;
+    else if (products.status === 'rejected') console.error('[ivy] products load failed:', products.reason);
+
+    if (alerts.status === 'fulfilled' && Array.isArray(alerts.value)) next.alerts = alerts.value;
+    else if (alerts.status === 'rejected') console.error('[ivy] alerts load failed:', alerts.reason);
+
+    if (prefs.status === 'fulfilled' && prefs.value) next.alertPreferences = prefs.value;
+
+    if (onboarding.status === 'fulfilled' && onboarding.value) {
+      // Server truth can only move these FORWARD (a completed/linked flag from
+      // the DB beats stale localStorage); step + banner stay purely local.
+      next.onboarding = {
+        ...s.onboarding,
+        completed: s.onboarding.completed || onboarding.value.completed === true,
+        telegramLinked: s.onboarding.telegramLinked || onboarding.value.telegramLinked === true,
+      };
+    }
+
+    const overviews: IvyState['overviews'] = { ...s.overviews };
+    if (ovThis.status === 'fulfilled' && ovThis.value) overviews.this_month = ovThis.value;
+    if (ovLast.status === 'fulfilled' && ovLast.value) overviews.last_month = ovLast.value;
+    if (ov90.status === 'fulfilled' && ov90.value) overviews.last_90 = ov90.value;
+    next.overviews = overviews;
+
+    this.set(next);
   }
 
   /** Swap a client temp id for the server-assigned id across the store, so
@@ -392,10 +344,7 @@ class IvyClient {
     return row;
   }
 
-  addCapital(
-    input: { name: string; initial_amount: number; color: CapitalColor },
-    opts?: { skipApi?: boolean },
-  ): Capital {
+  addCapital(input: { name: string; initial_amount: number; color: CapitalColor }): Capital {
     const row: Capital = {
       id: `cap-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       brand_id: BRAND_ID,
@@ -407,12 +356,6 @@ class IvyClient {
     };
     const s = this.state;
     this.set({ ...s, capitals: [...s.capitals, row] });
-
-    // Onboarding creates pools before the brand is necessarily authenticated
-    // with the backend; skipApi keeps it a local write so an expired-token 401
-    // can't logout()→redirect mid-flow (and can't revert the pool out from
-    // under the user). TODO: persist onboarding pools once auth is guaranteed.
-    if (opts?.skipApi) return row;
 
     createIvyCapital(input)
       .then((serverRow: Capital) => this.swapCapitalId(row.id, serverRow))
@@ -515,13 +458,13 @@ class IvyClient {
   }
 
   // ── Inventory: per-variant cost editing ────────────────────────────────────
-  // These four surfaces write to endpoints that don't exist yet, so they keep
-  // the optimistic local write and only log on failure (no revert — the local
-  // store is the source of truth until the backend lands).
 
-  /** Set (or clear, with null) a variant's unit cost. Manual entries tag as such. */
+  /** Set a variant's unit cost (appends a manual cost row server-side; manual
+      always wins over Shopify syncs). Optimistic — reverts on API failure.
+      Clearing (null) is local-only: the backend cost history is append-only. */
   setProductCost(variantId: string, unitCost: number | null) {
     const s = this.state;
+    const prev = s.products.find((p) => p.variantId === variantId);
     this.set({
       ...s,
       products: s.products.map((p) =>
@@ -531,8 +474,14 @@ class IvyClient {
       ),
     });
     if (unitCost != null) {
-      updateIvyProductCost(variantId, unitCost).catch(() => {
-        /* TODO: revert once the endpoint is live */
+      updateIvyProductCost(variantId, unitCost).catch((err) => {
+        console.error('[ivy] setProductCost failed — reverting:', err);
+        if (!prev) return;
+        const cur = this.state;
+        this.set({
+          ...cur,
+          products: cur.products.map((p) => (p.variantId === variantId ? prev : p)),
+        });
       });
     }
   }
@@ -564,8 +513,12 @@ class IvyClient {
     }
   }
 
-  /** Called once on the client (IvyProvider) to restore saved progress. */
-  hydrateOnboarding() {
+  /** Called once on the client (IvyProvider) to restore saved progress.
+      The DATABASE (brands.ivy_onboarding_completed) is the source of truth for
+      `completed` — localStorage is only a fast path + mid-flow step cache. So a
+      user who clears their cookies/storage NEVER sees onboarding twice: the
+      overlay stays closed (hydrated=false) until the server status resolves. */
+  async hydrateOnboarding() {
     if (typeof window === 'undefined') return;
     let saved: Partial<IvyState['onboarding']> = {};
     try {
@@ -574,10 +527,44 @@ class IvyClient {
     } catch {
       /* ignore corrupt storage */
     }
+
+    // Fast path: storage already says done — open the dashboard immediately,
+    // no network wait, no flash. (The DB flag was set when they finished.)
+    if (saved.completed === true) {
+      this.set({
+        ...this.state,
+        onboarding: { ...this.state.onboarding, ...saved, hydrated: true },
+      });
+      return;
+    }
+
+    // Storage says not-completed (or was cleared) — ask the backend before
+    // letting the overlay open. Server flags only ever move things forward.
+    let serverCompleted = false;
+    let serverLinked = false;
+    try {
+      const status = await getIvyOnboardingStatus();
+      serverCompleted = status?.completed === true;
+      serverLinked = status?.telegramLinked === true;
+    } catch (err) {
+      // Backend unreachable — fall back to storage so a genuinely new user
+      // (offline dev, cold start) still gets the flow instead of a dead end.
+      console.error('[ivy] onboarding status check failed:', err);
+    }
+
     this.set({
       ...this.state,
-      onboarding: { ...this.state.onboarding, ...saved, hydrated: true },
+      onboarding: {
+        ...this.state.onboarding,
+        ...saved,
+        // saved.completed can't be true here (fast path returned above), so
+        // the server flag alone decides.
+        completed: serverCompleted,
+        telegramLinked: serverLinked || saved.telegramLinked === true,
+        hydrated: true,
+      },
     });
+    if (serverCompleted) this.persistOnboarding(); // re-seed the fast path
   }
 
   setOnboardingStep(step: OnboardingStep) {
@@ -612,7 +599,15 @@ class IvyClient {
       onboarding: { ...this.state.onboarding, completed: true, step: 'done' },
     });
     this.persistOnboarding();
-    completeIvyOnboarding().catch(() => {});
+    // The DB flag is what stops onboarding from ever replaying (storage can be
+    // cleared), so don't let one transient failure lose it — retry once.
+    completeIvyOnboarding().catch(() => {
+      setTimeout(() => {
+        completeIvyOnboarding().catch((err) =>
+          console.error('[ivy] failed to persist onboarding completion:', err),
+        );
+      }, 3_000);
+    });
   }
 
   /** Dev helper — replays the first-open flow (see the dashboard console note). */
@@ -632,21 +627,40 @@ class IvyClient {
     this.persistOnboarding();
   }
 
-  /** Issue a Telegram linking code. */
+  /** Issue a single-use Telegram deep link from the backend (10-minute TTL).
+      Kept sync-looking for callers: the code lands in state when it arrives. */
   fetchTelegramLinkCode() {
-    // TODO: wire to real endpoint (GET /api/ivy/telegram/link-code). A mock
-    // code keeps the linking step fully demoable before the backend lands.
-    this.set({ ...this.state, telegramLinkCode: makeMockLinkCode() });
+    getIvyTelegramLinkCode()
+      .then((code: TelegramLinkCode) => {
+        if (code?.deepLink) this.set({ ...this.state, telegramLinkCode: code });
+      })
+      .catch((err) => console.error('[ivy] link-code fetch failed:', err));
   }
 
-  /** Mock: pretend the user tapped "start" in Telegram a few seconds after they
-      open the deep link, so the success state actually plays in the demo.
-      TODO(backend): drop this — real confirmation comes from polling
-      GET /api/ivy/onboarding/status until telegramLinked === true. */
+  /** Watch for the user completing the link in Telegram: poll onboarding
+      status every 3s (up to 2 minutes) until telegramLinked flips true.
+      Armed when they open the deep link. (Name kept from the mock era so the
+      onboarding component didn't have to change.) */
   armTelegramLinkSimulation() {
     if (this.state.onboarding.telegramLinked) return;
     clearTimeout(this.telegramSimTimer);
-    this.telegramSimTimer = setTimeout(() => this.markTelegramLinked(), 5000);
+    const startedAt = Date.now();
+    const poll = async () => {
+      if (this.state.onboarding.telegramLinked) return;
+      try {
+        const status = await getIvyOnboardingStatus();
+        if (status?.telegramLinked) {
+          this.markTelegramLinked();
+          return;
+        }
+      } catch {
+        /* transient network error — keep polling until the window closes */
+      }
+      if (Date.now() - startedAt < 120_000) {
+        this.telegramSimTimer = setTimeout(poll, 3_000);
+      }
+    };
+    this.telegramSimTimer = setTimeout(poll, 3_000);
   }
 }
 
@@ -912,7 +926,7 @@ export function selectInventoryAlerts(
 // ── Two-layer profit (Overview) ─────────────────────────────────────────────────
 
 export interface CogsAndCash {
-  /** Cost of goods sold in the period (mock: blended cost ratio × delivered). */
+  /** Cost of goods sold in the period (server: Σ per-order qty × unit cost). */
   cogs: number;
   /** Cash change in the period — negative when restock ate the profit. */
   cashDelta: number;
@@ -922,12 +936,23 @@ export interface CogsAndCash {
 }
 
 /**
- * Separates profit from cash for the Overview hero. COGS is estimated from the
- * blended cost ratio of the products that have a cost, so it sharpens as more
- * costs are filled in; with 0% coverage it is 0 and the card shows the nudge.
- * TODO(backend): replace the estimate with real per-order COGS + cash flow.
+ * Separates profit from cash for the Overview hero.
+ * Live path: the backend's `ivy_profit_summary` (per-order COGS booked at
+ * delivery time + the pool cash ledger), hydrated per period on mount.
+ * Until that lands (loading / offline), falls back to a client estimate:
+ * blended cost ratio × delivered, restock assumed at ~1.15× of COGS.
  */
 export function selectCogsAndCash(state: IvyState, period: IvyPeriod): CogsAndCash {
+  const live = state.overviews[period];
+  if (live) {
+    return {
+      cogs: live.cogsThisMonth,
+      cashDelta: live.cashDeltaThisMonth,
+      costCoveragePct: live.costCoveragePct,
+      realNetProfit: live.realNetProfit,
+    };
+  }
+
   const metrics = selectPeriodMetrics(state, period);
   const stats = selectInventoryStats(state);
 
@@ -941,9 +966,6 @@ export function selectCogsAndCash(state: IvyState, period: IvyPeriod): CogsAndCa
   const ratio = retailBase > 0 ? costBase / retailBase : 0;
   const cogs = stats.coveragePct > 0 ? Math.round(ratio * metrics.grossDelivered) : 0;
   const realNetProfit = metrics.netRevenue - cogs - metrics.expensesTotal;
-
-  // Cash ≠ profit: assume ~1.15× of what you sold got restocked, so cash dips
-  // below profit by that extra inventory outlay. Mock — see the TODO above.
   const restock = Math.round(cogs * 1.15);
   const cashDelta = realNetProfit - restock;
 
