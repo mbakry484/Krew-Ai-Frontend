@@ -8,9 +8,10 @@ import { getIvyBootstrap } from '@/lib/api';
 // ivyClient store. Components read state via useIvy() and mutate ONLY through
 // ivyClient methods — keeping the Supabase swap inside lib/ivy/ivyClient.ts.
 //
-// On mount we hydrate Capitals + Expenses from the backend bootstrap (the only
-// tables wired to the API today). Revenue / inventory / target stay on their
-// seed/dummy values until those endpoints land.
+// On mount we hydrate Capitals + Expenses from the backend bootstrap, then the
+// profit/inventory layer (products, alerts, preferences, onboarding status,
+// real P&L overviews). Revenue / inventory / target stay on their seed/dummy
+// values until those endpoints land.
 
 const IvyContext = createContext<IvyState>(ivyClient.getState());
 
@@ -22,9 +23,13 @@ export function IvyProvider({ children }: { children: React.ReactNode }) {
   const state = useSyncExternalStore(ivyClient.subscribe, ivyClient.getState, ivyClient.getState);
 
   useEffect(() => {
-    // Restore first-open onboarding progress from localStorage (client-only) so
-    // a refresh mid-flow doesn't restart it, and completed users see no flash.
-    ivyClient.hydrateOnboarding();
+    // Restore onboarding state. localStorage is the fast path; the DATABASE
+    // (brands.ivy_onboarding_completed) is the source of truth, so a user who
+    // cleared their storage never sees the first-open flow again. Async — the
+    // overlay stays closed (hydrated=false) until this resolves.
+    ivyClient.hydrateOnboarding().catch((err) => {
+      console.error('[ivy] onboarding hydrate failed:', err);
+    });
   }, []);
 
   useEffect(() => {
@@ -41,6 +46,13 @@ export function IvyProvider({ children }: { children: React.ReactNode }) {
         // Keep the seed/dummy state so the dashboard still renders offline.
         console.error('[ivy] bootstrap load failed:', err);
       });
+
+    // Products, alerts, preferences, onboarding status, and the real P&L
+    // overviews. Independent of the bootstrap — each slice fails soft inside.
+    ivyClient.hydrateIntelligence().catch((err) => {
+      console.error('[ivy] intelligence load failed:', err);
+    });
+
     return () => {
       cancelled = true;
     };

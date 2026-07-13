@@ -10,8 +10,8 @@ import { CAPITAL_COLORS, CapitalColor } from '@/lib/ivy/types';
 
 // Step 2 — Create your first capital pool. Reuses the Visa-style CapitalCard
 // with a live preview as the founder types. One button: Continue commits the
-// current pool (locally — see ivyClient.addCapital skipApi) and moves on. More
-// pools can be added later from Capital.
+// current pool (persisted to the backend — the card must survive a reload)
+// and moves on. More pools can be added later from Capital.
 
 const inputCls =
   'w-full bg-input-bg border border-border rounded-[8px] px-3 py-2 text-[0.82rem] text-text-primary placeholder:text-text-tertiary focus:border-border-hover focus:outline-none transition-colors duration-150';
@@ -36,8 +36,10 @@ export default function OnboardingPools({
   const numericAmount = Number(amount) || 0;
   const atLimit = capitals.length >= MAX_POOLS;
 
-  // Commit the drafted pool (if any) and move on. Local write so an expired
-  // token can't bounce the flow. Empty draft is fine as long as a pool exists.
+  // Commit the drafted pool (if any) and move on. The write is optimistic —
+  // the flow proceeds instantly — but it also persists to the backend so the
+  // card exists in the DB, not just this browser. Empty draft is fine as long
+  // as a pool exists.
   const proceed = () => {
     const value = Number(amount);
     const hasDraft = name.trim() !== '' || amount.trim() !== '';
@@ -45,7 +47,7 @@ export default function OnboardingPools({
     if (hasDraft) {
       if (!name.trim()) { setError('Give the pool a name.'); return; }
       if (!Number.isFinite(value) || value <= 0) { setError('Enter an opening balance greater than zero.'); return; }
-      if (!atLimit) ivyClient.addCapital({ name: name.trim(), initial_amount: value, color }, { skipApi: true });
+      if (!atLimit) ivyClient.addCapital({ name: name.trim(), initial_amount: value, color });
     } else if (capitals.length === 0) {
       setError('Add a pool — a name and the cash sitting in it right now.');
       return;
@@ -58,7 +60,7 @@ export default function OnboardingPools({
     const value = Number(amount);
     if (!name.trim()) { setError('Give the pool a name.'); return; }
     if (!Number.isFinite(value) || value <= 0) { setError('Enter an opening balance greater than zero.'); return; }
-    ivyClient.addCapital({ name: name.trim(), initial_amount: value, color }, { skipApi: true });
+    ivyClient.addCapital({ name: name.trim(), initial_amount: value, color });
     setName('');
     setAmount('');
     setColor('teal');

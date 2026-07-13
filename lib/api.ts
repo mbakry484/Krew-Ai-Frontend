@@ -579,11 +579,31 @@ export const createIvyExpense = async (body: {
   spent_at: string;
 }) => apiRequest('/ivy/expenses', { method: 'POST', body: JSON.stringify(body) });
 
-// ── Ivy launch-readiness endpoints (NOT LIVE YET) ────────────────────────────
-// These back the onboarding flow, the product-level inventory rebuild, and the
-// alert preferences. The frontend seeds mock data in lib/ivy/ivyClient.ts and
-// calls these optimistically; each is a no-op fallback until the backend ships.
-// TODO: wire to real endpoints — contracts below match the Ivy build brief.
+// ── Ivy launch-readiness endpoints (LIVE) ────────────────────────────────────
+// Backed by the Express backend's profit/inventory layer (routes/ivy.js):
+// onboarding, the product-level inventory read-model, alerts, preferences, and
+// the real P&L overview. lib/ivy/ivyClient.ts hydrates from these on mount.
+
+// Real P&L overview — COGS, cash delta, cost coverage for a period. This is
+// the server-computed replacement for the client-side COGS estimate.
+export interface IvyOverview {
+  period: 'this_month' | 'last_month' | 'last_90';
+  netRevenue: number;
+  grossDelivered: number;
+  returns: number;
+  returnRatePct: number;
+  cogsThisMonth: number;
+  opexThisMonth: number;
+  inventorySpendThisMonth: number;
+  realNetProfit: number;
+  cashDeltaThisMonth: number;
+  costCoveragePct: number;
+  cogsIncompleteOrders: number;
+}
+
+export const getIvyOverview = async (
+  period: 'this_month' | 'last_month' | 'last_90' = 'this_month',
+): Promise<IvyOverview> => apiRequest(`/ivy/overview?period=${period}`, { method: 'GET' });
 
 // Inventory products (Shopify sync read-model)
 export const getIvyInventoryProducts = async (): Promise<Product[]> =>
