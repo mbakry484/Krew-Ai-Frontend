@@ -11,10 +11,8 @@ import { getPocketContent } from '@/content/agent-content';
 // empty screen dissolving) starts BIG and centred; as you scroll it scales
 // DOWN in place while the punchline rises up from behind it and settles at the
 // top — landing on the beat where the headline and the notification read
-// together. Then the pin releases and the page scrolls on.
-//
-// prefers-reduced-motion / mobile: no pin/scrub — a clean stacked card
-// (headline above, phone below), fully visible.
+// together. Then the pin releases and the page scrolls on. Runs on mobile too
+// (phone sized down); prefers-reduced-motion gets a static stacked card.
 // =============================================================================
 
 // ── TUNING — the whole beat's feel lives here ──
@@ -24,11 +22,11 @@ const NOTIF_FOCUS = '30%';              // vertical framing: lower % shows highe
 const FADE_START = '60%';               // where the phone starts dissolving
 const FADE_END = '99%';                 // where it's fully gone
 const SCALE_FROM = 1.32;                // phone size at the START of the scrub (big)
-const SCALE_TO = 0.72;                  // …and in the final composition (small)
-const PHONE_SINK = '9vh';               // phone settles slightly LOWER, clearing the title zone
+const SCALE_TO = 1;                  // …and in the final composition (small)
+const PHONE_SINK = '11vh';               // phone settles slightly LOWER, clearing the title zone
 const COPY_TOP = '16vh';                // where the title block lands (clear of the navbar)
 const COPY_RISE_FROM = '26vh';          // how far below (behind the phone) the title starts
-const LOCK_AT = 0.55;                   // progress where the composition locks — the rest is a HOLD
+const LOCK_AT = 0.85;                   // progress where the composition locks — the rest is a HOLD
 
 // §5 slow-heavy curve — the shrink/rise are decisive early, settle softly
 const EASE_OUT = cubicBezier(0.22, 1, 0.36, 1);
@@ -66,19 +64,15 @@ export default function PocketSection() {
     [COPY_RISE_FROM, '0vh', '0vh'],
     { ease: [EASE_OUT, EASE_OUT] }
   );
-  const glowOpacity = useTransform(scrollYProgress, [0.05, 0.4, 1], [0, 1, 1]);
 
   if (!pocket) return null;
 
   const phoneStyle = reduce ? undefined : { scale: phoneScale, y: phoneY };
   const copyStyle = reduce ? undefined : { opacity: copyOpacity, y: copyY };
-  const glowStyle = reduce ? undefined : { opacity: glowOpacity };
 
   return (
     <section ref={ref} className="pk" data-agent={agent.slug}>
       <div className="pk-sticky">
-        <motion.div className="pk-glow" style={glowStyle} aria-hidden="true" />
-
         {/* title layer — behind the phone, rises to the top on scroll */}
         <motion.div className="pk-copy" style={copyStyle}>
           <div className="pk-eyebrow">
@@ -114,20 +108,6 @@ export default function PocketSection() {
           top: 0;
           height: 100vh;
           overflow: hidden;
-        }
-
-        .pk .pk-glow {
-          position: absolute;
-          top: 52%;
-          left: 50%;
-          margin-left: -35vh; /* centre without transform (motion owns transform) */
-          margin-top: -35vh;
-          width: 70vh;
-          height: 70vh;
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--agent-accent-soft), transparent 64%);
-          pointer-events: none;
-          z-index: 0;
         }
 
         /* title — anchored near the top; motion's y offsets it down at the
@@ -195,8 +175,21 @@ export default function PocketSection() {
           filter: drop-shadow(0 30px 55px rgba(10, 10, 10, 0.26));
         }
 
-        /* ── Reduced motion / mobile: no pin — clean stacked card ── */
-        @media (prefers-reduced-motion: reduce), (max-width: 768px) {
+        /* ── Mobile: same pinned scrub, phone sized to the small screen ── */
+        @media (max-width: 768px) {
+          .pk .pk-phone {
+            width: min(320px, 74vw);
+          }
+          .pk .pk-copy {
+            padding: 0 1.3rem;
+          }
+          .pk .pk-sub {
+            max-width: 340px;
+          }
+        }
+
+        /* ── Reduced motion only: no pin/scrub — clean stacked card ── */
+        @media (prefers-reduced-motion: reduce) {
           .pk {
             height: auto;
           }
@@ -209,9 +202,6 @@ export default function PocketSection() {
             align-items: center;
             gap: 2.5rem;
             overflow: visible;
-          }
-          .pk .pk-glow {
-            top: 60%;
           }
           .pk .pk-copy {
             position: static;

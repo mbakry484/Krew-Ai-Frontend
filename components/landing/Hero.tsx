@@ -52,8 +52,6 @@ export default function Hero() {
       {/* -mt-20/pt-20 pulls the aura up behind the floating navbar so there is
           no seam between the page top and the hero backdrop */}
       <div className="relative flex-1 flex -mt-20 pt-20" data-agent={agent.slug}>
-        {/* §3 aura — dark theme only; hidden in light via .hero-aura rules */}
-        <div className="krew-aura hero-aura" aria-hidden="true" />
 
         <div className="relative z-[1] grid hero-grid max-w-[1320px] mx-auto w-full px-12 gap-8 items-center min-h-[calc(100vh-48px-64px)]">
 
@@ -106,8 +104,6 @@ export default function Hero() {
             style={at(100)}
           >
             <div className="relative w-full flex items-center justify-center">
-              {/* light-theme agent presence (KREW-DESIGN §3 light rule) */}
-              <div className="hero-mascot-glow" aria-hidden="true" />
               <div className="relative z-[1] w-full">
                 <div className="stage-desk">
                   <HeroStageComposite agent={agent} />

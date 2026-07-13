@@ -41,9 +41,6 @@ export default function BetaAgentSection() {
   return (
     <section ref={ref} data-agent={agent.slug} data-in={inView || undefined} className="beta px-6 py-24 md:py-28">
       <div className="beta-card">
-        {/* the bold dark backdrop — the agent's aura (grain + glow) */}
-        <div className="krew-aura" aria-hidden="true" />
-
         <div className="beta-grid">
           {/* LEFT — copy */}
           <div className="beta-copy">
@@ -72,7 +69,6 @@ export default function BetaAgentSection() {
 
           {/* RIGHT — the mascot, ringed by the overnight inbox */}
           <div className="beta-stage" aria-hidden="true">
-            <div className="beta-mascot-glow" />
             <div className="beta-mascot">
               <AgentMascot agent={agent} size={200} />
             </div>
@@ -107,6 +103,8 @@ export default function BetaAgentSection() {
           border-radius: 28px;
           border: 1px solid var(--border-md);
           overflow: hidden;
+          /* flat always-dark slab (§1 base as literal) — no aura wash */
+          background: #0a0a0a;
           box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
         }
         .beta-grid {
@@ -143,17 +141,6 @@ export default function BetaAgentSection() {
           left: 50%;
           transform: translate(-50%, -50%);
           z-index: 2;
-        }
-        .beta-mascot-glow {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 320px;
-          height: 320px;
-          transform: translate(-50%, -50%);
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--agent-accent-soft), transparent 68%);
-          pointer-events: none;
         }
         .beta-dm {
           position: absolute;

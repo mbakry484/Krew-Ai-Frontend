@@ -36,7 +36,15 @@ Neutral/brand (non-agent) accent: white on dark. Krew brand moments use no color
 
 ---
 
-## 3. The Aura (signature background treatment) — v2, grain-first
+## 3. The Aura — v3 (2026-07-13): CARDS ONLY, never page backgrounds
+
+**Decision:** page/section-background aura washes are retired entirely — no
+radial glows behind heroes, sections, or subjects. Backgrounds stay clean
+`--bg-base`. The aura treatment survives ONLY as the designed texture asset on
+agent cards (implementation (a) below) and as small accent tints inside
+product-mock tiles. The v2 recipe below is kept for the cards' reference.
+
+### v2 reference (grain-first) — applies to card surfaces only
 
 Reference: `design-refs/aura-luna.png`, `aura-ivy.png`, `aura-nova.png` — these ARE the target. The look is xAI-card-like: **near-black, muted color, grain doing the texture work.** If a surface reads as a smooth colorful gradient, it is wrong.
 
