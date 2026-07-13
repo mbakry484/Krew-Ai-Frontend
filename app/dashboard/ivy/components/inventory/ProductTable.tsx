@@ -9,8 +9,10 @@ import { Product } from '@/lib/ivy/types';
 
 // Zone C — products with expandable variants. One row per product (aggregated
 // stock, velocity, soonest days-of-stock, cost coverage, total value); expand to
-// reveal the per-variant rows with inline-editable unit cost. A focused "fill
-// costs" bulk mode flattens to missing-cost variants for rapid entry.
+// reveal the per-variant rows with inline-editable unit cost. The product row's
+// "add cost" applies one price to every variant at once (the common case);
+// variants priced differently are filled individually after expanding, and the
+// product row then shows the summed variant costs.
 
 export type InventoryFilter = 'all' | 'missing' | 'best' | 'low' | 'dead';
 type SortKey = 'product' | 'units' | 'velocity' | 'days' | 'cost' | 'value';
@@ -87,10 +89,9 @@ function groupOf(title: string, variants: Product[]): Group {
 }
 
 // ── Inline cost cell ───────────────────────────────────────────────────────────
-function CostCell({ product, bulk }: { product: Product; bulk: boolean }) {
+function CostCell({ product }: { product: Product }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(product.unitCost != null ? String(product.unitCost) : '');
-  const open = editing || bulk;
 
   const commit = () => {
     const n = Number(value);
@@ -102,27 +103,21 @@ function CostCell({ product, bulk }: { product: Product; bulk: boolean }) {
     if (e.key === 'Enter') {
       e.preventDefault();
       commit();
-      if (bulk) {
-        const table = e.currentTarget.closest('table');
-        const inputs = Array.from(table?.querySelectorAll<HTMLInputElement>('input[data-bulk="1"]') ?? []);
-        inputs[inputs.indexOf(e.currentTarget) + 1]?.focus();
-      }
-    } else if (e.key === 'Escape' && !bulk) {
+    } else if (e.key === 'Escape') {
       setValue(product.unitCost != null ? String(product.unitCost) : '');
       setEditing(false);
     }
   };
 
-  if (open) {
+  if (editing) {
     return (
       <span className="inline-flex items-center gap-1">
         <span className="text-[0.6rem] text-text-tertiary">EGP</span>
         <input
-          data-bulk={bulk ? '1' : undefined}
           type="number"
           min="0"
           inputMode="numeric"
-          autoFocus={editing}
+          autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={commit}
@@ -155,6 +150,110 @@ function CostCell({ product, bulk }: { product: Product; bulk: boolean }) {
         {product.costSource ?? 'manual'}
       </span>
     </button>
+  );
+}
+
+/** Product-row cost cell for multi-variant products.
+    - no variant costed → "add cost" applies ONE price to every variant, no
+      expanding needed (the common case: all variants share a cost)
+    - some costed → progress hint; expand the row to fill the rest per variant
+    - all costed, same price → that price, editable (re-applies to all)
+    - all costed, different prices → the summed variant costs (Σ tag) */
+function GroupCostCell({ group }: { group: Group }) {
+  const { variants, costed, total } = group;
+  const shared =
+    costed === total && variants.every((v) => v.unitCost === variants[0].unitCost)
+      ? variants[0].unitCost
+      : null;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+
+  const startEdit = () => {
+    setValue(shared != null ? String(shared) : '');
+    setEditing(true);
+  };
+
+  const commit = () => {
+    const n = Number(value);
+    if (value.trim() !== '' && Number.isFinite(n) && n > 0) {
+      const cost = Math.round(n);
+      variants.forEach((v) => ivyClient.setProductCost(v.variantId, cost));
+    }
+    setEditing(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      setEditing(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <span className="inline-flex items-center gap-1" title={`Applies to all ${total} variants`}>
+        <span className="text-[0.6rem] text-text-tertiary">EGP</span>
+        <input
+          type="number"
+          min="0"
+          inputMode="numeric"
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={onKeyDown}
+          placeholder="0"
+          className="w-[74px] bg-input-bg border border-ivy-accent-border rounded-[6px] px-2 py-[3px] text-[0.72rem] text-text-primary tabular-nums text-right focus:outline-none focus:border-ivy-accent"
+        />
+      </span>
+    );
+  }
+
+  if (costed === 0) {
+    return (
+      <button
+        onClick={startEdit}
+        title={`One price applied to all ${total} variants — expand the row to price them individually`}
+        className="inline-flex items-center gap-1 rounded-full border border-dashed border-ivy-accent-border text-ivy-accent px-[10px] py-[3px] text-[0.62rem] hover:bg-ivy-accent/10 transition-colors duration-150"
+      >
+        <svg className="w-[9px] h-[9px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
+        add cost · all {total}
+      </button>
+    );
+  }
+
+  if (costed < total) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[0.64rem] text-ivy-accent">
+        <span className="w-[5px] h-[5px] rounded-full bg-ivy-accent" />
+        {costed}/{total} costed
+      </span>
+    );
+  }
+
+  if (shared != null) {
+    return (
+      <button onClick={startEdit} className="inline-flex items-center gap-2 group/cost" title="Edit cost for all variants">
+        <span className="text-[0.74rem] text-text-primary tabular-nums group-hover/cost:text-ivy-accent transition-colors duration-150">
+          {formatEGP(shared)}
+        </span>
+        <span className="text-[0.48rem] uppercase tracking-[0.07em] text-text-tertiary border border-border rounded px-[4px] py-[1px]">
+          all {total}
+        </span>
+      </button>
+    );
+  }
+
+  const sum = variants.reduce((s, v) => s + (v.unitCost ?? 0), 0);
+  return (
+    <span className="inline-flex items-center gap-2" title="Variants are priced individually — expand to edit">
+      <span className="text-[0.74rem] text-text-primary tabular-nums">{formatEGP(sum)}</span>
+      <span className="text-[0.48rem] uppercase tracking-[0.07em] text-text-tertiary border border-border rounded px-[4px] py-[1px]">
+        Σ {total}
+      </span>
+    </span>
   );
 }
 
@@ -203,8 +302,6 @@ export default function ProductTable({
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'days', dir: 'asc' });
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [bulk, setBulk] = useState(false);
-  const [bulkTargets, setBulkTargets] = useState<string[]>([]);
 
   const counts = useMemo(() => ({
     all: products.length,
@@ -249,12 +346,6 @@ export default function ProductTable({
     });
   }, [products, filter, q, sort]);
 
-  const bulkRows = useMemo(
-    () => products.filter((p) => bulkTargets.includes(p.variantId)),
-    [products, bulkTargets],
-  );
-  const bulkDone = bulkRows.filter((p) => p.unitCost != null).length;
-
   const onSort = (k: SortKey) =>
     setSort((s) => (s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'asc' }));
   const isOpen = (title: string) => filterActive || expanded.has(title);
@@ -265,12 +356,6 @@ export default function ProductTable({
       else next.add(title);
       return next;
     });
-
-  const startBulk = () => {
-    setBulkTargets(products.filter((p) => p.unitCost == null).map((p) => p.variantId));
-    setBulk(true);
-  };
-  const endBulk = () => { setBulk(false); onFilter('all'); };
 
   const COLS = (
     <colgroup>
@@ -287,79 +372,32 @@ export default function ProductTable({
     <div className="bg-background border border-border rounded-[16px] overflow-hidden">
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border flex-wrap bg-background2/30">
-        {bulk ? (
-          <>
-            <div className="flex items-center gap-3">
-              <span className="text-[0.72rem] text-text-primary font-medium">Filling costs</span>
-              <span className="text-[0.66rem] text-text-tertiary tabular-nums">{bulkDone} of {bulkRows.length} done</span>
-              <div className="h-[4px] w-[120px] rounded-full bg-background4 overflow-hidden">
-                <div className="h-full rounded-full bg-ivy-accent transition-[width] duration-300" style={{ width: `${bulkRows.length ? (bulkDone / bulkRows.length) * 100 : 0}%` }} />
-              </div>
-            </div>
-            <button onClick={endBulk} className="rounded-[8px] bg-btn-bg text-btn-text px-4 py-[6px] text-[0.7rem] font-medium hover:opacity-90 transition-opacity duration-150">Done</button>
-          </>
-        ) : (
-          <>
-            <div className="relative">
-              <svg className="absolute left-[10px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search products"
-                className="bg-input-bg border border-border rounded-[8px] pl-[30px] pr-3 py-[6px] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-hover transition-colors duration-150 w-[200px]"
-              />
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-[3px] rounded-[9px] border border-border p-[3px] bg-background flex-wrap">
-                {FILTERS.map((f) => {
-                  const active = filter === f.key;
-                  return (
-                    <button
-                      key={f.key}
-                      onClick={() => onFilter(f.key)}
-                      className={`px-[10px] py-[4px] rounded-[6px] text-[0.66rem] transition-colors duration-150 ${active ? 'bg-background2 text-text-primary border border-border-md' : 'text-text-tertiary hover:text-text-secondary'}`}
-                    >
-                      {f.label}<span className="ml-1 tabular-nums opacity-60">{counts[f.key]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {counts.missing > 0 && (
-                <button onClick={startBulk} className="rounded-[8px] border border-ivy-accent-border text-ivy-accent px-3 py-[6px] text-[0.7rem] font-medium hover:bg-ivy-accent/10 transition-colors duration-150">Fill costs</button>
-              )}
-            </div>
-          </>
-        )}
+        <div className="relative">
+          <svg className="absolute left-[10px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search products"
+            className="bg-input-bg border border-border rounded-[8px] pl-[30px] pr-3 py-[6px] text-[0.72rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-hover transition-colors duration-150 w-[200px]"
+          />
+        </div>
+        <div className="flex items-center gap-[3px] rounded-[9px] border border-border p-[3px] bg-background flex-wrap">
+          {FILTERS.map((f) => {
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => onFilter(f.key)}
+                className={`px-[10px] py-[4px] rounded-[6px] text-[0.66rem] transition-colors duration-150 ${active ? 'bg-background2 text-text-primary border border-border-md' : 'text-text-tertiary hover:text-text-secondary'}`}
+              >
+                {f.label}<span className="ml-1 tabular-nums opacity-60">{counts[f.key]}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── Bulk mode: focused flat list ── */}
-      {bulk ? (
-        bulkRows.length === 0 ? (
-          <EmptyState text="every product has a cost — nice." />
-        ) : (
-          <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full min-w-[560px] border-collapse">
-              <tbody>
-                {bulkRows.map((p) => (
-                  <tr key={p.variantId} className="border-b border-border last:border-b-0">
-                    <td className="px-4 py-[10px]">
-                      <div className="flex items-center gap-[10px]">
-                        <ProductThumb title={p.productTitle} imageUrl={p.imageUrl} />
-                        <div className="min-w-0">
-                          <div className="text-[0.74rem] text-text-primary truncate">{p.productTitle}</div>
-                          <div className="text-[0.62rem] text-text-tertiary truncate">{p.variantTitle}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-[10px] text-right text-[0.72rem] text-text-tertiary tabular-nums">{p.unitsInStock} in stock</td>
-                    <td className="px-4 py-[10px] text-right"><CostCell product={p} bulk /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      ) : groups.length === 0 ? (
+      {groups.length === 0 ? (
         <EmptyState text="no products match" />
       ) : (
         <div className="overflow-x-auto scrollbar-hide">
@@ -419,17 +457,9 @@ export default function ProductTable({
                           <span className="text-[0.76rem] text-text-secondary tabular-nums">{fmtDays(g.daysOfStock)}</span>
                         )}
                       </td>
-                      <td className="px-4 py-[13px]">
-                        {single ? (
-                          <CostCell product={g.variants[0]} bulk={false} />
-                        ) : g.costed === g.total ? (
-                          <span className="text-[0.64rem] text-text-tertiary">all costed</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[0.64rem] text-ivy-accent">
-                            <span className="w-[5px] h-[5px] rounded-full bg-ivy-accent" />
-                            {g.costed}/{g.total} costed
-                          </span>
-                        )}
+                      {/* stopPropagation: the row click toggles expansion */}
+                      <td className="px-4 py-[13px]" onClick={(e) => e.stopPropagation()}>
+                        {single ? <CostCell product={g.variants[0]} /> : <GroupCostCell group={g} />}
                       </td>
                       <td className="px-4 py-[13px] text-right text-[0.78rem] tabular-nums">
                         {g.stockValue == null ? <span className="text-text-tertiary">—</span> : <span className="text-text-primary">{formatEGP(g.stockValue)}</span>}
@@ -460,7 +490,7 @@ export default function ProductTable({
                           <td className="px-4 py-[9px] text-right">
                             <span className={`text-[0.72rem] tabular-nums ${vRed ? 'text-[#e07070]' : 'text-text-tertiary'}`}>{fmtDays(v.daysOfStock)}</span>
                           </td>
-                          <td className="px-4 py-[9px]"><CostCell product={v} bulk={false} /></td>
+                          <td className="px-4 py-[9px]"><CostCell product={v} /></td>
                           <td className="px-4 py-[9px] text-right text-[0.73rem] tabular-nums">
                             {sv == null ? <span className="text-text-tertiary">—</span> : <span className="text-text-secondary">{formatEGP(sv)}</span>}
                           </td>
