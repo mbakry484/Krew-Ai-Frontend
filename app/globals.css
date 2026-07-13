@@ -652,6 +652,29 @@
   .cap-card, .cap-card-bar > span, .cap-panel { transition: none; }
 }
 
+/* ── Ivy first-open onboarding — cinematic backdrop + per-step transition
+      (fade + subtle y-rise) and the Telegram-link success pulse. All motion
+      is frozen under prefers-reduced-motion below. ── */
+.ivy-onboard-backdrop { animation: ivyOnboardFade 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ivyOnboardFade { from { opacity: 0; } to { opacity: 1; } }
+
+.ivy-onboard-step { animation: ivyStepIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ivyStepIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ivy-link-success { animation: ivyLinkPulse 1.5s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes ivyLinkPulse {
+  0%   { box-shadow: 0 0 0 0 var(--ivy-accent-border); }
+  70%  { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ivy-onboard-backdrop, .ivy-onboard-step, .ivy-link-success { animation: none; }
+}
+
 html {
   font-size: 15px;
 }

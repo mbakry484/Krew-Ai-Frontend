@@ -1,5 +1,12 @@
 import { getAuthHeader, getRefreshToken, setToken, setRefreshToken, logout } from './auth';
 import { supabase } from './supabase';
+import type {
+  AlertPreferences,
+  InventoryAlert,
+  OnboardingStatus,
+  Product,
+  TelegramLinkCode,
+} from './ivy/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://krew-ai-backend-production.up.railway.app';
 
@@ -571,6 +578,49 @@ export const createIvyExpense = async (body: {
   note: string;
   spent_at: string;
 }) => apiRequest('/ivy/expenses', { method: 'POST', body: JSON.stringify(body) });
+
+// ── Ivy launch-readiness endpoints (NOT LIVE YET) ────────────────────────────
+// These back the onboarding flow, the product-level inventory rebuild, and the
+// alert preferences. The frontend seeds mock data in lib/ivy/ivyClient.ts and
+// calls these optimistically; each is a no-op fallback until the backend ships.
+// TODO: wire to real endpoints — contracts below match the Ivy build brief.
+
+// Inventory products (Shopify sync read-model)
+export const getIvyInventoryProducts = async (): Promise<Product[]> =>
+  apiRequest('/ivy/inventory/products', { method: 'GET' });
+
+export const updateIvyProductCost = async (variantId: string, unitCost: number) =>
+  apiRequest(`/ivy/inventory/products/${variantId}/cost`, {
+    method: 'PATCH',
+    body: JSON.stringify({ unitCost }),
+  });
+
+// Inventory alerts
+export const getIvyAlerts = async (
+  scope: 'inventory' | 'all' = 'inventory',
+): Promise<InventoryAlert[]> => apiRequest(`/ivy/alerts?scope=${scope}`, { method: 'GET' });
+
+export const dismissIvyAlert = async (id: string) =>
+  apiRequest(`/ivy/alerts/${id}/dismiss`, { method: 'POST', body: '{}' });
+
+// Alert preferences (same shape both ways)
+export const getIvyAlertPreferences = async (): Promise<AlertPreferences> =>
+  apiRequest('/ivy/alert-preferences', { method: 'GET' });
+
+export const updateIvyAlertPreferences = async (
+  prefs: AlertPreferences,
+): Promise<AlertPreferences> =>
+  apiRequest('/ivy/alert-preferences', { method: 'PATCH', body: JSON.stringify(prefs) });
+
+// Onboarding + Telegram linking
+export const getIvyOnboardingStatus = async (): Promise<OnboardingStatus> =>
+  apiRequest('/ivy/onboarding/status', { method: 'GET' });
+
+export const completeIvyOnboarding = async () =>
+  apiRequest('/ivy/onboarding/complete', { method: 'POST', body: '{}' });
+
+export const getIvyTelegramLinkCode = async (): Promise<TelegramLinkCode> =>
+  apiRequest('/ivy/telegram/link-code', { method: 'GET' });
 
 // ── Team members (Ivy Telegram expense agent) ────────────────────────────────
 // A brand owner adds team members (e.g. media buyers) and generates a single-use
