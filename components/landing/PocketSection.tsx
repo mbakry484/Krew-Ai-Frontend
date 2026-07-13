@@ -179,14 +179,14 @@ export default function PocketSection() {
               under the text (no dead gap), instead of floating mid-screen ── */
         @media (max-width: 768px) {
           .pk .pk-phone {
-            width: min(340px, 84vw);
+            width: min(500px, 104vw);
           }
           .pk .pk-phone-layer {
             align-items: flex-start;
           }
           .pk .pk-phone-wrap {
             /* final top ≈ this + PHONE_SINK — keeps it hugging the sub line */
-            margin-top: 25vh;
+            margin-top: 19vh;
           }
           .pk .pk-copy {
             padding: 0 1.3rem;
