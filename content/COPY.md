@@ -21,6 +21,12 @@ Demo numbers are canonical across the whole site: gross **EGP 914,000** · retur
 - Headline: `Your financial analyst. In your pocket.`
 - Sub: `Ivy watches your cash, returns, and inventory around the clock — and sends the exact move to hit your number.`
 
+### Budgets beat — "Capital, organized" (homepage — after the pocket beat, before the crew)
+- Eyebrow: `CAPITAL, ORGANIZED`
+- Headline: `Every pound has a job.`
+- Body: `Ivy splits your capital across manufacturing, ads, shoots, PR and fulfillment—so nothing disappears into "business expenses."`
+- Cards (purpose → allocation, rendered as the real Ivy capital cards): `Manufacturing — EGP 300,000` · `Ads — EGP 120,000` · `PR Campaign — EGP 80,000` · `Photoshoot — EGP 60,000` · `Other — EGP 7,000`
+
 ### Crew reveal
 - Eyebrow: `THE CREW`
 - Headline: `Not another tool. A crew.`
