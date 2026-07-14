@@ -166,14 +166,23 @@ function SettingsContent() {
     return s.endsWith('.myshopify.com') ? s : `${s}.myshopify.com`;
   };
 
-  // POST /api/integrations/shopify/connect → redirect to OAuth
+  // POST /api/integrations/shopify/connect → direct link if the app is already
+  // installed on the store, otherwise redirect to OAuth
   const handleShopifyConnect = async () => {
     if (!shopDomain.trim()) { setFormError('Please enter a store domain'); return; }
     setFormLoading(true); setFormError('');
     try {
       const res = await connectShopify(cleanShopDomain(shopDomain));
-      if (res.oauth_url) { window.location.href = res.oauth_url; }
-      else throw new Error('No OAuth URL returned');
+      if (res.linked) {
+        // Store already had the Krew app installed — linked directly, no OAuth hop.
+        showToast('Shopify connected successfully', 'success');
+        await checkIntegrationStatus();
+        setFormLoading(false);
+      } else if (res.oauth_url) {
+        window.location.href = res.oauth_url;
+      } else {
+        throw new Error('No OAuth URL returned');
+      }
     } catch (err: any) {
       setFormError(err.message || 'Failed to connect Shopify');
       setFormLoading(false);
