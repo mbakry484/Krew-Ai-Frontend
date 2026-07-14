@@ -12,27 +12,23 @@ import Button from '@/components/Button';
 // into the page. Copy on the left. Renders from the registry's live agent, so
 // the hero rotates by flipping registry state, never by rewriting this file.
 //
-// The video autoplays muted/looped; prefers-reduced-motion pauses it on the
-// poster frame. Source is compressed H.264 + faststart with a WebP poster for
-// an instant first paint.
+// BACKGROUND REMOVAL: the source is a creature on a black void. mix-blend-mode
+// LIGHTEN removes it — each pixel becomes max(video, page), so anywhere the
+// video is darker than the page (the whole void, plus its H.264 compression
+// noise) is simply replaced by page-black and vanishes; only the brighter
+// creature + its glow survive. This beats `screen`, which LIFTS every dark
+// value and so raised the void's noise into a visible box. Lighten leans on the
+// page being dark — fine here, since marketing is dark-only (locked decision).
+// Verified against a real compressed frame: no box, and more vibrant than an
+// alpha luma-key (which dims the glass interior). One GPU-composited line.
 // =============================================================================
 
 // ── TUNING — the creature's size / position / fade ──
-// Two things kill the "box": (1) mix-blend-mode: screen turns the flat black
-// void into exactly the page colour (#0A0A0A) so it vanishes; (2) the video is
-// still a hard rectangle, so its glow/compression halo gets clipped at the
-// frame edges and reads as a faint box — EDGE_FEATHER dissolves those hard
-// edges into the page so the creature floats free (matches the PS comp).
-const VIDEO_WIDTH = '216%';       // ◀ SIZE knob: dramatically bigger — bleeds hard off the right/bottom
-const VIDEO_SHIFT = '32%';        // horizontal position: bigger % = pushed further right
-const VIDEO_DROP = '6%';          // vertical position: bigger % = pushed further down (bleeds off bottom)
-const FADE_START = '68%';         // where the bottom dissolve begins
-const FADE_END = '98%';           // where the bottom is fully gone
-// Soft all-edge vignette that dissolves the video's rectangular frame — opaque
-// across the creature, transparent by the edges/corners (where the void is), so
-// there's no straight box edge on any background. Intersected with the bottom
-// melt below. Tune the 50% stop up to keep more creature, down to fade more.
-const EDGE_FEATHER = 'radial-gradient(118% 132% at 53% 45%, #000 50%, transparent 100%)';
+const VIDEO_WIDTH = '240%';       // ◀ SIZE knob: dramatically bigger — bleeds hard off the right/bottom
+const VIDEO_SHIFT = '35%';        // horizontal position: bigger % = pushed further right
+const VIDEO_DROP = '7%';          // vertical position: bigger % = pushed further down (bleeds off bottom)
+const FADE_START = '74%';         // where the bottom dissolve begins
+const FADE_END = '99%';           // where the bottom is fully gone
 
 export default function Hero() {
   const agent = getLiveAgent();
@@ -175,20 +171,13 @@ export default function Hero() {
           width: 100%;
           height: auto;
           display: block;
-          /* screen blend resolves the flat black void to the page colour so it
-             vanishes; the edge feather + bottom melt below remove the frame. */
-          mix-blend-mode: screen;
-          /* two intersected mask layers: (1) all-edge vignette that dissolves
-             the rectangular frame so there's no box; (2) a bottom melt into the
-             section below. intersect = keep only where BOTH are opaque. */
-          -webkit-mask-image:
-            ${EDGE_FEATHER},
-            linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
-          mask-image:
-            ${EDGE_FEATHER},
-            linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
-          -webkit-mask-composite: source-in;
-          mask-composite: intersect;
+          /* LIGHTEN = max(video, page): the dark void + its noise fall below
+             page-black and get replaced by it, so the box is gone and the
+             creature floats free — no rectangular edge on the dark page. */
+          mix-blend-mode: lighten;
+          /* bottom melt so the creature dissolves into the section below. */
+          -webkit-mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
+          mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
         }
 
         @media (max-width: 900px) {
