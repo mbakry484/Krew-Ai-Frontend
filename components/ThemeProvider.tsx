@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 type Theme = 'light' | 'dark';
 
@@ -17,15 +18,22 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
+  const pathname = usePathname();
+  const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    // Get theme from localStorage or default to light
-    const savedTheme = localStorage.getItem('theme') as Theme || 'light';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
+    // Marketing/public pages are dark-only (the theme toggle was removed from
+    // the marketing nav). Only the agent dashboards honour the stored
+    // light/dark preference.
+    const isDashboard = pathname?.startsWith('/dashboard') ?? false;
+    const next: Theme = isDashboard
+      ? ((localStorage.getItem('theme') as Theme) || 'light')
+      : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+  }, [pathname]);
 
+  // Only reachable from the dashboard shells (IvyTopBarActions / LunaTopBarActions).
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);

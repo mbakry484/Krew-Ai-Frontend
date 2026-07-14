@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { useTheme } from './ThemeProvider';
 import { isLoggedIn, logout } from '@/lib/auth';
 import { AGENTS, getLiveAgent } from '@/lib/agents';
 import AgentStatusBadge from './agents/AgentStatusBadge';
@@ -17,7 +16,6 @@ const panelAnim     = 'transition-all duration-200 ease-out';
 export default function Navigation() {
   const router   = useRouter();
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [dropdownOpen,    setDropdownOpen]    = useState(false);
   const [userInfo,        setUserInfo]        = useState({ first_name: '', last_name: '', email: '' });
@@ -279,31 +277,6 @@ export default function Navigation() {
             transition: navPhase === 'content' ? 'opacity 0.35s ease, filter 0.35s ease' : 'none',
           }}
         >
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="border border-border rounded-[20px] px-[10px] py-1 flex items-center gap-[5px] text-[0.7rem] text-text-tertiary hover:border-border-md hover:text-text-secondary transition-all duration-200"
-          >
-            {theme === 'dark' ? (
-              <svg className="w-[10px] h-[10px] fill-current" viewBox="0 0 24 24">
-                <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
-              </svg>
-            ) : (
-              <svg className="w-[10px] h-[10px] fill-current" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1"  x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22"  y1="4.22"  x2="5.64"  y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1"  y1="12" x2="3"  y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
-                <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
-              </svg>
-            )}
-            <span className="hidden sm:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
-          </button>
-
           {/* Auth buttons — desktop only */}
           {!isAuthenticated ? (
             <div className="hidden lg:flex" style={{ gap: 'var(--btn-gap)' }}>

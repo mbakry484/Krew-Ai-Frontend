@@ -17,13 +17,13 @@ import Button from '@/components/Button';
 // an instant first paint.
 // =============================================================================
 
-// ── TUNING — the creature's size / bleed / bottom fade ──
-// The hero band bg is the site's dark base (#0A0A0A). The creature video is
-// authored with a MATCHING #0A0A0A void, so its top/left/right edges are
-// invisible with no masking — only the bottom gets a fade to melt into the
-// section below. (If a video's void doesn't match, that seam comes back.)
-const VIDEO_WIDTH = '132%';       // >100% = bleeds past its column toward the edge
-const VIDEO_SHIFT = '16%';        // how far right it's pushed
+// ── TUNING — the creature's size / position / fade ──
+// The video's black void is removed with mix-blend-mode: screen (black → fully
+// transparent, the glow stays), so there's no box on any background and the
+// exact void colour no longer matters. Screen wants a DARK backdrop to read
+// right, which the hero band is.
+const VIDEO_WIDTH = '132%';       // ◀ SIZE knob: bigger % = bigger creature (also bleeds further right)
+const VIDEO_SHIFT = '16%';        // horizontal position: bigger % = pushed further right
 const FADE_START = '72%';         // where the bottom dissolve begins
 const FADE_END = '99%';           // where the bottom is fully gone
 
@@ -168,8 +168,10 @@ export default function Hero() {
           width: 100%;
           height: auto;
           display: block;
-          /* only the bottom dissolves — the other edges are pure black on a
-             pure-black band, so they're already invisible */
+          /* knock the black void out entirely — screen blend makes black
+             transparent and keeps the glow, so no box on any background */
+          mix-blend-mode: screen;
+          /* bottom dissolve so the creature melts into the section below */
           -webkit-mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
           mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
         }
