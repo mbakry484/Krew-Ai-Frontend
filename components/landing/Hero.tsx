@@ -140,6 +140,7 @@ export default function Hero() {
           min-height: 100%;
         }
         .hero-img-wrap {
+          flex: none;            /* honor the width literally — don't let flex shrink it */
           width: ${IMG_WIDTH};
           transform: translate(${IMG_X}, ${IMG_Y});
         }
