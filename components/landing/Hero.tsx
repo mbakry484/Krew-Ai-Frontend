@@ -1,50 +1,39 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { getLiveAgent } from '@/lib/agents';
 import { getHeroCopy } from '@/content/agent-content';
 import Button from '@/components/Button';
 
 // =============================================================================
-// LANDING HERO (Phase 2.1) — character-first: the live agent's creature film
-// fills the right of the frame, bleeding off the edge, its bottom dissolving
-// into the page. Copy on the left. Renders from the registry's live agent, so
-// the hero rotates by flipping registry state, never by rewriting this file.
+// LANDING HERO (Phase 2.1) — character-first: the live agent's creature fills
+// the right of the frame, bleeding off the edge, its bottom dissolving into the
+// page. Copy on the left. Renders from the registry's live agent, so the hero
+// rotates by flipping registry state, never by rewriting this file.
 //
-// BACKGROUND REMOVAL: the source is a creature on a black void. mix-blend-mode
-// LIGHTEN removes it — each pixel becomes max(video, page), so anywhere the
-// video is darker than the page (the whole void, plus its H.264 compression
-// noise) is simply replaced by page-black and vanishes; only the brighter
-// creature + its glow survive. This beats `screen`, which LIFTS every dark
-// value and so raised the void's noise into a visible box. Lighten leans on the
-// page being dark — fine here, since marketing is dark-only (locked decision).
-// Verified against a real compressed frame: no box, and more vibrant than an
-// alpha luma-key (which dims the glass interior). One GPU-composited line.
+// The creature is a STILL image (`/hero/ivy-hero.webp`). Its background was
+// baked to true black, and `mix-blend-mode: lighten` drops that black against
+// the dark page (max(img, page) → the void becomes the page, the creature
+// stays), so it floats with no box. Marketing is dark-only, so lighten is safe.
 // =============================================================================
 
-// ── TUNING — the creature's size / position / fade ──
-const VIDEO_WIDTH = '240%';       // ◀ SIZE knob: dramatically bigger — bleeds hard off the right/bottom
-const VIDEO_SHIFT = '35%';        // horizontal position: bigger % = pushed further right
-const VIDEO_DROP = '7%';          // vertical position: bigger % = pushed further down (bleeds off bottom)
-const FADE_START = '74%';         // where the bottom dissolve begins
-const FADE_END = '99%';           // where the bottom is fully gone
+// ── KNOBS — change the creature's size & position here ──────────────────────
+const IMG_WIDTH = '240%';   // ◀ SIZE: bigger % = bigger creature (also bleeds further off-frame)
+const IMG_X = '35%';        // ◀ HORIZONTAL: bigger % = pushed further right
+const IMG_Y = '7%';         // ◀ VERTICAL: bigger % = pushed further down
+// bottom fade so the creature melts into the section below
+const FADE_START = '74%';   // where the bottom dissolve begins
+const FADE_END = '99%';     // where the bottom is fully gone
+// ────────────────────────────────────────────────────────────────────────────
 
 export default function Hero() {
   const agent = getLiveAgent();
   const copy = getHeroCopy(agent.slug);
-  const reduce = useReducedMotion();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [ready, setReady] = useState(false);
   useEffect(() => {
     requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
   }, []);
-
-  // Reduced motion → hold on the poster frame instead of looping.
-  useEffect(() => {
-    if (reduce) videoRef.current?.pause();
-  }, [reduce]);
 
   const scrollToCrew = () => {
     const el = document.querySelector('#crew');
@@ -66,7 +55,7 @@ export default function Hero() {
   return (
     // The creature lives on a dark void, so the hero is a dark band in BOTH
     // themes — data-theme="dark" re-scopes the design tokens for this subtree
-    // (light text, #0A0A0A bg) so the video blends seamlessly on every edge.
+    // (light text, #0A0A0A bg) so the image blends seamlessly on every edge.
     <div className="hero-root min-h-screen flex flex-col" data-theme="dark">
       <div className="relative flex-1 flex -mt-20 pt-20" data-agent={agent.slug}>
 
@@ -114,25 +103,15 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* RIGHT — the creature film */}
+          {/* RIGHT — the creature */}
           <div
             className={`hero-right ${ready ? 'hero-blur-in-slow' : ''}`}
             style={at(100)}
             aria-hidden="true"
           >
-            <div className="hero-video-wrap">
-              <video
-                ref={videoRef}
-                className="hero-video"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                poster="/hero/ivy-hero-poster.webp"
-              >
-                <source src="/hero/ivy-hero.mp4" type="video/mp4" />
-              </video>
+            <div className="hero-img-wrap">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="hero-img" src="/hero/ivy-hero.webp" alt="" />
             </div>
           </div>
         </div>
@@ -143,8 +122,6 @@ export default function Hero() {
            clip here so the page never scrolls horizontally. Always-dark band. */
         .hero-root {
           overflow-x: clip;
-          /* the site's dark base — the video's void is authored to match it,
-             so the box edges vanish and there's no seam with the page below */
           background: var(--bg);
         }
         .hero-grid {
@@ -163,19 +140,18 @@ export default function Hero() {
           justify-content: flex-end;
           min-height: 100%;
         }
-        .hero-video-wrap {
-          width: ${VIDEO_WIDTH};
-          transform: translate(${VIDEO_SHIFT}, ${VIDEO_DROP});
+        .hero-img-wrap {
+          width: ${IMG_WIDTH};
+          transform: translate(${IMG_X}, ${IMG_Y});
         }
-        .hero-video {
+        .hero-img {
           width: 100%;
           height: auto;
           display: block;
-          /* LIGHTEN = max(video, page): the dark void + its noise fall below
-             page-black and get replaced by it, so the box is gone and the
-             creature floats free — no rectangular edge on the dark page. */
+          /* LIGHTEN = max(image, page): the baked-black background falls below
+             the dark page and is replaced by it, so the creature floats free
+             with no box. Bottom mask melts it into the section below. */
           mix-blend-mode: lighten;
-          /* bottom melt so the creature dissolves into the section below. */
           -webkit-mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
           mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
         }
@@ -186,7 +162,7 @@ export default function Hero() {
             justify-content: center;
             padding: 0 0 1.5rem;
           }
-          .hero-video-wrap {
+          .hero-img-wrap {
             width: 108%;
             transform: none;
           }
