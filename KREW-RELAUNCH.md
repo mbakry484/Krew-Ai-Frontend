@@ -2,6 +2,31 @@
 
 > Goal: flip mykrew.co from "Luna the chatbot" to "Krew — the multi-agent crew, Ivy live now, Luna in beta."
 > Rule: nothing agent-specific is hardcoded. Everything renders from the agent registry.
+> **Workflow: all work on `dev`, NEVER a new branch (CLAUDE.md rule 7). Pull at start, push at end.**
+
+---
+
+## ★ ACTIVE PLAN — Landing v2, asset-led rebuild (started 2026-07-14)
+
+Sessions 1–4 (the registry + de-Luna homepage) are DONE and merged to `dev`. We are now
+replacing the remaining coded mocks with **real generated assets**, section by section.
+Co-designed with the user + Claude web. One object per section, one dark lighting language.
+
+**Page order, top → bottom (status):**
+1. **Hero** — Ivy creature *film* (glass-liquid macro loop, glowing eyes). ✅ DONE — `components/landing/Hero.tsx`; video `public/hero/ivy-hero.mp4` (screen-blended → black void removed, floats on any bg; bottom fade; size knob `VIDEO_WIDTH`). Autoplay muted/loop, poster on reduced-motion.
+2. **Notification phone** — "Your financial analyst. In your pocket." ✅ DONE — `PocketSection.tsx` (pinned scroll: phone scales down in place, title rises from behind; runs on mobile; asset `ivy-notification.webp`).
+3. **Receipt** — headline "The number Shopify shows you isn't your number." The wedge math (SHOPIFY GROSS 914,000 · −COD RETURNS 224,000 · −REAL EXPENSES 30,000 · = REAL PROFIT **EGP 660,000**, teal "IVY VERIFIED ✓") composited as a **coded overlay on a photoreal receipt asset** (blank receipt, dark void, dramatic light, grain — Apple-chip aesthetic). ⏳ TODO — awaiting receipt asset. Replaces the current coded `SpotlightSection` wedge.
+4. **Telegram AGENTS** — "Your agents are employees you talk to." ⏳ TODO — rebuild the current Telegram cards to Sintra-level production polish (real assets). Awaiting spec/assets.
+5. **Crew** — "Not another tool. A crew." Three mascot cards, **now with per-agent command-line hooks** folded in (Ivy — "وين راحت الفلوس؟" / Luna — "handle the DMs" / Nova — "soon"), clickable → agent pages. ⏳ TODO — extend existing `CrewSection.tsx` + `AgentCard`.
+6. **Integrations** — "Krew works where your business already lives." A **frontal phone asset** (`public/hero/krew-integrations-iphone.png`, already dropped in) replaces the hexagon row; channels Shopify/Instagram/WhatsApp/Telegram/Bosta/Meta. ⏳ TODO — replaces `IntegrationsSection.tsx` hexagons.
+7. **Luna beta** — floating-DMs overnight-inbox section. ✅ KEEP — `BetaAgentSection.tsx`, already good.
+8. **Closing CTA** — a **MacBook showing My Krew** (all agents, the platform view — NOT Ivy's dashboard), above "Start with Ivy. Scale with your Krew." Non-clickable image (nav lives in crew cards + navbar). ⏳ TODO — awaiting MacBook asset. Extends `ClosingCtaSection.tsx`.
+
+**Locked decisions:** character opens / product closes (no dashboard in the hero). Object cast = creature → phone → receipt → chat cards → MacBook (five objects, one dark look). MacBook shows the platform, not one agent, and stays non-clickable. The "candy" command trio is folded into the crew cards, NOT its own section. Generate every asset on a **dark void**; composite all numbers/text as coded overlays so canon numbers stay canon. Marketing is **dark-only, no theme toggle** (toggle only on `/dashboard/*`). Aura background washes are retired (KREW-DESIGN §3 v3) — aura lives only on agent-card textures.
+
+**Asset pipeline:** user drops raw file into `public/hero/`; assistant compresses (video → H.264 CRF25 +faststart + WebP poster; PNG → WebP via ffmpeg libwebp) and gitignores the heavy source.
+
+**Canon numbers (never invent others):** gross 914,000 · returns 224,000 (28%) · net revenue 690,000 · expenses 30,000 · real profit **660,000** · inventory 700,000 vs 1,000,000 target (70%).
 
 ---
 
