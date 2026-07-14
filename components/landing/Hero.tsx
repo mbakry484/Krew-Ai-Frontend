@@ -11,10 +11,9 @@ import Button from '@/components/Button';
 // page. Copy on the left. Renders from the registry's live agent, so the hero
 // rotates by flipping registry state, never by rewriting this file.
 //
-// The creature is a STILL image (`/hero/ivy-hero.webp`). Its background was
-// baked to true black, and `mix-blend-mode: lighten` drops that black against
-// the dark page (max(img, page) → the void becomes the page, the creature
-// stays), so it floats with no box. Marketing is dark-only, so lighten is safe.
+// The creature is a STILL image (`/hero/ivy-hero.webp`), used as-is — its
+// background already matches the page, so no blend mode or color processing.
+// Size & position are the knobs below.
 // =============================================================================
 
 // ── KNOBS — change the creature's size & position here ──────────────────────
@@ -148,10 +147,8 @@ export default function Hero() {
           width: 100%;
           height: auto;
           display: block;
-          /* LIGHTEN = max(image, page): the baked-black background falls below
-             the dark page and is replaced by it, so the creature floats free
-             with no box. Bottom mask melts it into the section below. */
-          mix-blend-mode: lighten;
+          /* image used as-is (its background already matches the page).
+             bottom mask melts it into the section below. */
           -webkit-mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
           mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
         }
