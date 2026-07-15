@@ -174,3 +174,39 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 - Headline: `Nova is coming.`
 - Body: `Marketing intelligence — ad spend, content, conversions — in one layer. Joining your crew soon.`
 - CTA: `Get notified`
+
+---
+
+## ABOUT / VISION (locked 2026-07-15 — film-led rebuild)
+
+### Declaration hero (kept verbatim from the pre-relaunch page)
+- Eyebrow: `Krew — A New Operating Model for Brands`
+- Headline: `Founders should build.` / `Agents should operate.`
+- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+
+### The four films (assets `public/vision/{sleep,yoga,dinner,work}.mp4`; arc: sleep → health → people → craft)
+- Section headline: `This is what running a brand should look like.`
+- Editorial lines fade in after the film breathes; the agent chip staggers in later — never both at once. Chips are coded overlays (mascot + accent from the registry), never baked into footage.
+
+| Film | Editorial line | Chip agent | Chip string |
+|------|----------------|------------|-------------|
+| sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
+| yoga | `The books balanced themselves this morning.` | Ivy | `☀️ Morning brief — EGP 690,000 net · EGP 310,000 to go` |
+| dinner | `Nobody checked their phone at lunch.` | Luna | `3 orders processed · 12 DMs answered` |
+| work | `Back to the work only you can do.` | Ivy | `Courier settlement logged ✓` |
+
+### The Belief tenets (kept verbatim)
+- 01: `The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents.`
+- 02: `Doing everything by hand isn't dedication. It's what's holding your brand back.`
+- 03: `You shouldn't need to hire a team to run your store. You should get one from day one.`
+
+### The Krew roster (rows render from the registry — names/roles/status badges only)
+- Eyebrow: `The Krew`
+- Headline: `One platform.` / `A growing family of agents.`
+- *(The old "Luna is the first…" sub is retired — stale since Ivy went live.)*
+
+### The Invitation (kept verbatim)
+- Headline: `This is Krew.` / `Come build. We'll handle the rest.`
+- CTA: `Join the early access →`
+
+*(Removed in the rebuild until a v3 copy pass: "The Old Way", "That era is ending.", and the stale Mission & Vision block — the films now carry that story.)*
