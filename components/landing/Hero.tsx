@@ -17,9 +17,9 @@ import Button from '@/components/Button';
 // =============================================================================
 
 // ── KNOBS — change the creature's size & position here ──────────────────────
-const IMG_WIDTH = '240%';   // ◀ SIZE: bigger % = bigger creature (also bleeds further off-frame)
-const IMG_X = '35%';        // ◀ HORIZONTAL: bigger % = pushed further right
-const IMG_Y = '7%';         // ◀ VERTICAL: bigger % = pushed further down
+const IMG_WIDTH = '150%';   // ◀ SIZE: bigger % = bigger creature (also bleeds further off-frame)
+const IMG_X = '25%';        // ◀ HORIZONTAL: bigger % = pushed further right
+const IMG_Y = '-5%';         // ◀ VERTICAL: bigger % = pushed further down
 // bottom fade so the creature melts into the section below
 const FADE_START = '74%';   // where the bottom dissolve begins
 const FADE_END = '99%';     // where the bottom is fully gone
