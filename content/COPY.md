@@ -109,6 +109,12 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 - Sub: `140 conversations a week — orders, returns, questions — handled in Arabic, Franco, and English. Automatically. Currently in invite-only beta.`
 - CTA: `Request invite`
 
+### Integrations (homepage — after the crew reveal; frontal phone + logo strip)
+- Eyebrow: `WORKS WITH YOUR STACK`
+- Headline: `Krew works where your business already lives.`
+- Body: `Your agents don't live in a silo. They work inside the tools your business already runs on — Shopify, Instagram, Telegram, Bosta and Meta — so they see real orders, messages, and deliveries, and act at the right moment. No new dashboard to learn, no migration. Just your crew, where the work already happens.`
+- Logos strip: Meta · Instagram · Shopify · Telegram · Bosta (`public/hero/krew-integrations-logos.png`)
+
 ### Crew thesis
 - Headline: `One operation. Shared context.`
 - Body: `Luna hears what customers say. Ivy knows what it costs. Nova will know what converts. Not three subscriptions — one crew that talks to each other.`

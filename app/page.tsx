@@ -14,8 +14,8 @@ import Footer from '@/components/Footer';
 // =============================================================================
 // This is a static landing page — no API calls required.
 // Every section renders from lib/agents.ts + the content/* configs. The spine:
-// hero (live agent) → pocket → budgets → telegram → crew reveal → beta-agent
-// section → integrations → crew thesis → closing CTA. Launches rotate by
+// hero (live agent) → pocket → budgets → telegram → crew reveal → integrations
+// → beta-agent section → crew thesis → closing CTA. Launches rotate by
 // registry state. Each section is its own client component; this page is a
 // plain server-side composition.
 // =============================================================================
@@ -42,12 +42,13 @@ export default function LandingPage() {
       {/* ── CREW REVEAL — permanent brand layer (Phase 2.2) ── */}
       <CrewSection />
 
+      {/* ── INTEGRATIONS — "Krew works where your business already lives":
+            copy + logo strip left, a frontal phone render right (fades in) ── */}
+      <IntegrationsSection />
+
       {/* ── BETA AGENT — full-width bold-dark pattern-break: the beta agent's
             aura, mascot, and overnight inbox (Phase 2.4) ── */}
       <BetaAgentSection />
-
-      {/* ── INTEGRATIONS — hexagon hub, centre-out blur-fade ── */}
-      <IntegrationsSection />
 
       {/* ── CREW THESIS — one operation, shared context (Phase 2.5) ── */}
       <CrewThesisSection />

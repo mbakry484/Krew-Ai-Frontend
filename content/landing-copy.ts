@@ -42,10 +42,21 @@ export const TELEGRAM_SECTION = {
   ],
 };
 
-/** COPY.md HOMEPAGE › "Crew thesis". */
+/** COPY.md HOMEPAGE › "Integrations" (section 6 — frontal phone + logo strip). */
+export const INTEGRATIONS = {
+  eyebrow: 'WORKS WITH YOUR STACK',
+  headline: 'Krew works where your business already lives.',
+  body: "Your agents don't live in a silo. They work inside the tools your business already runs on — Shopify, Instagram, Telegram, Bosta and Meta — so they see real orders, messages, and deliveries, and act at the right moment. No new dashboard to learn, no migration. Just your crew, where the work already happens.",
+  phone: '/hero/krew-integrations-iphone.png',
+  logos: '/hero/krew-integrations-logos.png',
+};
+
+/** COPY.md HOMEPAGE › "Crew thesis". `image` is the My Krew MacBook render
+ *  (WebP compressed from the gitignored 13MB source). */
 export const CREW_THESIS = {
   headline: 'One operation. Shared context.',
   body: 'Luna hears what customers say. Ivy knows what it costs. Nova will know what converts. Not three subscriptions — one crew that talks to each other.',
+  image: '/hero/shared-context.webp',
 };
 
 /** COPY.md HOMEPAGE › "Closing CTA". Headline/CTA agent names come from the
