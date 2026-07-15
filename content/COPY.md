@@ -182,7 +182,7 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 ### Films hero (page top — ElevenLabs structure: bold headline left, vision body right, NO CTA)
 - Eyebrow: `Krew — A New Operating Model for Brands`
 - Headline (bold): `This is what running a brand should look like.`
-- Body (right column): `We're building the operating model the next era of e-commerce will run on — a crew of AI agents carrying the operation, the messages, the numbers, the logistics, while founders build at the front.`
+- Body (right column, relocked 2026-07-16 — benefit-first, not about-us): `We believe you should run your brand from the front — the product, the craft, the next move — while a crew of agents carries the rest: every DM answered, every expense logged, your real numbers always true.`
 
 ### The four films (assets `public/vision/{yoga,dinner,sleep,work}.mp4`; display order yoga → dinner → sleep → work, work stays the closer)
 - Hover expands + plays a film on hover-capable devices (click on touch); the row auto-advances until the user takes over.

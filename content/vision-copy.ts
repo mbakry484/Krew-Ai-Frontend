@@ -34,7 +34,7 @@ export const VISION_FILMS: {
 } = {
   eyebrow: 'Krew — A New Operating Model for Brands',
   headline: 'This is what running a brand should look like.',
-  body: "We're building the operating model the next era of e-commerce will run on — a crew of AI agents carrying the operation, the messages, the numbers, the logistics, while founders build at the front.",
+  body: 'We believe you should run your brand from the front — the product, the craft, the next move — while a crew of agents carries the rest: every DM answered, every expense logged, your real numbers always true.',
   films: [
     {
       id: 'yoga',

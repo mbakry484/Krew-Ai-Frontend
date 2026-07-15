@@ -23,7 +23,8 @@ import { VISION_FILMS } from '@/content/vision-copy';
 //
 // The row auto-advances every ~8s while the pointer is off it (a touch click
 // stops it for good), and only while the section is on screen. Mobile (≤900px):
-// vertical stack, each card plays + reveals its overlays when in view.
+// a horizontal snap slider (ElevenLabs mobile) — the snapped card plays and
+// reveals its overlays, the next card peeks dimmed at the edge.
 // prefers-reduced-motion: nothing autoplays — posters with overlays resolved,
 // instant (untransitioned) expand.
 // =============================================================================
@@ -75,7 +76,9 @@ export default function VisionFilms() {
     return () => io.disconnect();
   }, []);
 
-  // Per-card visibility drives the stacked (mobile) mode.
+  // Per-card visibility drives the mobile slider: only the snapped card
+  // features (at 84%-wide cards, a 0.6 threshold means two can never
+  // qualify at once, even mid-swipe — the peeking card stays dimmed).
   useEffect(() => {
     if (!stacked) return;
     const els = videoRefs.current.filter(Boolean) as HTMLVideoElement[];
@@ -90,7 +93,7 @@ export default function VisionFilms() {
           return next;
         });
       },
-      { threshold: 0.45 }
+      { threshold: 0.6 }
     );
     els.forEach((v) => io.observe(v));
     return () => io.disconnect();
@@ -356,7 +359,9 @@ export default function VisionFilms() {
           text-overflow: ellipsis;
         }
 
-        /* ── Mobile: hero stacks; cards stack and feature when in view ── */
+        /* ── Mobile: horizontal snap slider — one card snapped, next peeking.
+           The row bleeds to the screen edge (negative margin) like the
+           ElevenLabs reference; the scrollbar is hidden, snap does the work. ── */
         @media (max-width: 900px) {
           .vf {
             padding: 0 1.4rem;
@@ -370,15 +375,24 @@ export default function VisionFilms() {
             max-width: 460px;
           }
           .vf-row {
-            flex-direction: column;
-            gap: 14px;
+            gap: 12px;
             height: auto;
+            margin: 0 -1.4rem;
+            padding: 0 1.4rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding-left: 1.4rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+          .vf-row::-webkit-scrollbar {
+            display: none;
           }
           .vf-card,
           .vf-card[data-on] {
-            flex: none;
-            width: 100%;
+            flex: 0 0 84%;
             aspect-ratio: 4 / 3;
+            scroll-snap-align: start;
             cursor: default;
           }
           .vf-line {
