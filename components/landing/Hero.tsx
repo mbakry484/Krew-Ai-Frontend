@@ -23,6 +23,9 @@ const IMG_Y = '-5%';         // ◀ VERTICAL: bigger % = pushed further down
 // bottom fade so the creature melts into the section below
 const FADE_START = '74%';   // where the bottom dissolve begins
 const FADE_END = '99%';     // where the bottom is fully gone
+// mobile (≤900px) — creature leads, copy sits inside its bottom fade
+const M_IMG_WIDTH = '138%';     // ◀ mobile creature size
+const M_COPY_OVERLAP = '-17vw'; // ◀ how far the copy rises into the fade (more negative = higher)
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function Hero() {
@@ -63,7 +66,7 @@ export default function Hero() {
           {/* LEFT — copy */}
           <div className="hero-left flex flex-col py-20 pr-8">
             <div
-              className={`${ready ? 'hero-blur-in' : ''} text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[var(--space-hero-eyebrow)]`}
+              className={`${ready ? 'hero-blur-in' : ''} hero-eyebrow text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary mb-[var(--space-hero-eyebrow)]`}
               style={at(0)}
             >
               Krew — {agent.role}
@@ -154,15 +157,32 @@ export default function Hero() {
           mask-image: linear-gradient(to bottom, #000 ${FADE_START}, transparent ${FADE_END});
         }
 
+        /* ── Mobile: creature leads, big, right under the nav; the copy + CTAs
+           rise into its bottom fade so the two read as one composition. ── */
         @media (max-width: 900px) {
-          .hero-grid { grid-template-columns: 1fr; }
+          .hero-root { min-height: 0; }
+          .hero-grid {
+            grid-template-columns: 1fr;
+            align-content: start;
+            gap: 0;
+            min-height: 0;
+          }
+          .hero-eyebrow { display: none; } /* too crowded on mobile */
           .hero-right {
+            order: -1;
             justify-content: center;
-            padding: 0 0 1.5rem;
+            padding: 0;
+            min-height: 0;
           }
           .hero-img-wrap {
-            width: 108%;
+            width: ${M_IMG_WIDTH};
             transform: none;
+          }
+          .hero-left {
+            position: relative;
+            z-index: 2;
+            margin-top: ${M_COPY_OVERLAP};
+            padding: 0 0 3rem;
           }
         }
         @media (max-width: 768px) {
@@ -171,7 +191,6 @@ export default function Hero() {
             letter-spacing: -0.02em;
             line-height: 1.12;
           }
-          .hero-left { padding: 2.5rem 0 1.6rem; }
         }
         @media (max-width: 640px) {
           .hero-grid { padding: 0 1.2rem; gap: 0; }
