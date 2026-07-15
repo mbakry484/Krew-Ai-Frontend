@@ -21,6 +21,7 @@ const MAC_SCALE = 1.15; //  size: 1 = fills its column; lower = smaller
 const MAC_X = '0px'; //     move horizontally: positive = right, negative = left
 const MAC_Y = '0px'; //     move vertically:   positive = down,  negative = up
 const MAC_FADE = '18%'; //  top+bottom dissolve — higher = more fade into black
+const COPY_X = '110px'; //  push the copy right, away from the laptop screen
 
 export default function CrewThesisSection() {
   const ref = useRef<HTMLElement>(null);
@@ -30,7 +31,7 @@ export default function CrewThesisSection() {
     <section ref={ref} data-in={inView || undefined} className="crew-thesis">
       {/* copy — the site's centred container, sitting on the right
           (first in DOM so it stacks on top on mobile) */}
-      <div className="ct-copy-wrap">
+      <div className="ct-copy-wrap" style={{ ['--copy-x' as string]: COPY_X }}>
         <div className="ct-copy">
           <h2 className="ct-headline">{CREW_THESIS.headline}</h2>
           <p className="ct-body">{CREW_THESIS.body}</p>
@@ -118,6 +119,8 @@ export default function CrewThesisSection() {
           align-items: center;
           justify-content: flex-end;
           pointer-events: none;
+          /* COPY_X knob — nudges the copy clear of the laptop screen */
+          transform: translateX(var(--copy-x, 0px));
         }
         .ct-copy {
           max-width: 470px;
@@ -162,6 +165,8 @@ export default function CrewThesisSection() {
             margin: 0 auto;
             padding: 0 1.4rem;
             text-align: center;
+            /* knob is desktop-only — keep the mobile copy centred */
+            transform: none;
           }
           .ct-copy {
             max-width: 100%;
