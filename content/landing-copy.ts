@@ -9,6 +9,39 @@
 // finale rotates with launch state (Start with <live>, Request <beta> invite).
 // =============================================================================
 
+/** COPY.md HOMEPAGE › "Telegram beat" (section 4 — the scroll stepper). Names
+ *  all three agents by design, so it lives here rather than in the component. */
+export const TELEGRAM_SECTION = {
+  eyebrow: 'YOUR CREW, ON TELEGRAM',
+  headline: 'Your agents are employees you talk to.',
+  steps: [
+    {
+      img: '/hero/01_give_orders_iphone.png',
+      tag: 'GIVE ORDERS',
+      title: 'Just tell them what to do.',
+      body: 'Forward a receipt, drop a note — "log this." Ivy files it to the right budget and confirms.',
+    },
+    {
+      img: '/hero/02_luna_reports_back_iphone.png',
+      tag: 'THEY REPORT BACK',
+      title: 'Wake up to the numbers.',
+      body: 'Luna sends the morning brief — handled, recovered, and what still needs you — before you ask.',
+    },
+    {
+      img: '/hero/03_text_voice_image_iphone.png',
+      tag: 'TEXT · VOICE · PHOTO',
+      title: 'However you say it.',
+      body: 'A voice note, a transfer screenshot, or a quick line — they read it, classify it, and log it clean.',
+    },
+    {
+      img: '/hero/04_team_chats_iphone.png',
+      tag: 'YOUR WHOLE CREW',
+      title: 'One chat list. The whole team.',
+      body: 'Ivy, Luna and Nova sit in your chats like everyone else. Message the one you need.',
+    },
+  ],
+};
+
 /** COPY.md HOMEPAGE › "Crew thesis". */
 export const CREW_THESIS = {
   headline: 'One operation. Shared context.',

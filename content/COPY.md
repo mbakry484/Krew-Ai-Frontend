@@ -27,6 +27,14 @@ Demo numbers are canonical across the whole site: gross **EGP 914,000** · retur
 - Body: `Ivy splits your capital across manufacturing, ads, shoots, PR and fulfillment—so nothing disappears into "business expenses."`
 - Cards (purpose → allocation, rendered as the real Ivy capital cards): `Manufacturing — EGP 300,000` · `Ads — EGP 120,000` · `PR Campaign — EGP 80,000` · `Photoshoot — EGP 60,000` · `Other — EGP 7,000`
 
+### Telegram beat — "Your agents are employees you talk to" (homepage — after budgets, before the crew; scroll stepper)
+- Eyebrow: `YOUR CREW, ON TELEGRAM`
+- Headline: `Your agents are employees you talk to.`
+- Step 1 — tag `GIVE ORDERS` / title `Just tell them what to do.` / body `Forward a receipt, drop a note — "log this." Ivy files it to the right budget and confirms.`
+- Step 2 — tag `THEY REPORT BACK` / title `Wake up to the numbers.` / body `Luna sends the morning brief — handled, recovered, and what still needs you — before you ask.`
+- Step 3 — tag `TEXT · VOICE · PHOTO` / title `However you say it.` / body `A voice note, a transfer screenshot, or a quick line — they read it, classify it, and log it clean.`
+- Step 4 — tag `YOUR WHOLE CREW` / title `One chat list. The whole team.` / body `Ivy, Luna and Nova sit in your chats like everyone else. Message the one you need.`
+
 ### Crew reveal
 - Eyebrow: `THE CREW`
 - Headline: `Not another tool. A crew.`
