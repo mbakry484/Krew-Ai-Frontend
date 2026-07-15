@@ -6,28 +6,32 @@ import AgentMascot from '@/components/agents/AgentMascot';
 import { VISION_FILMS } from '@/content/vision-copy';
 
 // =============================================================================
-// VISION FILMS (/about/vision) — "This is what running a brand should look like."
+// VISION FILMS HERO (/about/vision, page top) — "This is what running a brand
+// should look like."
 //
-// Four brand films in an expanding accordion (the ElevenLabs mechanic): the
-// active card is wide and playing, the rest collapse into narrow slivers of
-// their footage; clicking a sliver expands it and collapses the previous one.
-// The arc is sleep → health → people → craft, closing on the second-person line.
+// ElevenLabs structure: bold headline left, the vision body right (no CTA),
+// and the four brand films in an expanding accordion beneath: the active card
+// is wide and playing, the rest collapse into narrow slivers of their footage.
+// On hover-capable devices a sliver expands on hover (click on touch; focus
+// works for keyboards). Display order yoga → dinner → sleep → work, closing
+// on the second-person line.
 //
 // Each film carries two coded overlays, never baked into footage: the editorial
 // center line (fades in after the film breathes ~1.6s) and one agent
 // notification chip (staggers in at ~3.4s — line and chip never arrive
 // together). Chip identity comes from the registry; copy from vision-copy.ts.
 //
-// The row auto-advances every ~8s until the user clicks a sliver, and only
-// while the section is on screen. Mobile (≤900px): vertical stack, each card
-// plays + reveals its overlays when in view. prefers-reduced-motion: nothing
-// autoplays — posters with overlays resolved, instant (untransitioned) expand.
+// The row auto-advances every ~8s while the pointer is off it (a touch click
+// stops it for good), and only while the section is on screen. Mobile (≤900px):
+// vertical stack, each card plays + reveals its overlays when in view.
+// prefers-reduced-motion: nothing autoplays — posters with overlays resolved,
+// instant (untransitioned) expand.
 // =============================================================================
 
 const ADVANCE_MS = 8200;
 
 export default function VisionFilms() {
-  const { headline, films } = VISION_FILMS;
+  const { eyebrow, headline, body, films } = VISION_FILMS;
 
   const sectionRef = useRef<HTMLElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -35,27 +39,29 @@ export default function VisionFilms() {
 
   const [active, setActive] = useState(0);
   const [interacted, setInteracted] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const [inView, setInView] = useState(false);
   const [stacked, setStacked] = useState(false);
+  const [canHover, setCanHover] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [visible, setVisible] = useState<boolean[]>(() => films.map(() => false));
 
   const isFeatured = (i: number) => (stacked ? visible[i] : i === active && inView);
 
-  // Layout + motion-preference media queries (SSR-safe).
+  // Layout + input-capability + motion-preference media queries (SSR-safe).
   useEffect(() => {
-    const mqStack = window.matchMedia('(max-width: 900px)');
-    const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const syncStack = () => setStacked(mqStack.matches);
-    const syncReduce = () => setReduced(mqReduce.matches);
-    syncStack();
-    syncReduce();
-    mqStack.addEventListener('change', syncStack);
-    mqReduce.addEventListener('change', syncReduce);
-    return () => {
-      mqStack.removeEventListener('change', syncStack);
-      mqReduce.removeEventListener('change', syncReduce);
-    };
+    const queries: Array<[MediaQueryList, (m: boolean) => void]> = [
+      [window.matchMedia('(max-width: 900px)'), setStacked],
+      [window.matchMedia('(hover: hover) and (pointer: fine)'), setCanHover],
+      [window.matchMedia('(prefers-reduced-motion: reduce)'), setReduced],
+    ];
+    const cleanups = queries.map(([mq, set]) => {
+      const sync = () => set(mq.matches);
+      sync();
+      mq.addEventListener('change', sync);
+      return () => mq.removeEventListener('change', sync);
+    });
+    return () => cleanups.forEach((fn) => fn());
   }, []);
 
   // Section visibility — gates playback, overlay timing, and auto-advance.
@@ -108,20 +114,33 @@ export default function VisionFilms() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, inView, stacked, reduced, visible]);
 
-  // Auto-advance the accordion until the user takes over.
+  // Auto-advance the accordion — paused while the pointer is over the row,
+  // stopped for good once a touch user clicks.
   useEffect(() => {
-    if (stacked || reduced || interacted || !inView) return;
+    if (stacked || reduced || interacted || hovering || !inView) return;
     const t = setInterval(() => {
       if (!document.hidden) setActive((a) => (a + 1) % films.length);
     }, ADVANCE_MS);
     return () => clearInterval(t);
-  }, [stacked, reduced, interacted, inView, films.length]);
+  }, [stacked, reduced, interacted, hovering, inView, films.length]);
 
   return (
     <section ref={sectionRef} className="vf">
-      <h2 className="vf-headline">{headline}</h2>
+      {/* ── Hero copy: bold headline left, the vision body right ── */}
+      <div className="vf-hero">
+        <div>
+          <p className="vf-eyebrow">{eyebrow}</p>
+          <h1 className="vf-headline">{headline}</h1>
+        </div>
+        <p className="vf-body">{body}</p>
+      </div>
 
-      <div className="vf-row">
+      {/* ── The accordion row ── */}
+      <div
+        className="vf-row"
+        onMouseEnter={() => canHover && setHovering(true)}
+        onMouseLeave={() => canHover && setHovering(false)}
+      >
         {films.map((film, i) => {
           const agent = getAgent(film.chipAgent);
           const on = isFeatured(i);
@@ -133,9 +152,15 @@ export default function VisionFilms() {
               data-on={on || undefined}
               aria-pressed={!stacked && i === active}
               aria-label={film.line}
+              onMouseEnter={() => {
+                if (canHover && !stacked) setActive(i);
+              }}
+              onFocus={() => {
+                if (!stacked) setActive(i);
+              }}
               onClick={() => {
-                setInteracted(true);
                 setActive(i);
+                if (!canHover) setInteracted(true);
               }}
             >
               <video
@@ -175,14 +200,35 @@ export default function VisionFilms() {
           margin: 0 auto;
           padding: 0 2rem;
         }
+
+        /* ── Hero copy ── */
+        .vf-hero {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(260px, 400px);
+          align-items: center;
+          column-gap: clamp(2.5rem, 6vw, 6rem);
+          margin-bottom: clamp(2.5rem, 5vh, 4rem);
+        }
+        .vf-eyebrow {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--text-tertiary);
+          margin-bottom: 18px;
+        }
         .vf-headline {
-          font-size: clamp(1.8rem, 4vw, 3rem);
-          font-weight: 300;
-          letter-spacing: -0.03em;
-          line-height: 1.15;
+          font-size: clamp(2.4rem, 5vw, 4.3rem);
+          font-weight: 700;
+          letter-spacing: -0.04em;
+          line-height: 1.04;
           color: var(--text-primary);
-          max-width: 620px;
-          margin-bottom: 3rem;
+          max-width: 15ch;
+        }
+        .vf-body {
+          font-size: clamp(0.92rem, 1.2vw, 1.05rem);
+          font-weight: 300;
+          line-height: 1.7;
+          color: var(--text-secondary);
         }
 
         /* ── The accordion row ── */
@@ -310,13 +356,18 @@ export default function VisionFilms() {
           text-overflow: ellipsis;
         }
 
-        /* ── Mobile: vertical stack, cards feature when in view ── */
+        /* ── Mobile: hero stacks; cards stack and feature when in view ── */
         @media (max-width: 900px) {
           .vf {
             padding: 0 1.4rem;
           }
-          .vf-headline {
+          .vf-hero {
+            grid-template-columns: 1fr;
+            row-gap: 1.4rem;
             margin-bottom: 2rem;
+          }
+          .vf-body {
+            max-width: 460px;
           }
           .vf-row {
             flex-direction: column;

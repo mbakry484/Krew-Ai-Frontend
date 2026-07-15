@@ -5,9 +5,10 @@ import { AGENTS } from '@/lib/agents';
 
 // =============================================================================
 // /about/vision — the film-led manifesto page (COPY.md "ABOUT / VISION").
-// Declaration hero → the four films → belief tenets → roster → invitation.
-// The old "The Old Way" / "That era is ending." / Mission & Vision beats are
-// retired — the films carry that story now. Roster renders from the registry.
+// Films hero (headline + vision body + accordion) → declaration → belief
+// tenets → roster → invitation. The old "The Old Way" / "That era is ending."
+// / Mission & Vision beats are retired — the films carry that story now.
+// Roster renders from the registry.
 // =============================================================================
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -35,27 +36,26 @@ export default function VisionPage() {
   return (
     <div className="min-h-screen bg-background">
 
-      {/* ── SECTION 1 — THE DECLARATION (hero) ── */}
-      <section className="pt-32 md:pt-40 pb-24 md:pb-28 px-8">
+      {/* ── SECTION 1 — THE FILMS HERO ── */}
+      <div className="pt-28 md:pt-36 pb-24 md:pb-28">
+        <VisionFilms />
+      </div>
+
+      <Divider />
+
+      {/* ── SECTION 2 — THE DECLARATION ── */}
+      <section className="py-24 md:py-28 px-8">
         <div className="max-w-[1100px] mx-auto">
-          <Eyebrow>Krew — A New Operating Model for Brands</Eyebrow>
-          <h1 className="text-[clamp(2.6rem,7vw,5.5rem)] font-bold tracking-[-0.04em] leading-[1.02] text-text-primary">
+          <h2 className="text-[clamp(2.6rem,7vw,5.5rem)] font-bold tracking-[-0.04em] leading-[1.02] text-text-primary">
             Founders should build.<br />
             Agents should operate.
-          </h1>
+          </h2>
           <p className="mt-8 text-[clamp(0.95rem,1.4vw,1.15rem)] text-text-secondary font-light leading-[1.7] max-w-[560px]">
             Krew gives every brand an AI-powered operations team — so the people who start
             companies can go back to building them.
           </p>
         </div>
       </section>
-
-      <Divider />
-
-      {/* ── SECTION 2 — THE FOUR FILMS ── */}
-      <div className="py-24 md:py-28">
-        <VisionFilms />
-      </div>
 
       <Divider />
 

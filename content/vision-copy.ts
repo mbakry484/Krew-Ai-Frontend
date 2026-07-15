@@ -1,5 +1,5 @@
 // =============================================================================
-// ABOUT / VISION COPY — the four-film section (COPY.md "ABOUT / VISION").
+// ABOUT / VISION COPY — the films-first hero (COPY.md "ABOUT / VISION").
 // Like content/landing-copy.ts this is a sanctioned home for copy: the chips
 // name Luna and Ivy by design, so the strings live here rather than being
 // hardcoded in a component. Chip identity (mascot, accent) is resolved from
@@ -24,19 +24,18 @@ export interface VisionFilm {
   chipText: string;
 }
 
-/** COPY.md ABOUT / VISION › "The four films". Order is the arc:
- *  sleep → health → people → craft (work is the closer). */
-export const VISION_FILMS: { headline: string; films: VisionFilm[] } = {
+/** COPY.md ABOUT / VISION › "Films hero" + "The four films". Display order
+ *  locked 2026-07-16: yoga → dinner → sleep → work (work stays the closer). */
+export const VISION_FILMS: {
+  eyebrow: string;
+  headline: string;
+  body: string;
+  films: VisionFilm[];
+} = {
+  eyebrow: 'Krew — A New Operating Model for Brands',
   headline: 'This is what running a brand should look like.',
+  body: "We're building the operating model the next era of e-commerce will run on — a crew of AI agents carrying the operation, the messages, the numbers, the logistics, while founders build at the front.",
   films: [
-    {
-      id: 'sleep',
-      video: '/vision/sleep.mp4',
-      poster: '/vision/sleep-poster.webp',
-      line: 'He stopped sleeping with one eye on the inbox.',
-      chipAgent: 'luna',
-      chipText: 'Replied — order confirmed · 2:47 AM',
-    },
     {
       id: 'yoga',
       video: '/vision/yoga.mp4',
@@ -52,6 +51,14 @@ export const VISION_FILMS: { headline: string; films: VisionFilm[] } = {
       line: 'Nobody checked their phone at lunch.',
       chipAgent: 'luna',
       chipText: '3 orders processed · 12 DMs answered',
+    },
+    {
+      id: 'sleep',
+      video: '/vision/sleep.mp4',
+      poster: '/vision/sleep-poster.webp',
+      line: 'He stopped sleeping with one eye on the inbox.',
+      chipAgent: 'luna',
+      chipText: 'Replied — order confirmed · 2:47 AM',
     },
     {
       id: 'work',

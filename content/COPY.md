@@ -177,23 +177,27 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 
 ---
 
-## ABOUT / VISION (locked 2026-07-15 — film-led rebuild)
+## ABOUT / VISION (locked 2026-07-15; films-first hero locked 2026-07-16)
 
-### Declaration hero (kept verbatim from the pre-relaunch page)
+### Films hero (page top — ElevenLabs structure: bold headline left, vision body right, NO CTA)
 - Eyebrow: `Krew — A New Operating Model for Brands`
-- Headline: `Founders should build.` / `Agents should operate.`
-- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+- Headline (bold): `This is what running a brand should look like.`
+- Body (right column): `We're building the operating model the next era of e-commerce will run on — a crew of AI agents carrying the operation, the messages, the numbers, the logistics, while founders build at the front.`
 
-### The four films (assets `public/vision/{sleep,yoga,dinner,work}.mp4`; arc: sleep → health → people → craft)
-- Section headline: `This is what running a brand should look like.`
+### The four films (assets `public/vision/{yoga,dinner,sleep,work}.mp4`; display order yoga → dinner → sleep → work, work stays the closer)
+- Hover expands + plays a film on hover-capable devices (click on touch); the row auto-advances until the user takes over.
 - Editorial lines fade in after the film breathes; the agent chip staggers in later — never both at once. Chips are coded overlays (mascot + accent from the registry), never baked into footage.
 
 | Film | Editorial line | Chip agent | Chip string |
 |------|----------------|------------|-------------|
-| sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
 | yoga | `The books balanced themselves this morning.` | Ivy | `☀️ Morning brief — EGP 690,000 net · EGP 310,000 to go` |
 | dinner | `Nobody checked their phone at lunch.` | Luna | `3 orders processed · 12 DMs answered` |
+| sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
 | work | `Back to the work only you can do.` | Ivy | `Courier settlement logged ✓` |
+
+### The Declaration (now the first section after the films; its old eyebrow moved up to the hero)
+- Headline: `Founders should build.` / `Agents should operate.`
+- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
 
 ### The Belief tenets (kept verbatim)
 - 01: `The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents.`
