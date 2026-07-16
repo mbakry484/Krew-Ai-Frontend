@@ -31,7 +31,7 @@ import { VISION_TODO } from '@/content/vision-copy';
 // ── KNOBS — the coded screen's fit inside the photographic frame ─────────────
 // (frame is 826×1000; glass runs 2.7%→97.9% wide, top 1.6%; baked status bar
 // ends ~14% down)
-const PHONE_W = 'clamp(300px, 34vw, 420px)'; // desktop phone width
+const PHONE_W = 'min(clamp(340px, 40vw, 600px), 68vh)'; // desktop phone width (68vh cap keeps the status bar on short viewports)
 const SCREEN_LEFT = '9%'; // content inset from the frame's left edge
 const SCREEN_RIGHT = '9%';
 const SCREEN_TOP = '18%'; // below the baked status bar
@@ -154,8 +154,8 @@ export default function VisionTodo() {
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: center;
           height: 100%;
-          gap: clamp(2rem, 6vw, 5.5rem);
-          max-width: 1100px;
+          gap: clamp(2rem, 5vw, 4.5rem);
+          max-width: 1200px;
           margin: 0 auto;
           padding: 0 2rem;
         }
@@ -271,23 +271,24 @@ export default function VisionTodo() {
           transform-origin: left;
         }
 
-        /* ── Mobile: still pinned — copy on top, phone bottom-anchored ── */
+        /* ── Mobile: still pinned — copy top-aligned (kills the dead band the
+           centered layout left above it), big phone fills the rest ── */
         @media (max-width: 820px) {
           .vt {
-            --phw: min(72vw, 320px);
+            --phw: min(88vw, 430px, 62vh);
             height: 240vh;
           }
           .vt-inner {
             grid-template-columns: 1fr;
-            grid-template-rows: 1fr auto;
+            grid-template-rows: auto 1fr;
             justify-items: center;
             text-align: center;
             gap: 1.2rem;
             padding: 0 1.4rem;
           }
           .vt-copy {
-            align-self: center;
-            padding-top: 4.5rem;
+            align-self: start;
+            padding-top: 5rem;
           }
           .vt-body {
             margin-left: auto;

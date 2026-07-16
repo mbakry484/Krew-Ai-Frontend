@@ -40,7 +40,7 @@ export default function VisionPage() {
     <div className="min-h-screen bg-background">
 
       {/* ── SECTION 1 — THE FILMS HERO ── */}
-      <div className="pt-28 md:pt-36 pb-24 md:pb-28">
+      <div className="pt-28 md:pt-36 pb-14 md:pb-28">
         <VisionFilms />
       </div>
 
