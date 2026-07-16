@@ -16,11 +16,12 @@ import { VISION_TODO } from '@/content/vision-copy';
 //
 // Scroll-scrubbed: `useScroll` writes `--p` (0→1) on the section and each
 // handled row's strike scales L→R across its own sub-window of `--p` — pure
-// CSS calc, no per-frame React re-render. Desktop pins; the cut-bottom frame
-// bleeds off the viewport edge. Mobile does NOT pin: the complete phone
-// (`iphone-frame-mob.webp`, real bottom bezel) flows under the copy and the
-// strikes draw as the section scrolls through. prefers-reduced-motion: no
-// pin, `--p` forced to 1 — the resolved list, static.
+// CSS calc, no per-frame React re-render. BOTH views pin — the frame must
+// freeze while the strikes draw. Desktop: cut-bottom frame bleeds off the
+// viewport edge. Mobile: the complete frame (`iphone-frame-mob.webp`, real
+// bottom bezel) sits under the copy, its lower half viewport-clipped during
+// the pin. prefers-reduced-motion: no pin, `--p` forced to 1 — resolved,
+// static.
 //
 // ⚠ Two hard-won rules for this file:
 //   1. Keep ALL phone markup inline in this component's return — styled-jsx
@@ -286,39 +287,36 @@ export default function VisionTodo() {
           transform-origin: left;
         }
 
-        /* ── Mobile: NO pin — the complete phone (bottom bezel and all) flows
-           right under the copy and the strikes draw as the section scrolls
-           through the viewport. Nothing to hide, so nothing sticky. ── */
+        /* ── Mobile: PINNED like desktop — the frame must freeze while the
+           strikes draw (unpinned, you scrolled away before the animation).
+           Copy top, complete phone under it; the phone's lower half is
+           viewport-clipped during the pin, which reads as intentional since
+           the list lives in the top half. ── */
         @media (max-width: 820px) {
           .vt {
-            --phw: min(88vw, 400px);
+            --phw: min(84vw, 380px);
             --scr-t: var(--scr-t-m);
             --scr-b: var(--scr-b-m);
-            height: auto;
-          }
-          .vt-sticky {
-            position: static;
-            height: auto;
-            overflow: visible;
-            padding: 4.5rem 0 3rem;
+            height: 240vh;
           }
           .vt-inner {
             grid-template-columns: 1fr;
+            align-content: start;
             justify-items: center;
             text-align: center;
-            gap: 1.8rem;
+            gap: 1.2rem;
             padding: 0 1.4rem;
-            height: auto;
           }
           .vt-copy {
-            padding-top: 0;
+            align-self: start;
+            padding-top: 5.5rem; /* clear the fixed navbar */
           }
           .vt-body {
             margin-left: auto;
             margin-right: auto;
           }
           .phone {
-            align-self: auto;
+            align-self: start;
             transform: none;
           }
         }
