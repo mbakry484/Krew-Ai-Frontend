@@ -1,14 +1,17 @@
 import Button from '@/components/Button';
 import AgentStatusBadge from '@/components/agents/AgentStatusBadge';
 import VisionFilms from '@/components/vision/VisionFilms';
+import VisionTodo from '@/components/vision/VisionTodo';
 import { AGENTS } from '@/lib/agents';
 
 // =============================================================================
 // /about/vision — the film-led manifesto page (COPY.md "ABOUT / VISION").
-// Films hero (headline + vision body + accordion) → declaration → belief
-// tenets → roster → invitation. The old "The Old Way" / "That era is ending."
-// / Mission & Vision beats are retired — the films carry that story now.
-// Roster renders from the registry.
+// Films hero (headline + vision body + accordion) → two-list diptych ("Founders
+// should build. Agents should operate.", shown as before/after iOS lists) →
+// belief tenets → roster → invitation. The old "The Old Way" / "That era is
+// ending." / Mission & Vision beats and the abstract declaration text are
+// retired — the films and the diptych carry that story now. Roster renders
+// from the registry.
 // =============================================================================
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -43,19 +46,10 @@ export default function VisionPage() {
 
       <Divider />
 
-      {/* ── SECTION 2 — THE DECLARATION ── */}
-      <section className="py-24 md:py-28 px-8">
-        <div className="max-w-[1100px] mx-auto">
-          <h2 className="text-[clamp(2.6rem,7vw,5.5rem)] font-bold tracking-[-0.04em] leading-[1.02] text-text-primary">
-            Founders should build.<br />
-            Agents should operate.
-          </h2>
-          <p className="mt-8 text-[clamp(0.95rem,1.4vw,1.15rem)] text-text-secondary font-light leading-[1.7] max-w-[560px]">
-            Krew gives every brand an AI-powered operations team — so the people who start
-            companies can go back to building them.
-          </p>
-        </div>
-      </section>
+      {/* ── SECTION 2 — THE TWO-LIST DIPTYCH (shows the declaration) ── */}
+      <div className="py-24 md:py-28">
+        <VisionTodo />
+      </div>
 
       <Divider />
 

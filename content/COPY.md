@@ -195,9 +195,30 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 | sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
 | work | `Back to the work only you can do.` | Ivy | `Courier settlement logged ✓` |
 
-### The Declaration (now the first section after the films; its old eyebrow moved up to the hero)
-- Headline: `Founders should build.` / `Agents should operate.`
-- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+### The Declaration → now the two-list diptych (locked 2026-07-16)
+The abstract declaration block is retired as text and **shown** instead: a before/after
+pair of coded iOS "Today" lists (user-authored, from `design-refs/vision-todo-*.png`).
+The section reuses the declaration's own words as its header — no new framing copy.
+- Header headline: `Founders should build.` / `Agents should operate.`
+- Header sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+
+**Before list** — screen title `Today`, eight operational tasks; each strikes through on
+scroll and is handed to its owning agent (owner = the handoff mapping, not on-screen copy):
+| # | Task | Handed to |
+|---|------|-----------|
+| 1 | `Reply to 83 DMs` | Luna |
+| 2 | `Confirm COD orders` | Ivy |
+| 3 | `Handle 6 exchanges` | Luna |
+| 4 | `Log expenses in Excel` | Ivy |
+| 5 | `Chase courier settlement` | Ivy |
+| 6 | `Follow up with media buyer` | Nova |
+| 7 | `Update stock sheet` | Ivy |
+| 8 | `Send daily sales report` | Ivy |
+
+*(Numbers `83` / `6` are the user's own daily operational figures — distinct from Luna's weekly canon "140 conversations a week"; kept verbatim from the source mockup.)*
+
+**After list** — screen title `Today`, subtitle `Make room for what only you can do.`, six founder tasks (unchecked — the day ahead):
+`Approve the next drop` · `Review campaign creative` · `Plan the launch story` · `Gym` · `Dinner with friends` · `Sleep before midnight`
 
 ### The Belief tenets (kept verbatim)
 - 01: `The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents.`

@@ -70,3 +70,48 @@ export const VISION_FILMS: {
     },
   ],
 };
+
+// =============================================================================
+// THE TWO-LIST DIPTYCH (COPY.md ABOUT / VISION › "The Declaration → two-list
+// diptych"). The abstract declaration is shown, not stated: a before/after
+// pair of coded iOS "Today" lists. Header reuses the declaration's own words.
+// `owner` is the handoff mapping (which agent absorbs each grind task) — it
+// resolves to a mascot + accent from the registry, never on-screen copy.
+// =============================================================================
+
+export interface VisionTodoBeforeItem {
+  text: string;
+  owner: AgentSlug;
+}
+
+export const VISION_TODO: {
+  headline: [string, string];
+  sub: string;
+  screenTitle: string;
+  before: VisionTodoBeforeItem[];
+  afterSubtitle: string;
+  after: string[];
+} = {
+  headline: ['Founders should build.', 'Agents should operate.'],
+  sub: 'Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.',
+  screenTitle: 'Today',
+  before: [
+    { text: 'Reply to 83 DMs', owner: 'luna' },
+    { text: 'Confirm COD orders', owner: 'ivy' },
+    { text: 'Handle 6 exchanges', owner: 'luna' },
+    { text: 'Log expenses in Excel', owner: 'ivy' },
+    { text: 'Chase courier settlement', owner: 'ivy' },
+    { text: 'Follow up with media buyer', owner: 'nova' },
+    { text: 'Update stock sheet', owner: 'ivy' },
+    { text: 'Send daily sales report', owner: 'ivy' },
+  ],
+  afterSubtitle: 'Make room for what only you can do.',
+  after: [
+    'Approve the next drop',
+    'Review campaign creative',
+    'Plan the launch story',
+    'Gym',
+    'Dinner with friends',
+    'Sleep before midnight',
+  ],
+};
