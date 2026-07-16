@@ -16,9 +16,11 @@ import { VISION_TODO } from '@/content/vision-copy';
 //
 // Scroll-scrubbed: `useScroll` writes `--p` (0→1) on the section and each
 // handled row's strike scales L→R across its own sub-window of `--p` — pure
-// CSS calc, no per-frame React re-render. The phone is bottom-anchored so its
-// cut edge bleeds off the viewport. prefers-reduced-motion: no pin, `--p`
-// forced to 1 — the resolved list, static.
+// CSS calc, no per-frame React re-render. Desktop pins; the cut-bottom frame
+// bleeds off the viewport edge. Mobile does NOT pin: the complete phone
+// (`iphone-frame-mob.webp`, real bottom bezel) flows under the copy and the
+// strikes draw as the section scrolls through. prefers-reduced-motion: no
+// pin, `--p` forced to 1 — the resolved list, static.
 //
 // ⚠ Two hard-won rules for this file:
 //   1. Keep ALL phone markup inline in this component's return — styled-jsx
@@ -28,14 +30,19 @@ import { VISION_TODO } from '@/content/vision-copy';
 //      section's inline style instead.
 // =============================================================================
 
-// ── KNOBS — the coded screen's fit inside the photographic frame ─────────────
-// (frame is 826×1000; glass runs 2.7%→97.9% wide, top 1.6%; baked status bar
-// ends ~14% down)
+// ── KNOBS — the coded screen's fit inside the photographic frames ────────────
+// Desktop frame `iphone-frame.webp` (826×1000, bottom cut off — hidden by the
+// viewport edge): glass 2.7%→97.9% wide, top 1.6%, status bar ends ~14% down.
+// Mobile frame `iphone-frame-mob.webp` (643×1359, COMPLETE phone with bottom
+// bezel — no pin, no bleed): status bar ends ~7% down, glass bottom at ~99%.
 const PHONE_W = 'min(clamp(340px, 40vw, 600px), 68vh)'; // desktop phone width (68vh cap keeps the status bar on short viewports)
-const SCREEN_LEFT = '9%'; // content inset from the frame's left edge
+const SCREEN_LEFT = '9%'; // content inset from the frame's left edge (both frames)
 const SCREEN_RIGHT = '9%';
-const SCREEN_TOP = '18%'; // below the baked status bar
-const PHONE_BLEED = '4%'; // how much of the phone's cut bottom hangs off-viewport
+const SCREEN_TOP = '18%'; // desktop: below the baked status bar
+const SCREEN_BOTTOM = '0%'; // desktop: screen bleeds off the image bottom
+const PHONE_BLEED = '4%'; // desktop: how much of the cut bottom hangs off-viewport
+const M_SCREEN_TOP = '10%'; // mobile frame: below its baked status bar
+const M_SCREEN_BOTTOM = '5%'; // mobile frame: stop above the bottom bezel
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function VisionTodo() {
@@ -85,7 +92,10 @@ export default function VisionTodo() {
           '--phw-base': PHONE_W,
           '--scr-l': SCREEN_LEFT,
           '--scr-r': SCREEN_RIGHT,
-          '--scr-t': SCREEN_TOP,
+          '--scr-t-d': SCREEN_TOP,
+          '--scr-b-d': SCREEN_BOTTOM,
+          '--scr-t-m': M_SCREEN_TOP,
+          '--scr-b-m': M_SCREEN_BOTTOM,
           '--bleed': PHONE_BLEED,
         } as React.CSSProperties
       }
@@ -103,13 +113,16 @@ export default function VisionTodo() {
 
           {/* phone markup stays INLINE — see rule 1 in the header */}
           <div className="phone">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              className="phone-frame"
-              src="/vision/iphone-frame.webp"
-              alt=""
-              draggable={false}
-            />
+            <picture>
+              <source media="(max-width: 820px)" srcSet="/vision/iphone-frame-mob.webp" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="phone-frame"
+                src="/vision/iphone-frame.webp"
+                alt=""
+                draggable={false}
+              />
+            </picture>
             <div className="screen">
               <h3 className="scr-title">{screenTitle}</h3>
               <p className="scr-sub">{screenSubtitle}</p>
@@ -140,6 +153,8 @@ export default function VisionTodo() {
         .vt {
           --p: 0;
           --phw: var(--phw-base);
+          --scr-t: var(--scr-t-d);
+          --scr-b: var(--scr-b-d);
           position: relative;
           height: 260vh;
         }
@@ -202,7 +217,7 @@ export default function VisionTodo() {
           left: var(--scr-l);
           right: var(--scr-r);
           top: var(--scr-t);
-          bottom: 0;
+          bottom: var(--scr-b);
           overflow: hidden;
           font-size: calc(var(--phw) * 0.04);
         }
@@ -271,36 +286,40 @@ export default function VisionTodo() {
           transform-origin: left;
         }
 
-        /* ── Mobile: still pinned — copy top-aligned, phone DIRECTLY under it.
-           The frame's hard-cut bottom (hidden by the viewport edge on desktop)
-           dissolves via a mask fade instead, hero-creature style. ── */
+        /* ── Mobile: NO pin — the complete phone (bottom bezel and all) flows
+           right under the copy and the strikes draw as the section scrolls
+           through the viewport. Nothing to hide, so nothing sticky. ── */
         @media (max-width: 820px) {
           .vt {
-            --phw: min(88vw, 430px, 62vh);
-            height: 240vh;
+            --phw: min(88vw, 400px);
+            --scr-t: var(--scr-t-m);
+            --scr-b: var(--scr-b-m);
+            height: auto;
+          }
+          .vt-sticky {
+            position: static;
+            height: auto;
+            overflow: visible;
+            padding: 4.5rem 0 3rem;
           }
           .vt-inner {
             grid-template-columns: 1fr;
-            grid-template-rows: auto auto;
-            align-content: start;
             justify-items: center;
             text-align: center;
-            gap: 1.6rem;
+            gap: 1.8rem;
             padding: 0 1.4rem;
+            height: auto;
           }
           .vt-copy {
-            align-self: start;
-            padding-top: 5rem;
+            padding-top: 0;
           }
           .vt-body {
             margin-left: auto;
             margin-right: auto;
           }
           .phone {
-            align-self: start;
+            align-self: auto;
             transform: none;
-            -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 99%);
-            mask-image: linear-gradient(to bottom, #000 86%, transparent 99%);
           }
         }
 
