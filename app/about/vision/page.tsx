@@ -6,12 +6,12 @@ import { AGENTS } from '@/lib/agents';
 
 // =============================================================================
 // /about/vision — the film-led manifesto page (COPY.md "ABOUT / VISION").
-// Films hero (headline + vision body + accordion) → two-list diptych ("Founders
-// should build. Agents should operate.", shown as before/after iOS lists) →
-// belief tenets → roster → invitation. The old "The Old Way" / "That era is
-// ending." / Mission & Vision beats and the abstract declaration text are
-// retired — the films and the diptych carry that story now. Roster renders
-// from the registry.
+// Films hero (headline + vision body + accordion) → the "Today" list ("Founders
+// should build. Agents should operate.", shown as one iPhone whose busywork
+// gets struck through on scroll) → belief tenets → roster → invitation. The old
+// "The Old Way" / "That era is ending." / Mission & Vision beats and the
+// abstract declaration text are retired — the films and the list carry that
+// story now. Roster renders from the registry.
 // =============================================================================
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
@@ -46,10 +46,8 @@ export default function VisionPage() {
 
       <Divider />
 
-      {/* ── SECTION 2 — THE TWO-LIST DIPTYCH (shows the declaration) ── */}
-      <div className="py-24 md:py-28">
-        <VisionTodo />
-      </div>
+      {/* ── SECTION 2 — THE "TODAY" LIST (shows the declaration) ── */}
+      <VisionTodo />
 
       <Divider />
 

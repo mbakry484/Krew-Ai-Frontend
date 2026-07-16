@@ -1,409 +1,283 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getAgent } from '@/lib/agents';
-import AgentMascot from '@/components/agents/AgentMascot';
+import { useScroll, useMotionValueEvent } from 'motion/react';
 import { VISION_TODO } from '@/content/vision-copy';
 
 // =============================================================================
-// THE TWO-LIST DIPTYCH (/about/vision) — "Founders should build. Agents should
-// operate.", shown instead of stated (COPY.md "two-list diptych").
+// THE "TODAY" LIST (/about/vision) — "Founders should build. Agents should
+// operate.", shown not stated (COPY.md "The Declaration → Today list").
 //
-// Two coded iOS "Today" screens (the user's PNGs rebuilt as UI so every string
-// stays in COPY.md, pixel-crisp, themeable, accessible). The BEFORE screen's
-// eight grind tasks strike through top→down on scroll-in; as each is crossed
-// off, its owning agent's mascot fades in at the row edge — the handoff, per
-// task. Once the list is handled, the AFTER screen (the founder's calm day)
-// brightens and rises. Motion is scroll-reveal only (strike + fade + ≤12px
-// translate) per KREW-DESIGN §5 — the films remain the page's hero moment.
+// One photographic iPhone frame (`/vision/iphone-frame.webp`, transparent PNG→
+// WebP, status bar baked in, screen bleeds off the bottom) with a coded "Today"
+// list composited onto its black screen. A single day mixes busywork and real
+// work; as you scroll the section, a line DRAWS through the tasks the crew
+// handles (`handled`), dimming them, and leaves the ones that matter clean.
 //
-// prefers-reduced-motion: both screens render resolved and static (before all
-// crossed off with mascots present, after bright) so the contrast still reads.
+// Scroll-scrubbed: the pinned phone holds while `--p` (0→1) advances with scroll
+// and each handled row's strike scales L→R across its own scroll sub-window
+// (pure CSS calc off `--p`, no per-frame React re-render). prefers-reduced-
+// motion: no pin, `--p` pinned to 1 — the resolved list, static.
+//
+// SCREEN_* are the coded overlay's insets over the photo (measured: inner screen
+// 18.4–81.2% wide, 21.5% down; SCREEN_TOP clears the baked status bar). Tune
+// these if the overlay ever drifts against the frame — same idea as Hero.tsx.
 // =============================================================================
 
-const STEP_S = 0.22; // stagger between before-items
-const STATUS_TIME = '12:51';
-
-function StatusBar() {
-  return (
-    <div className="ph-status" aria-hidden="true">
-      <span className="ph-time">{STATUS_TIME}</span>
-      <span className="ph-icons">
-        <svg viewBox="0 0 18 12" className="ph-ico" width="17" height="11">
-          <rect x="0" y="7" width="3" height="5" rx="1" />
-          <rect x="5" y="4.5" width="3" height="7.5" rx="1" />
-          <rect x="10" y="2" width="3" height="10" rx="1" />
-          <rect x="15" y="0" width="3" height="12" rx="1" opacity="0.35" />
-        </svg>
-        <svg viewBox="0 0 16 12" className="ph-ico" width="16" height="11">
-          <path d="M8 11.2 1 4.4a10 10 0 0 1 14 0Z" opacity="0.35" />
-          <path d="M8 11.2 4 7.3a5.6 5.6 0 0 1 8 0Z" />
-        </svg>
-        <svg viewBox="0 0 26 12" className="ph-ico" width="24" height="11">
-          <rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" strokeWidth="1" />
-          <rect x="2" y="2" width="17" height="8" rx="1.5" />
-          <rect x="24" y="4" width="2" height="4" rx="1" />
-        </svg>
-      </span>
-    </div>
-  );
-}
+// ── KNOBS — the coded screen's fit inside the photographic frame ─────────────
+const SCREEN_LEFT = '19%';
+const SCREEN_RIGHT = '19%';
+const SCREEN_TOP = '30%'; // below the baked status bar
+const PHONE_W = 'clamp(260px, 30vw, 355px)';
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function VisionTodo() {
-  const { headline, sub, screenTitle, before, afterSubtitle, after } = VISION_TODO;
+  const { headline, body, screenTitle, screenSubtitle, tasks } = VISION_TODO;
 
   const ref = useRef<HTMLElement>(null);
-  const [started, setStarted] = useState(false);
+  const [reduced, setReduced] = useState(false);
 
-  // The "after" screen brightens once the whole before-list has been handled.
-  const afterDelay = before.length * STEP_S + 0.5;
+  // Assign each handled row a scroll sub-window so the strikes draw in sequence.
+  const handledCount = tasks.filter((t) => t.handled).length;
+  let handledSeen = 0;
+  const rows = tasks.map((t) => {
+    if (!t.handled) return { ...t, start: 0, len: 1 };
+    const gi = handledSeen++;
+    const span = 0.8 / handledCount;
+    return { ...t, start: 0.1 + gi * span, len: span * 0.9 };
+  });
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
+  useMotionValueEvent(scrollYProgress, 'change', (p) => {
+    ref.current?.style.setProperty('--p', String(p));
+  });
 
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      setStarted(true);
-      return;
-    }
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setStarted(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => {
+      setReduced(mq.matches);
+      if (mq.matches) ref.current?.style.setProperty('--p', '1');
+    };
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
   }, []);
 
-  return (
-    <section ref={ref} className="vt" data-started={started || undefined}>
-      <div className="vt-head">
-        <h2 className="vt-headline">
-          {headline[0]}
-          <br />
-          {headline[1]}
-        </h2>
-        <p className="vt-sub">{sub}</p>
+  const phone = (
+    <div className="phone">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="phone-frame" src="/vision/iphone-frame.webp" alt="" draggable={false} />
+      <div className="screen">
+        <h3 className="scr-title">{screenTitle}</h3>
+        <p className="scr-sub">{screenSubtitle}</p>
+        <ul className="scr-list">
+          {rows.map((r, i) => (
+            <li
+              key={r.text}
+              className={r.handled ? 'row handled' : 'row'}
+              style={
+                r.handled
+                  ? ({ '--start': r.start, '--len': r.len } as React.CSSProperties)
+                  : undefined
+              }
+            >
+              <span className="row-box" aria-hidden="true" />
+              <span className="row-text">
+                {i + 1}. {r.text}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
+    </div>
+  );
 
-      <div className="vt-diptych">
-        {/* ── BEFORE: the grind, being handed off ── */}
-        <div className="phone">
-          <span className="ph-island" aria-hidden="true" />
-          <StatusBar />
-          <div className="ph-body">
-            <h3 className="ph-title">{screenTitle}</h3>
-            <ul className="ph-list">
-              {before.map((item, i) => {
-                const agent = getAgent(item.owner);
-                return (
-                  <li
-                    key={item.text}
-                    className="todo done"
-                    style={{ '--i': i } as React.CSSProperties}
-                  >
-                    <span
-                      className="todo-box"
-                      style={{ '--accent': agent.accent.base } as React.CSSProperties}
-                    >
-                      <svg viewBox="0 0 12 12" className="todo-check" aria-hidden="true">
-                        <path d="M2.5 6.2 5 8.6l4.5-5" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                    <span className="todo-text">
-                      {i + 1}. {item.text}
-                    </span>
-                    <span className="todo-owner" aria-hidden="true">
-                      <AgentMascot agent={agent} size={18} />
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+  return (
+    <section ref={ref} className="vt" data-static={reduced || undefined}>
+      <div className="vt-sticky">
+        <div className="vt-inner">
+          <div className="vt-copy">
+            <h2 className="vt-headline">
+              {headline[0]}
+              <br />
+              {headline[1]}
+            </h2>
+            <p className="vt-body">{body}</p>
           </div>
-        </div>
-
-        <span className="vt-arrow" aria-hidden="true">→</span>
-
-        {/* ── AFTER: the founder's day, returned ── */}
-        <div className="phone phone-after" style={{ '--after-delay': `${afterDelay}s` } as React.CSSProperties}>
-          <span className="ph-island" aria-hidden="true" />
-          <StatusBar />
-          <div className="ph-body">
-            <h3 className="ph-title">{screenTitle}</h3>
-            <p className="ph-subtitle">{afterSubtitle}</p>
-            <ul className="ph-list">
-              {after.map((item, i) => (
-                <li key={item} className="todo">
-                  <span className="todo-box" />
-                  <span className="todo-text">
-                    {i + 1}. {item}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {phone}
         </div>
       </div>
 
       <style jsx>{`
         .vt {
+          --p: 0;
+          position: relative;
+          height: 260vh;
+        }
+        .vt-sticky {
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .vt-inner {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          gap: clamp(2rem, 6vw, 5.5rem);
           max-width: 1100px;
-          margin: 0 auto;
+          width: 100%;
           padding: 0 2rem;
         }
-        .vt-head {
-          max-width: 760px;
-          margin-bottom: clamp(2.5rem, 5vw, 4rem);
-        }
+
+        /* ── Copy ── */
         .vt-headline {
-          font-size: clamp(2.2rem, 5vw, 4rem);
+          font-size: clamp(2.2rem, 4.6vw, 3.9rem);
           font-weight: 700;
           letter-spacing: -0.04em;
-          line-height: 1.04;
+          line-height: 1.05;
           color: var(--text-primary);
         }
-        .vt-sub {
-          margin-top: 1.4rem;
-          max-width: 540px;
-          font-size: clamp(0.92rem, 1.3vw, 1.1rem);
+        .vt-body {
+          margin-top: 1.6rem;
+          max-width: 440px;
+          font-size: clamp(0.95rem, 1.3vw, 1.12rem);
           font-weight: 300;
-          line-height: 1.7;
+          line-height: 1.75;
           color: var(--text-secondary);
         }
 
-        /* ── Diptych ── */
-        .vt-diptych {
-          display: flex;
-          align-items: stretch;
-          justify-content: center;
-          gap: clamp(1rem, 3vw, 2.4rem);
-        }
-        .vt-arrow {
-          align-self: center;
-          flex: none;
-          font-size: 1.5rem;
-          color: var(--text-tertiary);
-          opacity: 0;
-          transition: opacity 0.8s ease;
-        }
-        .vt[data-started] .vt-arrow {
-          opacity: 1;
-          transition-delay: ${afterDelay - 0.3}s;
-        }
-
-        /* ── Phone ── */
+        /* ── Phone: photographic frame + coded screen ── */
         .phone {
           position: relative;
-          flex: 1 1 0;
-          max-width: 340px;
-          border-radius: 40px;
-          border: 1px solid var(--border-md);
-          background: #050505;
-          padding: 0 0 1.4rem;
-          overflow: hidden;
-          box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+          flex: none;
+          width: ${PHONE_W};
         }
-        .ph-island {
+        .phone-frame {
+          display: block;
+          width: 100%;
+          height: auto;
+          pointer-events: none;
+        }
+        .screen {
           position: absolute;
-          top: 11px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 82px;
-          height: 24px;
-          border-radius: 999px;
-          background: #000;
-          z-index: 2;
+          left: ${SCREEN_LEFT};
+          right: ${SCREEN_RIGHT};
+          top: ${SCREEN_TOP};
+          bottom: 0;
+          overflow: hidden;
+          /* the screen is pure black in the photo — content sits directly on it */
         }
-        .ph-status {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 13px 26px 0;
-          color: rgba(255, 255, 255, 0.95);
-        }
-        .ph-time {
-          font-size: 0.78rem;
-          font-weight: 600;
-          letter-spacing: 0.01em;
-        }
-        .ph-icons {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-        }
-        .ph-ico {
-          fill: rgba(255, 255, 255, 0.95);
-          stroke: rgba(255, 255, 255, 0.95);
-        }
-        .ph-ico rect[fill='none'] {
-          stroke: rgba(255, 255, 255, 0.5);
-        }
-
-        .ph-body {
-          padding: 1.7rem 1.4rem 0;
-        }
-        .ph-title {
-          font-size: 1.9rem;
+        .scr-title {
+          font-size: 1.5rem;
           font-weight: 700;
           letter-spacing: -0.02em;
           color: rgba(255, 255, 255, 0.98);
         }
-        .ph-subtitle {
-          margin-top: 0.2rem;
-          font-size: 0.82rem;
+        .scr-sub {
+          margin-top: 0.15rem;
+          font-size: 0.66rem;
           font-weight: 400;
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.42);
         }
-        .ph-list {
-          margin-top: 1rem;
+        .scr-list {
+          margin-top: 0.7rem;
           list-style: none;
         }
 
-        /* ── Rows ── */
-        .todo {
+        .row {
           display: flex;
           align-items: center;
-          gap: 0.7rem;
-          padding: 0.72rem 0;
+          gap: 0.55rem;
+          padding: 0.5rem 0;
           border-top: 0.5px solid rgba(255, 255, 255, 0.09);
         }
-        .todo:first-child {
+        .row:first-child {
           border-top: none;
         }
-        .todo-box {
+        .row-box {
           flex: none;
-          width: 19px;
-          height: 19px;
-          border-radius: 6px;
-          border: 1.5px solid rgba(255, 255, 255, 0.28);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          transition: background 0.4s ease, border-color 0.4s ease;
+          width: 15px;
+          height: 15px;
+          border-radius: 5px;
+          border: 1.4px solid rgba(255, 255, 255, 0.3);
         }
-        .todo-check {
-          width: 12px;
-          height: 12px;
-          stroke: #050505;
-          opacity: 0;
-          transform: scale(0.5);
-          transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .todo-text {
+        .row-text {
           position: relative;
-          font-size: 0.92rem;
+          font-size: 0.74rem;
           font-weight: 400;
-          color: rgba(255, 255, 255, 0.92);
-          transition: color 0.5s ease;
+          line-height: 1.25;
+          color: rgba(255, 255, 255, 0.9);
         }
-        /* the strike line — a pen stroke drawn L→R */
-        .todo-text::after {
+
+        /* ── The strike, drawn L→R across each handled row's scroll window ──
+           --s is a 0→1 progress clamped to this row's [start, start+len]. */
+        .row.handled {
+          --s: clamp(0, calc((var(--p) - var(--start)) / var(--len)), 1);
+        }
+        .row.handled .row-text {
+          color: rgba(255, 255, 255, calc(0.9 - 0.58 * var(--s)));
+        }
+        .row.handled .row-box {
+          border-color: rgba(255, 255, 255, calc(0.3 - 0.14 * var(--s)));
+        }
+        .row.handled .row-text::after {
           content: '';
           position: absolute;
-          left: 0;
-          top: 52%;
-          width: 100%;
+          left: -1px;
+          right: -1px;
+          top: 54%;
           height: 1.5px;
-          background: currentColor;
-          transform: scaleX(0);
+          background: rgba(255, 255, 255, 0.7);
+          transform: scaleX(var(--s));
           transform-origin: left;
-          transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .todo-owner {
-          margin-left: auto;
-          flex: none;
-          line-height: 0;
-          opacity: 0;
-          transform: translateX(6px);
-          transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        /* damp the mascot's ±6px idle float at 18px (blink + glow stay alive) */
-        .todo-owner :global(.agent-mascot[data-animated='true'] svg) {
-          animation: none;
         }
 
-        /* ── BEFORE handoff sequence, staggered by --i ── */
-        .vt[data-started] .todo.done .todo-box {
-          background: var(--accent);
-          border-color: var(--accent);
-          transition-delay: calc(var(--i) * ${STEP_S}s);
-        }
-        .vt[data-started] .todo.done .todo-check {
-          opacity: 1;
-          transform: scale(1);
-          transition-delay: calc(var(--i) * ${STEP_S}s);
-        }
-        .vt[data-started] .todo.done .todo-text {
-          color: rgba(255, 255, 255, 0.34);
-          transition-delay: calc(var(--i) * ${STEP_S}s);
-        }
-        .vt[data-started] .todo.done .todo-text::after {
-          transform: scaleX(1);
-          transition-delay: calc(var(--i) * ${STEP_S}s);
-        }
-        .vt[data-started] .todo.done .todo-owner {
-          opacity: 1;
-          transform: none;
-          transition-delay: calc(var(--i) * ${STEP_S}s + 0.15s);
-        }
-
-        /* ── AFTER screen brightens after the handoff ── */
-        .phone-after {
-          opacity: 0.32;
-          transform: translateY(12px);
-          transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
-            transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .vt[data-started] .phone-after {
-          opacity: 1;
-          transform: none;
-          transition-delay: var(--after-delay);
-        }
-
-        /* ── Mobile: stack; arrow points down ── */
-        @media (max-width: 760px) {
+        /* ── Mobile: still pinned, stacked — copy above, phone below ── */
+        @media (max-width: 820px) {
           .vt {
+            height: 240vh;
+          }
+          .vt-inner {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            text-align: center;
+            gap: 1.8rem;
             padding: 0 1.4rem;
           }
-          .vt-diptych {
-            flex-direction: column;
-            align-items: center;
+          .vt-body {
+            margin-left: auto;
+            margin-right: auto;
           }
           .phone {
-            width: 100%;
-            max-width: 330px;
-            flex: none;
-          }
-          .vt-arrow {
-            transform: rotate(90deg);
+            width: min(74vw, 300px);
           }
         }
 
-        /* ── Reduced motion: resolved + static ── */
+        /* ── Reduced motion: no pin, resolved state, static ── */
         @media (prefers-reduced-motion: reduce) {
-          .todo-box,
-          .todo-check,
-          .todo-text,
-          .todo-text::after,
-          .todo-owner,
-          .phone-after,
-          .vt-arrow {
-            transition: none !important;
+          .vt {
+            height: auto;
           }
-          .vt[data-started] .todo.done .todo-box,
-          .vt[data-started] .todo.done .todo-check,
-          .vt[data-started] .todo.done .todo-text,
-          .vt[data-started] .todo.done .todo-text::after,
-          .vt[data-started] .todo.done .todo-owner,
-          .vt[data-started] .phone-after,
-          .vt[data-started] .vt-arrow {
-            transition-delay: 0s !important;
+          .vt-sticky {
+            position: static;
+            height: auto;
+            padding: 1rem 0;
           }
+        }
+        .vt[data-static] {
+          height: auto;
+        }
+        .vt[data-static] .vt-sticky {
+          position: static;
+          height: auto;
+          padding: 1rem 0;
         }
       `}</style>
     </section>

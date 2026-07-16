@@ -72,46 +72,39 @@ export const VISION_FILMS: {
 };
 
 // =============================================================================
-// THE TWO-LIST DIPTYCH (COPY.md ABOUT / VISION › "The Declaration → two-list
-// diptych"). The abstract declaration is shown, not stated: a before/after
-// pair of coded iOS "Today" lists. Header reuses the declaration's own words.
-// `owner` is the handoff mapping (which agent absorbs each grind task) — it
-// resolves to a mascot + accent from the registry, never on-screen copy.
+// THE "TODAY" LIST (COPY.md ABOUT / VISION › "The Declaration → Today list").
+// The abstract declaration is shown, not stated: one coded iOS "Today" list on
+// a photographic iPhone frame. A single day mixes busywork and real work; on
+// scroll a line draws through the `handled` tasks (the crew's), leaving the
+// rest. Header + screen strings reuse approved copy; the describe paragraph is
+// the one new string (locked option A).
 // =============================================================================
 
-export interface VisionTodoBeforeItem {
+export interface VisionTask {
   text: string;
-  owner: AgentSlug;
+  /** true = the crew's busywork — struck through on scroll. */
+  handled: boolean;
 }
 
 export const VISION_TODO: {
   headline: [string, string];
-  sub: string;
+  body: string;
   screenTitle: string;
-  before: VisionTodoBeforeItem[];
-  afterSubtitle: string;
-  after: string[];
+  screenSubtitle: string;
+  tasks: VisionTask[];
 } = {
   headline: ['Founders should build.', 'Agents should operate.'],
-  sub: 'Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.',
+  body: "Every line your crew can take, it takes — the replies, the confirmations, the chasing. What's left is the only list that ever mattered: the work that grows the brand, and the life around it.",
   screenTitle: 'Today',
-  before: [
-    { text: 'Reply to 83 DMs', owner: 'luna' },
-    { text: 'Confirm COD orders', owner: 'ivy' },
-    { text: 'Handle 6 exchanges', owner: 'luna' },
-    { text: 'Log expenses in Excel', owner: 'ivy' },
-    { text: 'Chase courier settlement', owner: 'ivy' },
-    { text: 'Follow up with media buyer', owner: 'nova' },
-    { text: 'Update stock sheet', owner: 'ivy' },
-    { text: 'Send daily sales report', owner: 'ivy' },
-  ],
-  afterSubtitle: 'Make room for what only you can do.',
-  after: [
-    'Approve the next drop',
-    'Review campaign creative',
-    'Plan the launch story',
-    'Gym',
-    'Dinner with friends',
-    'Sleep before midnight',
+  screenSubtitle: 'Make room for what only you can do.',
+  tasks: [
+    { text: 'Reply to 83 DMs', handled: true },
+    { text: 'Approve the next drop', handled: false },
+    { text: 'Confirm COD orders', handled: true },
+    { text: 'Review campaign creative', handled: false },
+    { text: 'Handle 6 exchanges', handled: true },
+    { text: 'Chase courier settlement', handled: true },
+    { text: 'Plan the launch story', handled: false },
+    { text: 'Sleep before midnight', handled: false },
   ],
 };
