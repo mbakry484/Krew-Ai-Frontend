@@ -271,8 +271,9 @@ export default function VisionTodo() {
           transform-origin: left;
         }
 
-        /* ── Mobile: still pinned — copy top-aligned (kills the dead band the
-           centered layout left above it), big phone fills the rest ── */
+        /* ── Mobile: still pinned — copy top-aligned, phone DIRECTLY under it.
+           The frame's hard-cut bottom (hidden by the viewport edge on desktop)
+           dissolves via a mask fade instead, hero-creature style. ── */
         @media (max-width: 820px) {
           .vt {
             --phw: min(88vw, 430px, 62vh);
@@ -280,10 +281,11 @@ export default function VisionTodo() {
           }
           .vt-inner {
             grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr;
+            grid-template-rows: auto auto;
+            align-content: start;
             justify-items: center;
             text-align: center;
-            gap: 1.2rem;
+            gap: 1.6rem;
             padding: 0 1.4rem;
           }
           .vt-copy {
@@ -295,7 +297,10 @@ export default function VisionTodo() {
             margin-right: auto;
           }
           .phone {
-            align-self: end;
+            align-self: start;
+            transform: none;
+            -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent 99%);
+            mask-image: linear-gradient(to bottom, #000 86%, transparent 99%);
           }
         }
 
