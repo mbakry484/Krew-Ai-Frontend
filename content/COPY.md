@@ -21,6 +21,20 @@ Demo numbers are canonical across the whole site: gross **EGP 914,000** · retur
 - Headline: `Your financial analyst. In your pocket.`
 - Sub: `Ivy watches your cash, returns, and inventory around the clock — and sends the exact move to hit your number.`
 
+### Budgets beat — "Capital, organized" (homepage — after the pocket beat, before the crew)
+- Eyebrow: `CAPITAL, ORGANIZED`
+- Headline: `Every pound has a job.`
+- Body: `Ivy splits your capital across manufacturing, ads, shoots, PR and fulfillment—so nothing disappears into "business expenses."`
+- Cards (purpose → allocation, rendered as the real Ivy capital cards): `Manufacturing — EGP 300,000` · `Ads — EGP 120,000` · `PR Campaign — EGP 80,000` · `Photoshoot — EGP 60,000` · `Other — EGP 7,000`
+
+### Telegram beat — "Your agents are employees you talk to" (homepage — after budgets, before the crew; scroll stepper)
+- Eyebrow: `YOUR CREW, ON TELEGRAM`
+- Headline: `Your agents are employees you talk to.`
+- Step 1 — tag `GIVE ORDERS` / title `Just tell them what to do.` / body `Forward a receipt, drop a note — "log this." Ivy files it to the right budget and confirms.`
+- Step 2 — tag `THEY REPORT BACK` / title `Wake up to the numbers.` / body `Luna sends the morning brief — handled, recovered, and what still needs you — before you ask.`
+- Step 3 — tag `TEXT · VOICE · PHOTO` / title `However you say it.` / body `A voice note, a transfer screenshot, or a quick line — they read it, classify it, and log it clean.`
+- Step 4 — tag `YOUR WHOLE CREW` / title `One chat list. The whole team.` / body `Ivy, Luna and Nova sit in your chats like everyone else. Message the one you need.`
+
 ### Crew reveal
 - Eyebrow: `THE CREW`
 - Headline: `Not another tool. A crew.`
@@ -95,6 +109,12 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 - Sub: `140 conversations a week — orders, returns, questions — handled in Arabic, Franco, and English. Automatically. Currently in invite-only beta.`
 - CTA: `Request invite`
 
+### Integrations (homepage — after the crew reveal; frontal phone + logo strip)
+- Eyebrow: `WORKS WITH YOUR STACK`
+- Headline: `Krew works where your business already lives.`
+- Body: `Your agents don't live in a silo. They work inside the tools your business already runs on — Shopify, Instagram, Telegram, Bosta and Meta — so they see real orders, messages, and deliveries, and act at the right moment. No new dashboard to learn, no migration. Just your crew, where the work already happens.`
+- Logos strip: Meta · Instagram · Shopify · Telegram · Bosta (`public/hero/krew-integrations-logos.png`)
+
 ### Crew thesis
 - Headline: `One operation. Shared context.`
 - Body: `Luna hears what customers say. Ivy knows what it costs. Nova will know what converts. Not three subscriptions — one crew that talks to each other.`
@@ -154,3 +174,43 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 - Headline: `Nova is coming.`
 - Body: `Marketing intelligence — ad spend, content, conversions — in one layer. Joining your crew soon.`
 - CTA: `Get notified`
+
+---
+
+## ABOUT / VISION (locked 2026-07-15; films-first hero locked 2026-07-16)
+
+### Films hero (page top — ElevenLabs structure: bold headline left, vision body right, NO CTA)
+- Eyebrow: `Krew — A New Operating Model for Brands`
+- Headline (bold): `This is what running a brand should look like.`
+- Body (right column, relocked 2026-07-16 — benefit-first, not about-us): `We believe you should run your brand from the front — the product, the craft, the next move — while a crew of agents carries the rest: every DM answered, every expense logged, your real numbers always true.`
+
+### The four films (assets `public/vision/{yoga,dinner,sleep,work}.mp4`; display order yoga → dinner → sleep → work, work stays the closer)
+- Hover expands + plays a film on hover-capable devices (click on touch); the row auto-advances until the user takes over.
+- Editorial lines fade in after the film breathes; the agent chip staggers in later — never both at once. Chips are coded overlays (mascot + accent from the registry), never baked into footage.
+
+| Film | Editorial line | Chip agent | Chip string |
+|------|----------------|------------|-------------|
+| yoga | `The books balanced themselves this morning.` | Ivy | `☀️ Morning brief — EGP 690,000 net · EGP 310,000 to go` |
+| dinner | `Nobody checked their phone at lunch.` | Luna | `3 orders processed · 12 DMs answered` |
+| sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
+| work | `Back to the work only you can do.` | Ivy | `Courier settlement logged ✓` |
+
+### The Declaration (now the first section after the films; its old eyebrow moved up to the hero)
+- Headline: `Founders should build.` / `Agents should operate.`
+- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+
+### The Belief tenets (kept verbatim)
+- 01: `The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents.`
+- 02: `Doing everything by hand isn't dedication. It's what's holding your brand back.`
+- 03: `You shouldn't need to hire a team to run your store. You should get one from day one.`
+
+### The Krew roster (rows render from the registry — names/roles/status badges only)
+- Eyebrow: `The Krew`
+- Headline: `One platform.` / `A growing family of agents.`
+- *(The old "Luna is the first…" sub is retired — stale since Ivy went live.)*
+
+### The Invitation (kept verbatim)
+- Headline: `This is Krew.` / `Come build. We'll handle the rest.`
+- CTA: `Join the early access →`
+
+*(Removed in the rebuild until a v3 copy pass: "The Old Way", "That era is ending.", and the stale Mission & Vision block — the films now carry that story.)*
