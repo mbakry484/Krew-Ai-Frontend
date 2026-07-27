@@ -2,6 +2,9 @@ import { getAuthHeader, getRefreshToken, setToken, setRefreshToken, logout } fro
 import { supabase } from './supabase';
 import type {
   AlertPreferences,
+  BostaConnectionStatus,
+  BostaStatus,
+  BostaUnmatchedDelivery,
   InventoryAlert,
   OnboardingStatus,
   Product,
@@ -641,6 +644,37 @@ export const completeIvyOnboarding = async () =>
 
 export const getIvyTelegramLinkCode = async (): Promise<TelegramLinkCode> =>
   apiRequest('/ivy/telegram/link-code', { method: 'GET' });
+
+// ── Bosta (delivery + return data → real revenue) ────────────────────────────
+// Follows the same /integrations/<platform>/... shape as Shopify above. The
+// backend verifies the key against Bosta's own API before saving, so connect
+// can take a couple of seconds and its error message is Bosta's own, verbatim.
+
+export const connectBosta = async (
+  apiKey: string,
+): Promise<{ success: boolean; status: BostaConnectionStatus }> =>
+  apiRequest('/integrations/bosta/connect', {
+    method: 'POST',
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+
+export const disconnectBosta = async (): Promise<{ success: boolean }> =>
+  apiRequest('/integrations/bosta/disconnect', { method: 'DELETE' });
+
+export const getBostaStatus = async (): Promise<BostaStatus> =>
+  apiRequest('/integrations/bosta/status', { method: 'GET' });
+
+// Weekly payout reconciliation — not consumed by any UI yet (no reports surface
+// for it in the current build); wrapper added so the endpoint is ready to use.
+export const getBostaReconciliation = async (
+  period: 'this_month' | 'last_month' | 'last_90',
+): Promise<{ expectedPayout: number; loggedInjections: number; delta: number; weekStart: string; weekEnd: string }> =>
+  apiRequest(`/ivy/bosta/reconciliation?period=${period}`, { method: 'GET' });
+
+export const getBostaUnmatched = async (
+  period: 'this_month' | 'last_month' | 'last_90',
+): Promise<BostaUnmatchedDelivery[]> =>
+  apiRequest(`/ivy/bosta/unmatched?period=${period}`, { method: 'GET' });
 
 // ── Team members (Ivy Telegram expense agent) ────────────────────────────────
 // A brand owner adds team members (e.g. media buyers) and generates a single-use

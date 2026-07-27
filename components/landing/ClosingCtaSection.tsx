@@ -29,11 +29,11 @@ export default function ClosingCtaSection() {
         {CLOSING_CTA.sub}
       </p>
       <div className="flex justify-center flex-wrap" style={{ gap: 'var(--btn-gap)' }}>
-        <Button href="/early-access" variant="primary">
+        <Button href="/auth/signup" variant="primary">
           Start with {live.name}
         </Button>
         {beta && (
-          <Button href="/early-access" variant="secondary">
+          <Button href="/auth/signup" variant="secondary">
             Request {beta.name} invite
           </Button>
         )}

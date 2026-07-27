@@ -141,7 +141,7 @@ export default function FaqPage() {
             </h1>
             <p className="text-[0.8rem] text-text-secondary font-light">
               Can't find what you're looking for?{' '}
-              <Link href="/early-access" className="text-text-primary underline underline-offset-2 hover:opacity-70 transition-opacity duration-150">
+              <Link href="/auth/signup" className="text-text-primary underline underline-offset-2 hover:opacity-70 transition-opacity duration-150">
                 Talk to us
               </Link>
             </p>

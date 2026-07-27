@@ -472,7 +472,7 @@ export default function SpotlightSection() {
             {content.peek.line}
           </p>
           <div className="flex justify-center">
-            <Button href="/early-access" variant="primary">
+            <Button href="/auth/signup" variant="primary">
               Start with {agent.name}
             </Button>
           </div>

@@ -30,6 +30,8 @@
 
 import {
   AlertPreferences,
+  BostaStatus,
+  BostaUnmatchedDelivery,
   Capital,
   CapitalColor,
   DEFAULT_ALERT_PREFERENCES,
@@ -50,10 +52,14 @@ import {
 } from './types';
 import {
   completeIvyOnboarding,
+  connectBosta as apiConnectBosta,
   createIvyCapital,
   createIvyExpense,
   deleteIvyCapital,
+  disconnectBosta as apiDisconnectBosta,
   dismissIvyAlert,
+  getBostaStatus,
+  getBostaUnmatched,
   getIvyAlertPreferences,
   getIvyAlerts,
   getIvyInventoryProducts,
@@ -101,6 +107,15 @@ export interface IvyState {
     bannerDismissed: boolean;
   };
   telegramLinkCode: TelegramLinkCode | null;
+  /** null = never connected. Drives the Online Store channel + Settings row. */
+  bostaStatus: BostaStatus | null;
+  /** Overview "connect Bosta" banner dismissed for this session/brand. */
+  bostaBannerDismissed: boolean;
+  /** false until localStorage is read on the client (prevents flash), same
+      reasoning as onboarding.hydrated. */
+  bostaBannerHydrated: boolean;
+  /** Deliveries Bosta couldn't match to a Shopify order, per period. */
+  bostaUnmatched: Partial<Record<IvyPeriod, BostaUnmatchedDelivery[]>>;
 }
 
 // ── Seed helpers ──────────────────────────────────────────────────────────────
@@ -211,6 +226,10 @@ const initialState: IvyState = {
     bannerDismissed: false,
   },
   telegramLinkCode: null,
+  bostaStatus: null,
+  bostaBannerDismissed: false,
+  bostaBannerHydrated: false,
+  bostaUnmatched: {},
 };
 
 // ── Store (pub/sub, immutable snapshots — plays well with useSyncExternalStore)
@@ -246,15 +265,20 @@ class IvyClient {
       selector can ask for. Each fetch fails soft — one bad endpoint logs and
       leaves that slice as-is instead of blanking the dashboard. */
   async hydrateIntelligence() {
-    const [products, alerts, prefs, onboarding, ovThis, ovLast, ov90] = await Promise.allSettled([
-      getIvyInventoryProducts(),
-      getIvyAlerts('all'),
-      getIvyAlertPreferences(),
-      getIvyOnboardingStatus(),
-      getIvyOverview('this_month'),
-      getIvyOverview('last_month'),
-      getIvyOverview('last_90'),
-    ]);
+    const [products, alerts, prefs, onboarding, ovThis, ovLast, ov90, bostaStatus, unThis, unLast, un90] =
+      await Promise.allSettled([
+        getIvyInventoryProducts(),
+        getIvyAlerts('all'),
+        getIvyAlertPreferences(),
+        getIvyOnboardingStatus(),
+        getIvyOverview('this_month'),
+        getIvyOverview('last_month'),
+        getIvyOverview('last_90'),
+        getBostaStatus(),
+        getBostaUnmatched('this_month'),
+        getBostaUnmatched('last_month'),
+        getBostaUnmatched('last_90'),
+      ]);
 
     // Read state AFTER the fetches so optimistic writes made meanwhile survive.
     const s = this.state;
@@ -283,6 +307,15 @@ class IvyClient {
     if (ovLast.status === 'fulfilled' && ovLast.value) overviews.last_month = ovLast.value;
     if (ov90.status === 'fulfilled' && ov90.value) overviews.last_90 = ov90.value;
     next.overviews = overviews;
+
+    if (bostaStatus.status === 'fulfilled' && bostaStatus.value) next.bostaStatus = bostaStatus.value;
+    else if (bostaStatus.status === 'rejected') console.error('[ivy] bosta status load failed:', bostaStatus.reason);
+
+    const bostaUnmatched: IvyState['bostaUnmatched'] = { ...s.bostaUnmatched };
+    if (unThis.status === 'fulfilled' && Array.isArray(unThis.value)) bostaUnmatched.this_month = unThis.value;
+    if (unLast.status === 'fulfilled' && Array.isArray(unLast.value)) bostaUnmatched.last_month = unLast.value;
+    if (un90.status === 'fulfilled' && Array.isArray(un90.value)) bostaUnmatched.last_90 = un90.value;
+    next.bostaUnmatched = bostaUnmatched;
 
     this.set(next);
   }
@@ -496,6 +529,74 @@ class IvyClient {
   updateAlertPreferences(next: AlertPreferences) {
     this.set({ ...this.state, alertPreferences: next });
     updateIvyAlertPreferences(next).catch(() => {});
+  }
+
+  // ── Bosta integration ────────────────────────────────────────────────────
+  // connectBosta is deliberately NOT optimistic — the backend verifies the key
+  // against Bosta before saving, and the calling UI (onboarding step, Settings
+  // modal) shows a "Verifying…" state and needs the real pass/fail result to
+  // show success vs. an inline error. Every other Bosta write follows the
+  // usual optimistic-write-with-revert pattern.
+
+  /** Verify + save a Bosta API key. Resolves on success (and updates
+      bostaStatus); rejects on failure so the caller can show Bosta's own
+      error message inline and let the founder retry. */
+  async connectBosta(apiKey: string): Promise<void> {
+    const res = await apiConnectBosta(apiKey);
+    this.set({
+      ...this.state,
+      bostaStatus: {
+        connectionStatus: res.status,
+        connectionError: null,
+        lastPollAt: new Date().toISOString(),
+        historicalSyncCompletedAt: null,
+      },
+    });
+  }
+
+  /** Disconnect Bosta. Optimistic — reverts to the previous status if the
+      backend call fails. */
+  disconnectBosta() {
+    const s = this.state;
+    const prev = s.bostaStatus;
+    this.set({ ...s, bostaStatus: null });
+    apiDisconnectBosta().catch((err) => {
+      console.error('[ivy] disconnectBosta failed — reverting:', err);
+      this.set({ ...this.state, bostaStatus: prev });
+    });
+  }
+
+  private persistBostaBanner() {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        'ivy_bosta_banner_v1',
+        JSON.stringify({ dismissed: this.state.bostaBannerDismissed }),
+      );
+    } catch {
+      /* storage blocked — banner still works in-session */
+    }
+  }
+
+  /** Called once on the client (IvyProvider) to restore the dismissed flag.
+      No backend call — unlike onboarding this has no DB-backed truth, so it's
+      a synchronous local read (kept behind a hydrated flag to avoid a flash,
+      same reasoning as onboarding.hydrated). */
+  hydrateBostaBanner() {
+    if (typeof window === 'undefined') return;
+    let dismissed = false;
+    try {
+      const raw = window.localStorage.getItem('ivy_bosta_banner_v1');
+      if (raw) dismissed = JSON.parse(raw).dismissed === true;
+    } catch {
+      /* ignore corrupt storage */
+    }
+    this.set({ ...this.state, bostaBannerDismissed: dismissed, bostaBannerHydrated: true });
+  }
+
+  dismissBostaBanner() {
+    this.set({ ...this.state, bostaBannerDismissed: true, bostaBannerHydrated: true });
+    this.persistBostaBanner();
   }
 
   // ── First-open onboarding ──────────────────────────────────────────────────
@@ -808,6 +909,9 @@ export interface ChannelBreakdownRow {
   net: number;
   /** Share of total net revenue in the period, 0–100. */
   sharePct: number;
+  /** 'bosta' = the online channel (Bosta-fed by design, live once connected);
+      'seed' = showroom/retail/etc — manual channels not yet built. */
+  source: 'bosta' | 'seed';
 }
 
 export function selectChannelBreakdown(state: IvyState, period: IvyPeriod): ChannelBreakdownRow[] {
@@ -816,7 +920,8 @@ export function selectChannelBreakdown(state: IvyState, period: IvyPeriod): Chan
     const snaps = state.revenueSnapshots.filter((s) => s.channel_id === channel.id && inRange(s.date, r));
     const gross = snaps.reduce((s, x) => s + x.gross_delivered, 0);
     const returns = snaps.reduce((s, x) => s + x.returns, 0);
-    return { channel, gross, returns, net: gross - returns, sharePct: 0 };
+    const source: ChannelBreakdownRow['source'] = channel.kind === 'online' ? 'bosta' : 'seed';
+    return { channel, gross, returns, net: gross - returns, sharePct: 0, source };
   });
   const totalNet = rows.reduce((s, x) => s + x.net, 0);
   for (const row of rows) row.sharePct = totalNet > 0 ? (row.net / totalNet) * 100 : 0;
@@ -921,6 +1026,32 @@ export function selectInventoryAlerts(
     if (scope === 'inventory' && a.type === 'return_spike') return false;
     return true;
   });
+}
+
+// ── Bosta selectors ────────────────────────────────────────────────────────────
+
+export function selectBostaConnected(state: IvyState): boolean {
+  return state.bostaStatus?.connectionStatus === 'active';
+}
+
+/** Persistent "connect/reconnect Bosta" banner on Overview — shows once
+    onboarding is complete and Bosta isn't actively connected, until
+    dismissed. Reappears if connectionStatus later drops out of 'active'. */
+export function selectShowBostaBanner(state: IvyState): boolean {
+  return (
+    state.bostaBannerHydrated &&
+    state.onboarding.completed &&
+    !state.bostaBannerDismissed &&
+    state.bostaStatus?.connectionStatus !== 'active'
+  );
+}
+
+export function selectBostaUnmatched(state: IvyState, period: IvyPeriod): BostaUnmatchedDelivery[] {
+  return state.bostaUnmatched[period] ?? [];
+}
+
+export function selectBostaUnmatchedCount(state: IvyState, period: IvyPeriod): number {
+  return selectBostaUnmatched(state, period).length;
 }
 
 // ── Two-layer profit (Overview) ─────────────────────────────────────────────────

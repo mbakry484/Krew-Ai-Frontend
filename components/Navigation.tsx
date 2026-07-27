@@ -284,7 +284,7 @@ export default function Navigation() {
                 Log in
               </Button>
               {/* COPY.md NAV CTA — templated from the registry's live agent */}
-              <Button href="/early-access" variant="primary" size="sm">
+              <Button href="/auth/signup" variant="primary" size="sm">
                 Start with {getLiveAgent().name}
               </Button>
             </div>
@@ -496,7 +496,7 @@ export default function Navigation() {
                 Log in
               </Button>
               <Button
-                href="/early-access"
+                href="/auth/signup"
                 variant="primary"
                 size="sm"
                 className="w-full"

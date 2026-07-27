@@ -1,19 +1,36 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import IvyShell from '../components/IvyShell';
 import AddRevenueDrawer from '../components/AddRevenueDrawer';
+import BostaUnmatchedModal from '../components/BostaUnmatchedModal';
 import { channelColor } from '../components/channelColors';
 import { AuraField, CountUp, ArcGauge } from '@/components/AuraSystem';
 import { Delta, EmptyState, formatEGP } from '@/components/DashboardPrimitives';
 import { useIvy } from '@/components/IvyProvider';
 import {
+  selectBostaConnected,
+  selectBostaUnmatchedCount,
   selectChannelBreakdown,
   selectPeriodMetrics,
   selectPreviousMetrics,
   selectRevenueEntries,
 } from '@/lib/ivy/ivyClient';
-import { IVY_PERIOD_LABEL, IvyPeriod, REVENUE_CHANNEL_KIND_LABEL } from '@/lib/ivy/types';
+import { IVY_PERIOD_LABEL, IvyPeriod } from '@/lib/ivy/types';
+
+/** Lucide's "Truck" glyph, hand-inlined like every other Ivy icon (no new
+    dependency — see the icon convention throughout this dashboard). */
+function TruckIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 3h15v13H1z" />
+      <path d="M16 8h4l3 3v5h-7V8z" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  );
+}
 
 const PERIODS: IvyPeriod[] = ['this_month', 'last_month', 'last_90'];
 const IVY_HUE = 152;
@@ -34,6 +51,7 @@ export default function IvyRevenue() {
   const [period, setPeriod] = useState<IvyPeriod>('this_month');
   const [channelFilter, setChannelFilter] = useState<string | 'all'>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 
   const metrics = useMemo(() => selectPeriodMetrics(state, period), [state, period]);
   const prev = useMemo(() => selectPreviousMetrics(state, period), [state, period]);
@@ -43,9 +61,18 @@ export default function IvyRevenue() {
     [state, period, channelFilter],
   );
 
+  const bostaConnected = selectBostaConnected(state);
+  const unmatchedCount = selectBostaUnmatchedCount(state, period);
+  const onlineOverview = state.overviews[period];
+  const onlineChannelId = state.revenueChannels.find((c) => c.kind === 'online')?.id;
+  // No per-delivery Bosta endpoint exists yet — once connected, stop showing
+  // the seeded fake online rows rather than passing demo data off as real.
+  const loggedEntries = bostaConnected ? entries.filter((e) => e.channel_id !== onlineChannelId) : entries;
+  const showOnlineLogNote =
+    bostaConnected && (channelFilter === 'all' || channelFilter === onlineChannelId);
+
   const revenueDelta = pctChange(metrics.netRevenue, prev.netRevenue);
   const activeChannels = breakdown.filter((b) => b.net > 0);
-  const topChannel = activeChannels[0];
   const manualNet = activeChannels
     .filter((b) => b.channel.kind !== 'online')
     .reduce((s, b) => s + b.net, 0);
@@ -86,6 +113,15 @@ export default function IvyRevenue() {
   return (
     <IvyShell title="revenue" subtitle="every stream in — online, showrooms, stockists" actions={headerActions}>
       <div className="krew-stagger flex flex-col gap-5">
+
+        {unmatchedCount > 0 && (
+          <button
+            onClick={() => setUnmatchedOpen(true)}
+            className="self-start inline-flex items-center gap-[6px] rounded-full border border-ivy-accent-border text-ivy-accent px-3 py-[6px] text-[0.68rem] hover:bg-ivy-accent/10 transition-colors duration-150"
+          >
+            {unmatchedCount} deliver{unmatchedCount === 1 ? 'y' : 'ies'} not linked to an order → review
+          </button>
+        )}
 
         {/* Hero — total net revenue + the channel mix as one bar of light */}
         <div className="relative overflow-hidden rounded-[24px] border border-border bg-background">
@@ -135,28 +171,61 @@ export default function IvyRevenue() {
 
         {/* Pulse row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Top channel */}
+          {/* Online Store — live from Bosta once connected */}
           <div className={tileCls}>
-            <div className="mb-4"><span className={tileLabelCls}>Top channel</span></div>
-            {topChannel ? (
-              <div className="flex items-center gap-5">
-                <ArcGauge pct={topChannel.sharePct} color={channelColor(state, topChannel.channel.id)}>
-                  <CountUp
-                    value={topChannel.sharePct}
-                    format={(n) => `${Math.round(n)}%`}
-                    className="text-[1.05rem] font-light tracking-[-0.03em] text-text-primary"
-                  />
-                  <span className="text-[0.5rem] uppercase tracking-[0.1em] text-text-tertiary mt-[1px]">of net</span>
-                </ArcGauge>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[0.82rem] text-text-primary truncate">{topChannel.channel.name}</div>
-                  <p className="text-[0.66rem] text-text-secondary mt-1 leading-[1.5]">
-                    {formatEGP(topChannel.net)} net · {REVENUE_CHANNEL_KIND_LABEL[topChannel.channel.kind].toLowerCase()}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className={tileLabelCls}>Online Store</span>
+              {bostaConnected && (
+                <span className="flex items-center gap-[5px] text-[0.6rem] text-ivy-accent">
+                  <span className="w-[5px] h-[5px] rounded-full bg-ivy-accent" />
+                  live
+                </span>
+              )}
+            </div>
+            {!bostaConnected ? (
+              <div className="flex flex-col items-center text-center gap-[6px] py-1">
+                <span className="text-ivy-accent/70"><TruckIcon className="w-5 h-5" /></span>
+                <div className="text-[0.8rem] text-text-primary">revenue is dark</div>
+                <p className="text-[0.66rem] text-text-secondary leading-[1.5] max-w-[220px]">
+                  Ivy sees deliveries through Bosta. Connect to turn on your Online Store number.
+                </p>
+                <Link
+                  href="/dashboard/ivy/settings#data-sources"
+                  className="text-[0.68rem] text-ivy-accent hover:brightness-110 transition-[filter] duration-150 mt-1"
+                >
+                  connect Bosta →
+                </Link>
               </div>
+            ) : !onlineOverview || onlineOverview.grossDelivered === 0 ? (
+              <EmptyState text="no deliveries in this period" />
             ) : (
-              <EmptyState text="no revenue in this period" />
+              <>
+                <div className="text-[1.7rem] font-light tracking-[-0.04em] text-text-primary leading-[1.1]">
+                  <CountUp value={onlineOverview.netRevenue} format={formatEGP} />
+                </div>
+                <div className="flex h-[6px] rounded-full overflow-hidden bg-background4 mt-4" aria-hidden="true">
+                  <span
+                    className="h-full rounded-full transition-[width] duration-700"
+                    style={{
+                      width: `${(onlineOverview.netRevenue / onlineOverview.grossDelivered) * 100}%`,
+                      background: 'var(--ivy-accent)',
+                      boxShadow: '0 0 8px var(--ivy-accent)',
+                    }}
+                  />
+                  <span
+                    className="h-full transition-[width] duration-700"
+                    style={{
+                      width: `${(onlineOverview.returns / onlineOverview.grossDelivered) * 100}%`,
+                      background: '#e07070',
+                      opacity: 0.75,
+                    }}
+                  />
+                </div>
+                <p className="text-[0.66rem] text-text-secondary mt-2 leading-[1.5]">
+                  {formatEGP(onlineOverview.grossDelivered)} delivered − {formatEGP(onlineOverview.returns)} returned
+                  · {onlineOverview.returnRatePct.toFixed(1)}% return rate
+                </p>
+              </>
             )}
           </div>
 
@@ -228,11 +297,17 @@ export default function IvyRevenue() {
             </div>
           </div>
 
-          {entries.length === 0 ? (
+          {showOnlineLogNote && (
+            <p className="text-[0.62rem] text-text-tertiary mb-3 leading-[1.5]">
+              Per-delivery log isn&apos;t available yet — the totals above are live from Bosta.
+            </p>
+          )}
+
+          {loggedEntries.length === 0 ? (
             <EmptyState text="no revenue logged for this filter" />
           ) : (
             <div className="flex flex-col divide-y divide-border">
-              {entries.map((e) => {
+              {loggedEntries.map((e) => {
                 const c = channelById(e.channel_id);
                 return (
                   <div key={e.id} className="flex items-center gap-3 py-[0.72rem]">
@@ -263,6 +338,7 @@ export default function IvyRevenue() {
       </div>
 
       {drawerOpen && <AddRevenueDrawer state={state} onClose={() => setDrawerOpen(false)} />}
+      {unmatchedOpen && <BostaUnmatchedModal period={period} onClose={() => setUnmatchedOpen(false)} />}
     </IvyShell>
   );
 }

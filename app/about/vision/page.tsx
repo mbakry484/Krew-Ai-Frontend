@@ -114,7 +114,7 @@ export default function VisionPage() {
             Come build. We&apos;ll handle the rest.
           </h2>
           <div className="mt-10">
-            <Button href="/early-access" variant="primary">
+            <Button href="/auth/signup" variant="primary">
               Join the early access →
             </Button>
           </div>

@@ -62,7 +62,7 @@ export default function BetaAgentSection() {
             <p className="text-[0.85rem] text-text-secondary leading-[1.8] font-light max-w-[420px] mb-9">
               {copy.sub}
             </p>
-            <Button href="/early-access" variant="primary">
+            <Button href="/auth/signup" variant="primary">
               {copy.cta}
             </Button>
           </div>
