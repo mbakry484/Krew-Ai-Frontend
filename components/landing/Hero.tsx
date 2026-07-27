@@ -89,7 +89,7 @@ export default function Hero() {
             </p>
 
             <div className={`${ready ? 'hero-blur-in' : ''} hero-cta-row`} style={at(240)}>
-              <Button href="/early-access" variant="primary">
+              <Button href="/auth/signup" variant="primary">
                 Start with {agent.name}
               </Button>
               <Button variant="secondary" onClick={scrollToCrew}>

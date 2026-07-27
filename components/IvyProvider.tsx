@@ -30,6 +30,9 @@ export function IvyProvider({ children }: { children: React.ReactNode }) {
     ivyClient.hydrateOnboarding().catch((err) => {
       console.error('[ivy] onboarding hydrate failed:', err);
     });
+    // Bosta banner dismissal — local-only, synchronous, same flash-prevention
+    // reasoning as onboarding hydration above.
+    ivyClient.hydrateBostaBanner();
   }, []);
 
   useEffect(() => {

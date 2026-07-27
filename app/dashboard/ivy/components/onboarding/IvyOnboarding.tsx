@@ -10,6 +10,7 @@ import { getAgent } from '@/lib/agents';
 import { ONBOARDING_STEP_ORDER, OnboardingStep } from '@/lib/ivy/types';
 import OnboardingPools from './OnboardingPools';
 import OnboardingTelegram from './OnboardingTelegram';
+import OnboardingBosta from './OnboardingBosta';
 
 // TASK 1 — First-open onboarding. A full-screen cinematic sequence that gates
 // everything a brand-new user sees (onboarding.completed === false). Progress
@@ -24,7 +25,7 @@ const WELCOME_LINE = "let's get your money visible.";
 
 /** Small progress rail — three setup beats; "done" is the summary. */
 function ProgressRail({ step }: { step: OnboardingStep }) {
-  const beats: OnboardingStep[] = ['welcome', 'pools', 'telegram'];
+  const beats: OnboardingStep[] = ['welcome', 'pools', 'telegram', 'bosta'];
   const idx = ONBOARDING_STEP_ORDER.indexOf(step);
   return (
     <div className="flex items-center justify-center gap-2" aria-hidden="true">
@@ -177,8 +178,15 @@ export default function IvyOnboarding() {
               )}
               {step === 'telegram' && (
                 <OnboardingTelegram
-                  onNext={() => go('done')}
+                  onNext={() => go('bosta')}
                   onBack={() => go('pools')}
+                  onSkip={() => go('bosta')}
+                />
+              )}
+              {step === 'bosta' && (
+                <OnboardingBosta
+                  onNext={() => go('done')}
+                  onBack={() => go('telegram')}
                   onSkip={() => go('done')}
                 />
               )}

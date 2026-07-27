@@ -56,7 +56,7 @@ export default function Footer() {
           <div className="text-[0.62rem] uppercase tracking-[0.12em] text-text-tertiary mb-1">Support</div>
           <a href="mailto:support@mykrew.co" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">support@mykrew.co</a>
           <a href="mailto:privacy@mykrew.co" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">privacy@mykrew.co</a>
-          <Link href="/early-access" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">Get early access</Link>
+          <Link href="/auth/signup" className="text-[0.73rem] text-text-secondary hover:text-text-primary transition-colors duration-150">Get early access</Link>
         </div>
 
       </div>

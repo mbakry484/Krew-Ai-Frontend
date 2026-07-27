@@ -70,3 +70,41 @@ export const VISION_FILMS: {
     },
   ],
 };
+
+// =============================================================================
+// THE "TODAY" LIST (COPY.md ABOUT / VISION › "The Declaration → Today list").
+// The abstract declaration is shown, not stated: one coded iOS "Today" list on
+// a photographic iPhone frame. A single day mixes busywork and real work; on
+// scroll a line draws through the `handled` tasks (the crew's), leaving the
+// rest. Header + screen strings reuse approved copy; the describe paragraph is
+// the one new string (locked option A).
+// =============================================================================
+
+export interface VisionTask {
+  text: string;
+  /** true = the crew's busywork — struck through on scroll. */
+  handled: boolean;
+}
+
+export const VISION_TODO: {
+  headline: [string, string];
+  body: string;
+  screenTitle: string;
+  screenSubtitle: string;
+  tasks: VisionTask[];
+} = {
+  headline: ['Founders should build.', 'Agents should operate.'],
+  body: "Every line your crew can take, it takes — the replies, the confirmations, the chasing. What's left is the only list that ever mattered: the work that grows the brand, and the life around it.",
+  screenTitle: 'Today',
+  screenSubtitle: 'Make room for what only you can do.',
+  tasks: [
+    { text: 'Reply to 83 DMs', handled: true },
+    { text: 'Approve the next drop', handled: false },
+    { text: 'Confirm COD orders', handled: true },
+    { text: 'Review campaign creative', handled: false },
+    { text: 'Handle 6 exchanges', handled: true },
+    { text: 'Chase courier settlement', handled: true },
+    { text: 'Plan the launch story', handled: false },
+    { text: 'Sleep before midnight', handled: false },
+  ],
+};

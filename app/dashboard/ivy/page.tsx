@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import IvyShell from './components/IvyShell';
 import CapitalCard, { cardDigits } from './components/CapitalCard';
 import TelegramLinkBanner from './components/onboarding/TelegramLinkBanner';
+import BostaBanner from './components/BostaBanner';
 import { Sparkline, SourceIcon } from './components/_ivyShared';
 import { AgentSays, ArcGauge, AuraField, CountUp } from '@/components/AuraSystem';
 import { Delta, EmptyState, formatEGP, timeAgo } from '@/components/DashboardPrimitives';
@@ -16,6 +17,7 @@ import {
   selectCashRemaining,
   selectCategoryBreakdown,
   selectCogsAndCash,
+  selectInventoryStats,
   selectPeriodMetrics,
   selectPreviousMetrics,
 } from '@/lib/ivy/ivyClient';
@@ -45,6 +47,7 @@ export default function IvyOverview() {
   const prev = useMemo(() => selectPreviousMetrics(state, period), [state, period]);
   const cash = useMemo(() => selectCashRemaining(state), [state]);
   const cogsAndCash = useMemo(() => selectCogsAndCash(state, period), [state, period]);
+  const inventoryStats = useMemo(() => selectInventoryStats(state), [state]);
   const nudges = selectActiveNudges(state);
   const breakdown = useMemo(() => selectCategoryBreakdown(state, { period }), [state, period]);
   const recentActivity = useMemo(() => selectActivityFeed(state).slice(0, 5), [state]);
@@ -143,7 +146,7 @@ export default function IvyOverview() {
                 {hasCogs ? (
                   <span
                     className="group relative inline-flex items-center gap-[6px] rounded-full border border-border bg-background2 px-[11px] py-[4px] text-[0.68rem] cursor-default"
-                    title="profit ≠ cash. you restocked — that money became inventory, not loss."
+                    title="profit ≠ cash. Restocking, injections, and withdrawals move cash without moving profit."
                   >
                     <span className={cashDelta < 0 ? 'text-[#e07070]' : 'text-[#6bcf8f]'}>
                       cash {cashDelta < 0 ? '−' : '+'}{formatEGP(Math.abs(cashDelta))}
@@ -151,7 +154,7 @@ export default function IvyOverview() {
                     <span className="text-text-tertiary">{IVY_PERIOD_LABEL[period].toLowerCase()}</span>
                     <svg className="w-[11px] h-[11px] text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
                     <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-10 w-[248px] rounded-[10px] border border-border-md bg-background px-3 py-2 text-[0.66rem] text-text-secondary leading-[1.5] opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
-                      profit ≠ cash. you restocked — that money became inventory, not loss.
+                      profit ≠ cash. Restocking, injections, and withdrawals move cash without moving profit.
                     </span>
                   </span>
                 ) : (
@@ -163,6 +166,16 @@ export default function IvyOverview() {
                   </button>
                 )}
               </div>
+
+              {/* Informational, not alarming — muted gray, no invented amber */}
+              {hasCogs && costCoveragePct < 100 && (
+                <button
+                  onClick={() => router.push('/dashboard/ivy/inventory')}
+                  className="block mt-2 text-[0.68rem] text-text-tertiary hover:text-text-secondary transition-colors duration-150"
+                >
+                  profit is approximate — {inventoryStats.total - inventoryStats.withCost} of {inventoryStats.total} products missing costs →
+                </button>
+              )}
             </div>
 
             {/* What you minted in Capital lives here too */}
@@ -185,6 +198,8 @@ export default function IvyOverview() {
             )}
           </div>
         </div>
+
+        <BostaBanner />
 
         {/* Pulse row — glowing shapes, not widget bars */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

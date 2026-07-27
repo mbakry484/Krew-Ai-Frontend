@@ -314,7 +314,7 @@ function CtaBubble({ compact = false, withTail = false }: { compact?: boolean; w
   const pop = usePopIn();
   return (
     <Link
-      href="/early-access"
+      href="/auth/signup"
       className="relative group"
       style={{
         background: '#000000',

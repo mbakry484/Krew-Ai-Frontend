@@ -301,7 +301,7 @@ export default function PricingPage() {
             </ul>
 
             <div className="flex mt-6" style={{ gap: 'var(--btn-gap)' }}>
-              <Button href="/early-access" variant="primary">
+              <Button href="/auth/signup" variant="primary">
                 {displayedTier.key === 'obsidian' ? 'Talk to us' : 'Start free trial'}
               </Button>
               <Button href="/faq" variant="secondary">
@@ -394,7 +394,7 @@ export default function PricingPage() {
           Usage-based. No feature locks. Move between tiers whenever your volume changes.
         </p>
         <div className="flex justify-center flex-wrap" style={{ gap: 'var(--btn-gap)' }}>
-          <Button href="/early-access" variant="primary">
+          <Button href="/auth/signup" variant="primary">
             Start free trial
           </Button>
           <Button href="/faq" variant="secondary">

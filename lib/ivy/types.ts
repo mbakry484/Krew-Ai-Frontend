@@ -237,10 +237,10 @@ export interface OnboardingStatus {
   poolCount: number;
 }
 
-/** The four cinematic steps, in order. Progress persists across refresh. */
-export type OnboardingStep = 'welcome' | 'pools' | 'telegram' | 'done';
+/** The five cinematic steps, in order. Progress persists across refresh. */
+export type OnboardingStep = 'welcome' | 'pools' | 'telegram' | 'bosta' | 'done';
 
-export const ONBOARDING_STEP_ORDER: OnboardingStep[] = ['welcome', 'pools', 'telegram', 'done'];
+export const ONBOARDING_STEP_ORDER: OnboardingStep[] = ['welcome', 'pools', 'telegram', 'bosta', 'done'];
 
 export interface TelegramLinkCode {
   /** Shown large, e.g. "IVY-7Q2K". */
@@ -248,4 +248,41 @@ export interface TelegramLinkCode {
   /** t.me deep link the "open Telegram" button points at. */
   deepLink: string;
   expiresAt: string; // ISO
+}
+
+// ── Bosta integration ──────────────────────────────────────────────────────────
+// GET    /integrations/bosta/status      → BostaStatus
+// POST   /integrations/bosta/connect     Body: { api_key } → { success, status }
+// DELETE /integrations/bosta/disconnect
+// GET    /ivy/bosta/unmatched?period=…   → BostaUnmatchedDelivery[]
+// Deliveries feed net revenue / return rate the same way the seeded online
+// snapshots did — the connection just switches that channel from seed to real.
+
+/** null = never connected. The rest are post-connection states. */
+export type BostaConnectionStatus = 'active' | 'invalid' | 'ip_blocked' | 'error' | null;
+
+export interface BostaStatus {
+  connectionStatus: BostaConnectionStatus;
+  connectionError: string | null;
+  lastPollAt: string | null; // ISO
+  historicalSyncCompletedAt: string | null; // ISO — null while the 90-day backfill is still running
+}
+
+/** A Bosta delivery the backend couldn't match to a Shopify order — counted in
+    revenue, but with no product/order breakdown. */
+export interface BostaUnmatchedDelivery {
+  trackingNumber: string;
+  deliveredAt: string; // ISO
+  deliveredValue: number;
+  businessReference: string | null;
+}
+
+/** Ivy's voice for each non-active connection state — shared by the Overview
+    banner and the Settings row so the two surfaces never say different things.
+    (null can't be an object key, hence a function rather than a Record.) */
+export function bostaStatusCopy(status: Exclude<BostaConnectionStatus, 'active'>): string {
+  if (status === 'invalid') return "Your Bosta key stopped working. Reconnect and I'll catch up.";
+  if (status === 'ip_blocked') return "Bosta is blocking my IP. Add Krew's egress IPs to your whitelist in Bosta settings.";
+  if (status === 'error') return "I can't reach Bosta right now. I'll keep trying.";
+  return "Connect Bosta so I can see what's actually landing. Right now your revenue number is empty.";
 }

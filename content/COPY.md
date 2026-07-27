@@ -195,9 +195,28 @@ Long calm pause, then loop. Reduced motion: static scene showing the final state
 | sleep | `He stopped sleeping with one eye on the inbox.` | Luna | `Replied — order confirmed · 2:47 AM` |
 | work | `Back to the work only you can do.` | Ivy | `Courier settlement logged ✓` |
 
-### The Declaration (now the first section after the films; its old eyebrow moved up to the hero)
-- Headline: `Founders should build.` / `Agents should operate.`
-- Sub: `Krew gives every brand an AI-powered operations team — so the people who start companies can go back to building them.`
+### The Declaration → now the "Today" list (locked 2026-07-16; single-list rebuild same day)
+The abstract declaration block is retired as text and **shown** instead: one coded iOS "Today"
+list rendered on a photographic iPhone frame (`public/vision/iphone-frame.webp`). A single day
+mixes busywork and real work; as you scroll, a line **draws through** the tasks the crew handles,
+leaving the ones that matter. The section reuses the declaration's own words as its header.
+- Header headline: `Founders should build.` / `Agents should operate.`
+- Describe paragraph (right of the phone — the one new string, locked 2026-07-16, option A): `Every line your crew can take, it takes — the replies, the confirmations, the chasing. What's left is the only list that ever mattered: the work that grows the brand, and the life around it.`
+
+**The list** — screen title `Today`, subtitle `Make room for what only you can do.`; eight tasks
+in one column, interleaved. `handled` = struck through on scroll (the crew's); the rest stay:
+| # | Task | On scroll |
+|---|------|-----------|
+| 1 | `Reply to 83 DMs` | struck (handled) |
+| 2 | `Approve the next drop` | stays |
+| 3 | `Confirm COD orders` | struck (handled) |
+| 4 | `Review campaign creative` | stays |
+| 5 | `Handle 6 exchanges` | struck (handled) |
+| 6 | `Chase courier settlement` | struck (handled) |
+| 7 | `Plan the launch story` | stays |
+| 8 | `Sleep before midnight` | stays |
+
+*(Numbers `83` / `6` are the user's own daily operational figures — distinct from Luna's weekly canon "140 conversations a week"; kept verbatim. Retired tasks kept in reserve for a future edit: `Log expenses in Excel`, `Follow up with media buyer`, `Update stock sheet`, `Send daily sales report`, `Review campaign creative` is in use, `Gym`, `Dinner with friends`.)*
 
 ### The Belief tenets (kept verbatim)
 - 01: `The best-run brands won't be the ones with the biggest teams. They'll be the ones with the right agents.`
